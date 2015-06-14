@@ -1,6 +1,9 @@
 package org.openstreetmap.josm.gsoc2015.opengl.jogl;
 
+import java.awt.Color;
 import java.awt.Rectangle;
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseMotionListener;
 
 import javax.media.opengl.GL;
 import javax.media.opengl.GL2;
@@ -16,14 +19,19 @@ import org.openstreetmap.josm.data.Bounds;
 import org.openstreetmap.josm.gsoc2015.opengl.MapViewPaintModeState;
 import org.openstreetmap.josm.gsoc2015.opengl.MapViewPaintModeState.PaintMode;
 import org.openstreetmap.josm.gsoc2015.opengl.MapViewPaintModeState.PaintModeListener;
+import org.openstreetmap.josm.gsoc2015.opengl.temp.MapViewportObserver;
+import org.openstreetmap.josm.gsoc2015.opengl.temp.MapViewportObserver.MapViewportListener;
+import org.openstreetmap.josm.gui.MapFrame.MapModeChangeListener;
 import org.openstreetmap.josm.gui.MapView;
 import org.openstreetmap.josm.gui.layer.Layer;
 import org.openstreetmap.josm.gui.layer.MapViewPaintable;
 
+import com.jogamp.opengl.util.Animator;
 import com.jogamp.opengl.util.FPSAnimator;
 
 public class MapPanel extends GLJPanel {
 	private MapView mapView;
+	private Animator animator;
 
 	/**
 	 * Draws the layers of the {@link #mapView} to the panel.
@@ -33,6 +41,9 @@ public class MapPanel extends GLJPanel {
 	 */
 	private final class GLDrawer implements GLEventListener {
 		protected GLGraphics2D g2d;
+		
+		private LayerDrawManager layerDrawer = new LayerDrawManager();
+		private LayerDrawManager temporaryLayerDrawer = new LayerDrawManager();
 
 		@Override
 		public void reshape(GLAutoDrawable drawable, int x, int y, int width,
@@ -50,17 +61,31 @@ public class MapPanel extends GLJPanel {
 				g2d.glDispose();
 				g2d = null;
 			}
+			
+			layerDrawer.dispose();
+			temporaryLayerDrawer.dispose();
 		}
 
 		private double animateStep = 0;
 
 		@Override
 		public void display(GLAutoDrawable drawable) {
+			System.out.println("display()");
 			drawable.getGL().glViewport(0, 0, drawable.getSurfaceWidth(),
 					drawable.getSurfaceHeight());
 			drawable.getGL().getGL2().glClear(GL.GL_COLOR_BUFFER_BIT);
 			GL2 gl = drawable.getGL().getGL2();
+			
+			try {
+//			drawTestScene(gl);
+//			drawMapView(drawable);
+			drawAllLayers(drawable);
+			} catch (Throwable t) {
+				System.err.println(t);
+			}
+		}
 
+		private void drawTestScene(GL2 gl) {
 			int[] viewportDimensions = new int[4];
 			gl.glGetIntegerv(GL.GL_VIEWPORT, viewportDimensions, 0);
 			int width = viewportDimensions[2];
@@ -86,9 +111,29 @@ public class MapPanel extends GLJPanel {
 					100.0f + 20f * (float) Math.sin(animateStep), 0.0f);
 			gl.glVertex3f(300.0f, 100.0f, 0.0f);
 			gl.glEnd();
-			// drawAllLayers(drawable);
 		}
 
+		/**
+		 * Draw the map view using the normal paint()-Method.
+		 * @param drawable
+		 */
+		private void drawMapView(GLAutoDrawable drawable) {
+		    g2d.prePaint(drawable.getContext());
+
+		    // clip to only the component we're painting
+		    g2d.translate(mapView.getX(), mapView.getY());
+		    g2d.clipRect(0, 0, mapView.getWidth(), mapView.getHeight());
+		    boolean wasDoubleBuffered = mapView.isDoubleBuffered();
+		    mapView.offscreenBuffer = null;
+		    mapView.paintPreferencesChanged = true;
+		    mapView.setDoubleBuffered(false);
+
+		    mapView.paint(g2d);
+
+		    mapView.setDoubleBuffered(wasDoubleBuffered);
+		    g2d.postPaint();
+		}
+			
 		private void drawAllLayers(GLAutoDrawable drawable) {
 			g2d.prePaint(drawable.getContext());
 
@@ -96,14 +141,18 @@ public class MapPanel extends GLJPanel {
 			g2d.clipRect(0, 0, drawable.getSurfaceWidth(),
 					drawable.getSurfaceHeight());
 
+			g2d.setColor(Color.BLACK);
+			g2d.drawRect(0, 0, drawable.getSurfaceWidth(),
+					drawable.getSurfaceHeight());
+			
 			Bounds box = mapView.getLatLonBounds(new Rectangle(drawable
 					.getSurfaceWidth(), drawable.getSurfaceHeight()));
-			for (Layer l : mapView.getVisibleLayersInZOrder()) {
-				l.paint(g2d, mapView, box);
-			}
-			for (MapViewPaintable l : mapView.getTemporaryLayers()) {
-				l.paint(g2d, mapView, box);
-			}
+			layerDrawer.setLayersToDraw(mapView.getVisibleLayersInZOrder());
+			temporaryLayerDrawer.setLayersToDraw(mapView.getTemporaryLayers());
+
+			layerDrawer.draw(g2d, mapView, box);
+			temporaryLayerDrawer.draw(g2d, mapView, box);
+
 			g2d.postPaint();
 		}
 	}
@@ -125,20 +174,27 @@ public class MapPanel extends GLJPanel {
 	public MapPanel(MapView mapView) {
 		super(getDefaultCapabalities());
 		this.mapView = mapView;
+		
 		addGLEventListener(new GLDrawer());
-		final FPSAnimator fpsAnimator = new FPSAnimator(this, 60);
-		MapViewPaintModeState.getInstance().addPaintModeListener(
-				new PaintModeListener() {
-					@Override
-					public void paintModeChanged(PaintMode newMode) {
-						if (newMode == PaintMode.OPENGL) {
-							fpsAnimator.start();
-						} else {
-							fpsAnimator.stop();
-						}
-					}
-				}, true);
-		fpsAnimator.start();
+		
+		// When to repaint...
+		animator = new Animator(this);
+		animator.setRunAsFastAsPossible(false);
+		new MapViewportObserver(mapView).addMapViewportListener(new MapViewportListener() {
+			@Override
+			public void mapViewportChanged() {
+				repaint();
+			}
+		});
+		
+		MapViewPaintModeState.getInstance().addPaintModeListener(new PaintModeListener() {
+			@Override
+			public void paintModeChanged(PaintMode newMode) {
+				if (newMode == PaintMode.OPENGL) {
+					repaint();
+				}
+			}
+		}, true);
 		
 	}
 }
