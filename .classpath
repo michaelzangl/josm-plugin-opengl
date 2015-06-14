@@ -5,6 +5,5 @@
 	<classpathentry combineaccessrules="false" kind="src" path="/josm"/>
 	<classpathentry kind="lib" path="jogamp-all-platforms/jar/gluegen-rt.jar"/>
 	<classpathentry kind="lib" path="jogamp-all-platforms/jar/jogl-all.jar"/>
-	<classpathentry kind="lib" path="lib/glg2d-0.3-20130517.133836-3.jar" sourcepath="/home/michael/Downloads/glg2d-0.3-20130517.133836-3-sources.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
