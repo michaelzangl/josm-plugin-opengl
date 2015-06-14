@@ -26,6 +26,7 @@ public class InterceptMouseEvents extends JPanel {
 
 			@Override
 			public void mouseMoved(MouseEvent e) {
+				System.out.println("Intercept mouse move...");
 				forwardTo.lastMEvent = e;
 			}
 		});
@@ -33,7 +34,7 @@ public class InterceptMouseEvents extends JPanel {
 			@Override
 			public void mousePressed(MouseEvent me) {
 				// focus the MapView component when mouse is pressed inside it
-				requestFocus();
+				forwardTo.requestFocus();
 			}
 		});
 		setOpaque(false);
