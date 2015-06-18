@@ -1,12 +1,11 @@
 package org.openstreetmap.josm.gsoc2015.opengl.jogl;
 
-import java.awt.Color;
+import java.awt.AlphaComposite;
 import java.awt.Rectangle;
-import java.awt.event.MouseEvent;
-import java.awt.event.MouseMotionListener;
 
 import javax.media.opengl.GL;
 import javax.media.opengl.GL2;
+import javax.media.opengl.GL2ES1;
 import javax.media.opengl.GLAutoDrawable;
 import javax.media.opengl.GLCapabilities;
 import javax.media.opengl.GLEventListener;
@@ -16,18 +15,15 @@ import javax.media.opengl.fixedfunc.GLMatrixFunc;
 
 import org.jogamp.glg2d.GLGraphics2D;
 import org.openstreetmap.josm.data.Bounds;
+import org.openstreetmap.josm.data.osm.visitor.paint.PaintColors;
 import org.openstreetmap.josm.gsoc2015.opengl.MapViewPaintModeState;
 import org.openstreetmap.josm.gsoc2015.opengl.MapViewPaintModeState.PaintMode;
 import org.openstreetmap.josm.gsoc2015.opengl.MapViewPaintModeState.PaintModeListener;
 import org.openstreetmap.josm.gsoc2015.opengl.temp.MapViewportObserver;
 import org.openstreetmap.josm.gsoc2015.opengl.temp.MapViewportObserver.MapViewportListener;
-import org.openstreetmap.josm.gui.MapFrame.MapModeChangeListener;
 import org.openstreetmap.josm.gui.MapView;
-import org.openstreetmap.josm.gui.layer.Layer;
-import org.openstreetmap.josm.gui.layer.MapViewPaintable;
 
 import com.jogamp.opengl.util.Animator;
-import com.jogamp.opengl.util.FPSAnimator;
 
 public class MapPanel extends GLJPanel {
 	private MapView mapView;
@@ -73,8 +69,6 @@ public class MapPanel extends GLJPanel {
 			System.out.println("display()");
 			drawable.getGL().glViewport(0, 0, drawable.getSurfaceWidth(),
 					drawable.getSurfaceHeight());
-			drawable.getGL().getGL2().glClear(GL.GL_COLOR_BUFFER_BIT);
-			GL2 gl = drawable.getGL().getGL2();
 			
 			try {
 //			drawTestScene(gl);
@@ -82,6 +76,7 @@ public class MapPanel extends GLJPanel {
 			drawAllLayers(drawable);
 			} catch (Throwable t) {
 				System.err.println(t);
+				t.printStackTrace();
 			}
 		}
 
@@ -133,28 +128,42 @@ public class MapPanel extends GLJPanel {
 		    mapView.setDoubleBuffered(wasDoubleBuffered);
 		    g2d.postPaint();
 		}
-			
+
 		private void drawAllLayers(GLAutoDrawable drawable) {
+			GL2 gl = drawable.getGL().getGL2();
 			g2d.prePaint(drawable.getContext());
+
+			// Draw the window background
+			g2d.setClip(null);
+			g2d.setColor(PaintColors.getBackgroundColor());
+			g2d.setComposite(AlphaComposite.Src);
+			g2d.fillRect(0, 0, drawable.getSurfaceWidth(),
+					drawable.getSurfaceHeight());
+			g2d.setComposite(AlphaComposite.SrcOver);
 
 			// clip to only the component we're painting
 			g2d.clipRect(0, 0, drawable.getSurfaceWidth(),
 					drawable.getSurfaceHeight());
-
-			g2d.setColor(Color.BLACK);
-			g2d.drawRect(0, 0, drawable.getSurfaceWidth(),
-					drawable.getSurfaceHeight());
 			
-			Bounds box = mapView.getLatLonBounds(new Rectangle(drawable
-					.getSurfaceWidth(), drawable.getSurfaceHeight()));
+			// reload the layers (we might make this event based)
 			layerDrawer.setLayersToDraw(mapView.getVisibleLayersInZOrder());
 			temporaryLayerDrawer.setLayersToDraw(mapView.getTemporaryLayers());
 
+			Bounds box = mapView.getLatLonBounds(new Rectangle(drawable
+					.getSurfaceWidth(), drawable.getSurfaceHeight()));
 			layerDrawer.draw(g2d, mapView, box);
 			temporaryLayerDrawer.draw(g2d, mapView, box);
-
 			g2d.postPaint();
+			
+			// Set alpha to full. Otherwise, we will get annoying effects the next time we draw.
+			gl.glColorMask(false, false, false, true);
+			gl.glDisable(GL.GL_SCISSOR_TEST);
+			gl.glDisable(GL.GL_DITHER);
+			gl.glClearColor(0, 0, 0, 1.0f);
+			gl.glClear(GL2ES1.GL_COLOR_BUFFER_BIT);
+			gl.glColorMask(true, true, true, true);
 		}
+
 	}
 
 	public static GLCapabilities getDefaultCapabalities() {
