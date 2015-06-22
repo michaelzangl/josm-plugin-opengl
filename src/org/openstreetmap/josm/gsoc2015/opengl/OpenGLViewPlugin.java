@@ -8,6 +8,7 @@ import java.util.Arrays;
 
 import javax.swing.BorderFactory;
 import javax.swing.JCheckBoxMenuItem;
+import javax.swing.JComponent;
 import javax.swing.JMenu;
 import javax.swing.JPanel;
 
@@ -27,7 +28,7 @@ public class OpenGLViewPlugin extends Plugin {
 		private Component java2dPanel;
 		private Component openGLPanel;
 
-		public OpenGLSwitchPanel(Component java2dPanel, Component openGLPanel) {
+		public OpenGLSwitchPanel(JComponent java2dPanel, JComponent openGLPanel) {
 			super(new CardLayout());
 			this.java2dPanel = java2dPanel;
 			this.openGLPanel = openGLPanel;
@@ -35,7 +36,8 @@ public class OpenGLViewPlugin extends Plugin {
 			add(openGLPanel, PaintMode.OPENGL.toString());
 			MapViewPaintModeState state = MapViewPaintModeState.getInstance();
 			state.addPaintModeListener(this, true);
-			setBorder(BorderFactory.createLineBorder(Color.red));
+			java2dPanel.setBorder(BorderFactory.createLineBorder(Color.red));
+			openGLPanel.setBorder(BorderFactory.createLineBorder(Color.blue));
 		}
 
 		@Override
@@ -98,7 +100,7 @@ public class OpenGLViewPlugin extends Plugin {
 				.indexOf(mapView);
 		mapViewOuter.remove(mapView);
 
-		Component openGLView = new OpenGLMapView(mapView, getPluginInformation());
+		JComponent openGLView = new OpenGLMapView(mapView, getPluginInformation());
 		OpenGLSwitchPanel mapViewContainer = new OpenGLSwitchPanel(mapView,
 				openGLView);
 		mapViewOuter.add(mapViewContainer, GBC.std().fill(), index);
