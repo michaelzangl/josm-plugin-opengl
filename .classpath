@@ -3,7 +3,7 @@
 	<classpathentry kind="src" path="src"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
 	<classpathentry combineaccessrules="false" kind="src" path="/josm"/>
-	<classpathentry kind="lib" path="jogamp-all-platforms/jar/gluegen-rt.jar"/>
-	<classpathentry kind="lib" path="jogamp-all-platforms/jar/jogl-all.jar"/>
+	<classpathentry kind="lib" path="resources/lib/gluegen-rt.jar"/>
+	<classpathentry kind="lib" path="resources/lib/jogl-all.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
