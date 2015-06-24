@@ -7,17 +7,20 @@ import java.awt.event.MouseMotionListener;
 
 import javax.swing.JPanel;
 
+import org.openstreetmap.josm.gui.MapMover;
 import org.openstreetmap.josm.gui.MapView;
+import org.openstreetmap.josm.gui.navigate.NavigationCursorManager;
 
 public class InterceptMouseEvents extends JPanel {
 
 	private MapView forwardTo;
+	
+	private NavigationCursorManager cursorManager = new NavigationCursorManager(this);
 
 	public InterceptMouseEvents(final MapView forwardTo) {
 		this.forwardTo = forwardTo;
-		this.addMouseListener(forwardTo.mapMover);
-		this.addMouseMotionListener(forwardTo.mapMover);
-		this.addMouseWheelListener(forwardTo.mapMover);
+		MapMover mover = new MapMover(forwardTo.getNavigationModel(), cursorManager, null);
+		mover.registerMouseEvents(this);
 		this.addMouseMotionListener(new MouseMotionListener() {
 			@Override
 			public void mouseDragged(MouseEvent e) {
@@ -26,7 +29,6 @@ public class InterceptMouseEvents extends JPanel {
 
 			@Override
 			public void mouseMoved(MouseEvent e) {
-				System.out.println("Intercept mouse move...");
 				forwardTo.lastMEvent = e;
 			}
 		});
