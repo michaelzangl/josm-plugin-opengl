@@ -66,9 +66,10 @@ public class MapPanel extends GLJPanel {
 
 		@Override
 		public void display(GLAutoDrawable drawable) {
-			System.out.println("display()");
+			System.out.println("BEGIN display()");
 			drawable.getGL().glViewport(0, 0, drawable.getSurfaceWidth(),
 					drawable.getSurfaceHeight());
+			long time = System.currentTimeMillis();
 			
 			try {
 //			drawTestScene(gl);
@@ -78,6 +79,7 @@ public class MapPanel extends GLJPanel {
 				System.err.println(t);
 				t.printStackTrace();
 			}
+			System.out.println(String.format("END display(), t = %d ms", System.currentTimeMillis() - time));
 		}
 
 		private void drawTestScene(GL2 gl) {
