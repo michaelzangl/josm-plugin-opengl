@@ -22,10 +22,11 @@ import org.openstreetmap.josm.gsoc2015.opengl.MapViewPaintModeState.PaintModeLis
 import org.openstreetmap.josm.gsoc2015.opengl.temp.MapViewportObserver;
 import org.openstreetmap.josm.gsoc2015.opengl.temp.MapViewportObserver.MapViewportListener;
 import org.openstreetmap.josm.gui.MapView;
+import org.openstreetmap.josm.gui.MapView.RepaintListener;
 
 import com.jogamp.opengl.util.Animator;
 
-public class MapPanel extends GLJPanel {
+public class MapPanel extends GLJPanel implements RepaintListener {
 	private MapView mapView;
 	private Animator animator;
 
@@ -110,27 +111,6 @@ public class MapPanel extends GLJPanel {
 			gl.glEnd();
 		}
 
-		/**
-		 * Draw the map view using the normal paint()-Method.
-		 * @param drawable
-		 */
-		private void drawMapView(GLAutoDrawable drawable) {
-		    g2d.prePaint(drawable.getContext());
-
-		    // clip to only the component we're painting
-		    g2d.translate(mapView.getX(), mapView.getY());
-		    g2d.clipRect(0, 0, mapView.getWidth(), mapView.getHeight());
-		    boolean wasDoubleBuffered = mapView.isDoubleBuffered();
-		    mapView.offscreenBuffer = null;
-		    mapView.paintPreferencesChanged = true;
-		    mapView.setDoubleBuffered(false);
-
-		    mapView.paint(g2d);
-
-		    mapView.setDoubleBuffered(wasDoubleBuffered);
-		    g2d.postPaint();
-		}
-
 		private void drawAllLayers(GLAutoDrawable drawable) {
 			GL2 gl = drawable.getGL().getGL2();
 			g2d.prePaint(drawable.getContext());
@@ -188,6 +168,8 @@ public class MapPanel extends GLJPanel {
 		
 		addGLEventListener(new GLDrawer());
 		
+		mapView.addRepaintListener(this);
+
 		// When to repaint...
 		animator = new Animator(this);
 		animator.setRunAsFastAsPossible(false);
@@ -206,6 +188,5 @@ public class MapPanel extends GLJPanel {
 				}
 			}
 		}, true);
-		
 	}
 }
