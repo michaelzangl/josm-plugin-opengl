@@ -7,6 +7,7 @@ import java.awt.Point;
 import java.awt.Rectangle;
 import java.awt.event.KeyEvent;
 
+import javax.swing.JComponent;
 import javax.swing.JPanel;
 import javax.swing.SpringLayout;
 
@@ -49,7 +50,6 @@ public class OpenGLMapView extends JPanel {
 			}
 		}, pluginInformation);
 		add(progressMonitor);
-
 	}
 
 	protected void addOpenglView() {
@@ -58,7 +58,9 @@ public class OpenGLMapView extends JPanel {
 		setLayout(springLayout);
 
 		// This adds some absolutely positioned elements to this view.
-		MapView.addMapNavigationComponents(this, mapView);
+		for (JComponent c : MapView.getMapNavigationComponents(mapView)) {
+			add(c);
+		}
 
 		// Convert all bounds to swing constrains.
 		for (Component c : getComponents()) {

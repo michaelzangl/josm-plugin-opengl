@@ -10,7 +10,6 @@ import java.awt.event.MouseWheelListener;
 import javax.swing.JPanel;
 
 import org.openstreetmap.josm.gui.MapView;
-import org.openstreetmap.josm.gui.navigate.NavigationCursorManager;
 
 /**
  * This panel intercepts all mouse events and forwards them to the hidden map
@@ -93,9 +92,6 @@ public class InterceptMouseEvents extends JPanel {
 	}
 
 	private MapView forwardTo;
-
-	private NavigationCursorManager cursorManager = new NavigationCursorManager(
-			this);
 	
 	private MouseEventForwarder forwarder = new MouseEventForwarder();
 
