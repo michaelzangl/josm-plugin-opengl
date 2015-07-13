@@ -6,9 +6,11 @@ import java.util.Collections;
 import java.util.List;
 
 import org.openstreetmap.josm.data.Bounds;
+import org.openstreetmap.josm.gsoc2015.opengl.osm.OsmLayerDrawer;
 import org.openstreetmap.josm.gui.MapView;
 import org.openstreetmap.josm.gui.layer.MapViewPaintable;
 import org.openstreetmap.josm.gui.layer.MapViewPaintable;
+import org.openstreetmap.josm.gui.layer.OsmDataLayer;
 
 /**
  * This class manages the drawing of the single layers.
@@ -61,7 +63,11 @@ public class LayerDrawManager {
 	}
 
 	private LayerDrawer createDrawerForLayer(MapViewPaintable l) {
-		return new GLG2DLayerDrawer(l);
+		if (l instanceof OsmDataLayer) {
+			return new OsmLayerDrawer((OsmDataLayer) l);
+		} else {
+			return new GLG2DLayerDrawer(l);
+		}
 	}
 
 	private LayerDrawer findDrawerInList(List<LayerDrawer> layerDrawers, MapViewPaintable forLayer) {
