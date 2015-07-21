@@ -5,14 +5,17 @@ import java.awt.Shape;
 import java.awt.Stroke;
 
 import org.jogamp.glg2d.impl.AbstractShapeHelper;
+import org.jogamp.glg2d.impl.gl2.FastLineVisitor;
 
 public class RecordingShapeHelper extends AbstractShapeHelper {
 
 	private final RecordingTesselatorVisitor fillVisitor;
 	private final RecordingStrokeLineVisitor lineVisitor;
+	private RecordingColorHelper colorHelper;
 
 	public RecordingShapeHelper(RecordingColorHelper colorHelper,
 			Recorder recorder) {
+		this.colorHelper = colorHelper;
 		fillVisitor = new RecordingTesselatorVisitor(colorHelper, recorder);
 		lineVisitor = new RecordingStrokeLineVisitor(colorHelper, recorder);
 	}

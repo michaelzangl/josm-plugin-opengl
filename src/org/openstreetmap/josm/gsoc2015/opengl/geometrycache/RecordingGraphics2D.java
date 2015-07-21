@@ -197,4 +197,9 @@ public class RecordingGraphics2D extends GLGraphics2D {
 		// colorHelper is already created here.
 		return new RecordingShapeHelper((RecordingColorHelper) colorHelper, recorder);
 	}
+	
+	@Override
+	protected void scissor(boolean enable) {
+		// unsupported. But we need to support storing the clip bounds.
+	}
 }

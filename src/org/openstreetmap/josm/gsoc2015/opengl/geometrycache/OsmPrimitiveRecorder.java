@@ -18,30 +18,35 @@ public class OsmPrimitiveRecorder implements Recorder, Visitor {
 	
 	private List<RecordedGeometry> geometries = new ArrayList<>();
 	private OsmPrimitive activePrimitive;
-	private RecordedPrimitiveReceiver receiver = new RecordedPrimitiveReceiver() {
-		
-		@Override
-		public void receiveForWay(RecordedOsmGeometries<Way> geometry) {
-			System.out.println("Received way: " + geometry.toString());
-		}
-		
-		@Override
-		public void receiveForRelation(RecordedOsmGeometries<Relation> geometry) {
-			// TODO Auto-generated method stub
-			
-		}
-		
-		@Override
-		public void receiveForNode(RecordedOsmGeometries<Node> geometry) {
-			// TODO Auto-generated method stub
-			
-		}
-	};
+	private RecordedPrimitiveReceiver receiver ;
+//			new RecordedPrimitiveReceiver() {
+//		
+//		@Override
+//		public void receiveForWay(RecordedOsmGeometries<Way> geometry) {
+//			System.out.println("Received way: " + geometry.toString());
+//		}
+//		
+//		@Override
+//		public void receiveForRelation(RecordedOsmGeometries<Relation> geometry) {
+//			// TODO Auto-generated method stub
+//			
+//		}
+//		
+//		@Override
+//		public void receiveForNode(RecordedOsmGeometries<Node> geometry) {
+//			// TODO Auto-generated method stub
+//			
+//		}
+//	};
 
 	public interface RecordedPrimitiveReceiver {
 		void receiveForNode(RecordedOsmGeometries<Node> geometry);
 		void receiveForWay(RecordedOsmGeometries<Way> geometry);
 		void receiveForRelation(RecordedOsmGeometries<Relation> geometry);
+	}
+	
+	public OsmPrimitiveRecorder(RecordedPrimitiveReceiver receiver) {
+		this.receiver = receiver;
 	}
 	
 	@Override

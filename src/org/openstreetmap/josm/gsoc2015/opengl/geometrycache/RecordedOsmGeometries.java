@@ -2,6 +2,7 @@ package org.openstreetmap.josm.gsoc2015.opengl.geometrycache;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -18,7 +19,7 @@ public class RecordedOsmGeometries<T extends OsmPrimitive> {
 	/**
 	 * A list of primitives this geometry is for.
 	 */
-	private Set<T> primitives;
+	private Set<T> primitives = new HashSet<>();
 
 	/**
 	 * 

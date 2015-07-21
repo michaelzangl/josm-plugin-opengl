@@ -22,7 +22,6 @@ public class RecordingStrokeLineVisitor extends BasicStrokeLineVisitor {
 
 	@Override
 	protected void drawBuffer() {
-		System.out.println("Recording line...");
 		recorder.recordGeometry(new RecordedGeometry(GL.GL_TRIANGLE_STRIP,
 				vBuffer, colorHelper.getActiveColor()));
 	}
