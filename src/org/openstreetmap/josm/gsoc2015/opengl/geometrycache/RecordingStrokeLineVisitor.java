@@ -2,6 +2,7 @@ package org.openstreetmap.josm.gsoc2015.opengl.geometrycache;
 
 import javax.media.opengl.GL;
 
+import org.jogamp.glg2d.VertexBuffer;
 import org.jogamp.glg2d.impl.BasicStrokeLineVisitor;
 
 public class RecordingStrokeLineVisitor extends BasicStrokeLineVisitor {
@@ -24,6 +25,8 @@ public class RecordingStrokeLineVisitor extends BasicStrokeLineVisitor {
 	protected void drawBuffer() {
 		recorder.recordGeometry(new RecordedGeometry(GL.GL_TRIANGLE_STRIP,
 				vBuffer, colorHelper.getActiveColor()));
+		// For the next run.
+		vBuffer = new VertexBuffer(1024);
 	}
 
 }

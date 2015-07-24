@@ -11,7 +11,7 @@ import javax.media.opengl.GL2;
 import org.openstreetmap.josm.data.osm.Node;
 import org.openstreetmap.josm.data.osm.OsmPrimitive;
 
-public class RecordedOsmGeometries<T extends OsmPrimitive> {
+public class RecordedOsmGeometries implements Comparable<RecordedOsmGeometries> {
 	/**
 	 * The geometries in the order in which they need to be drawn.
 	 */
@@ -19,15 +19,18 @@ public class RecordedOsmGeometries<T extends OsmPrimitive> {
 	/**
 	 * A list of primitives this geometry is for.
 	 */
-	private Set<T> primitives = new HashSet<>();
+	private Set<OsmPrimitive> primitives = new HashSet<>();
 
+	private long orderIndex;
+	
 	/**
 	 * 
 	 * @param geometries
 	 *            The geometires. A copy is created.
 	 * @param primitives
 	 */
-	public RecordedOsmGeometries(List<RecordedGeometry> geometries, T primitive) {
+	public RecordedOsmGeometries(List<RecordedGeometry> geometries, OsmPrimitive primitive, long orderIndex) {
+		this.orderIndex = orderIndex;
 		this.geometries = new ArrayList<>(geometries);
 		this.primitives.add(primitive);
 	}
@@ -54,6 +57,11 @@ public class RecordedOsmGeometries<T extends OsmPrimitive> {
 	public String toString() {
 		return "RecordedOsmGeometries [geometries=" + geometries
 				+ ", primitives=" + primitives + "]";
+	}
+
+	@Override
+	public int compareTo(RecordedOsmGeometries o) {
+		return Long.compare(orderIndex, o.orderIndex);
 	}
 
 }

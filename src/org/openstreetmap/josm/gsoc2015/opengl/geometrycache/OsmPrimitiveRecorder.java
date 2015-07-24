@@ -1,5 +1,6 @@
 package org.openstreetmap.josm.gsoc2015.opengl.geometrycache;
 
+import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.ArrayList;
 
@@ -19,6 +20,8 @@ public class OsmPrimitiveRecorder implements Recorder, Visitor {
 	private List<RecordedGeometry> geometries = new ArrayList<>();
 	private OsmPrimitive activePrimitive;
 	private RecordedPrimitiveReceiver receiver ;
+	private long activeOrderIndex;
+	
 //			new RecordedPrimitiveReceiver() {
 //		
 //		@Override
@@ -40,9 +43,9 @@ public class OsmPrimitiveRecorder implements Recorder, Visitor {
 //	};
 
 	public interface RecordedPrimitiveReceiver {
-		void receiveForNode(RecordedOsmGeometries<Node> geometry);
-		void receiveForWay(RecordedOsmGeometries<Way> geometry);
-		void receiveForRelation(RecordedOsmGeometries<Relation> geometry);
+		void receiveForNode(RecordedOsmGeometries geometry);
+		void receiveForWay(RecordedOsmGeometries geometry);
+		void receiveForRelation(RecordedOsmGeometries geometry);
 	}
 	
 	public OsmPrimitiveRecorder(RecordedPrimitiveReceiver receiver) {
@@ -58,11 +61,12 @@ public class OsmPrimitiveRecorder implements Recorder, Visitor {
 		geometries.clear();
 	}
 	
-	public void start(OsmPrimitive p) {
+	public void start(OsmPrimitive p, long orderIndex) {
 		if (activePrimitive != null) {
 			throw new IllegalStateException("start() called without a end().");
 		}
 		reset();
+		this.activeOrderIndex = orderIndex;
 		activePrimitive = p;
 	}
 	
@@ -76,20 +80,21 @@ public class OsmPrimitiveRecorder implements Recorder, Visitor {
 
 	@Override
 	public void visit(Node n) {
-		receiver.receiveForNode(new RecordedOsmGeometries<Node>(geometries, n));
+		receiver.receiveForNode(new RecordedOsmGeometries(geometries, n, activeOrderIndex));
 	}
 
 	@Override
 	public void visit(Way w) {
-		receiver.receiveForWay(new RecordedOsmGeometries<Way>(geometries, w));
+		receiver.receiveForWay(new RecordedOsmGeometries(geometries, w, activeOrderIndex));
 	}
 
 	@Override
 	public void visit(Relation r) {
-		receiver.receiveForRelation(new RecordedOsmGeometries<Relation>(geometries, r));
+		receiver.receiveForRelation(new RecordedOsmGeometries(geometries, r, activeOrderIndex));
 	}
 
 	@Override
 	public void visit(Changeset cs) {
+		throw new UnsupportedOperationException();
 	}
 }

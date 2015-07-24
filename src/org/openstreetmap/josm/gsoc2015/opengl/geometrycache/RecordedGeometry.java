@@ -1,17 +1,27 @@
 package org.openstreetmap.josm.gsoc2015.opengl.geometrycache;
 
 
+import java.util.IdentityHashMap;
+
 import javax.media.opengl.GL2;
 
 import org.jogamp.glg2d.VertexBuffer;
 
 public class RecordedGeometry {
+	private static IdentityHashMap<VertexBuffer, VertexBuffer> used = new IdentityHashMap<>();
+	
 	private VertexBuffer vBuffer;
 	private int vbo = -1;
 	private int color;
 	private int drawMode;
 
 	public RecordedGeometry(int drawMode, VertexBuffer vBuffer, int color) {
+		// For testing
+		if (used.containsKey(vBuffer)) {
+			throw new IllegalArgumentException("Got VBuffer twice.");
+		}
+		used.put(vBuffer, vBuffer);
+		// Test code end
 		this.drawMode = drawMode;
 		this.vBuffer = vBuffer;
 		this.color = color;

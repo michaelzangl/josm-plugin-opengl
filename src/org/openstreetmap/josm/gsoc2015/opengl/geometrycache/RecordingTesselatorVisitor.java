@@ -2,6 +2,7 @@ package org.openstreetmap.josm.gsoc2015.opengl.geometrycache;
 
 import javax.media.opengl.GL;
 
+import org.jogamp.glg2d.VertexBuffer;
 import org.jogamp.glg2d.impl.AbstractTesselatorVisitor;
 
 public class RecordingTesselatorVisitor extends AbstractTesselatorVisitor {
@@ -24,6 +25,8 @@ public class RecordingTesselatorVisitor extends AbstractTesselatorVisitor {
 	@Override
 	protected void endTess() {
 		recorder.recordGeometry(new RecordedGeometry(drawMode, vBuffer, colorRecorder.getActiveColor()));
+		// For the next recording call.
+		vBuffer = new VertexBuffer(1024);
 	}
 
 }
