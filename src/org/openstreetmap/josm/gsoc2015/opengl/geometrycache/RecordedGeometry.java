@@ -17,10 +17,10 @@ public class RecordedGeometry {
 
 	public RecordedGeometry(int drawMode, VertexBuffer vBuffer, int color) {
 		// For testing
-		if (used.containsKey(vBuffer)) {
-			throw new IllegalArgumentException("Got VBuffer twice.");
-		}
-		used.put(vBuffer, vBuffer);
+//		if (used.containsKey(vBuffer)) {
+//			throw new IllegalArgumentException("Got VBuffer twice.");
+//		}
+//		used.put(vBuffer, vBuffer);
 		// Test code end
 		this.drawMode = drawMode;
 		this.vBuffer = vBuffer;
