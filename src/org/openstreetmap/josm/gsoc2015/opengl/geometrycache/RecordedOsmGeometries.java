@@ -1,14 +1,12 @@
 package org.openstreetmap.josm.gsoc2015.opengl.geometrycache;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
 import javax.media.opengl.GL2;
 
-import org.openstreetmap.josm.data.osm.Node;
 import org.openstreetmap.josm.data.osm.OsmPrimitive;
 
 public class RecordedOsmGeometries implements Comparable<RecordedOsmGeometries> {

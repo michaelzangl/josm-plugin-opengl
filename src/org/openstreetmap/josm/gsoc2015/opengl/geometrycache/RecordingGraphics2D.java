@@ -18,11 +18,8 @@ import org.jogamp.glg2d.GLG2DShapeHelper;
 import org.jogamp.glg2d.GLG2DTextHelper;
 import org.jogamp.glg2d.GLG2DTransformHelper;
 import org.jogamp.glg2d.GLGraphics2D;
-import org.jogamp.glg2d.impl.AbstractImageHelper;
 import org.jogamp.glg2d.impl.AbstractMatrixHelper;
 import org.jogamp.glg2d.impl.AbstractTextDrawer;
-
-import com.jogamp.opengl.util.texture.Texture;
 
 /**
  * This is a graphics2D implementation that sends all OpenGL calls to a given recorder.

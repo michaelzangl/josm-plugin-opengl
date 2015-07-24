@@ -14,12 +14,10 @@ import org.openstreetmap.josm.gui.layer.OsmDataLayer;
 
 public class OsmLayerDrawer extends LayerDrawer {
 	private final OsmDataLayer osmLayer;
-	private final PrimitiveManager cache;
 
 	public  OsmLayerDrawer(OsmDataLayer osmLayer) {
 		super(osmLayer);
 		this.osmLayer = osmLayer;
-		this.cache = new PrimitiveManager(osmLayer);
 	}
 	
 	@Override
@@ -30,7 +28,7 @@ public class OsmLayerDrawer extends LayerDrawer {
 
         Rendering painter = MapRendererFactory.getInstance().createActiveRenderer(g2d, mv, inactive);
         if (painter instanceof StyledMapRenderer) {
-        	painter = new OpenGLStyledMapRenderer((GLGraphics2D) g2d, mv, inactive, cache);
+        	painter = new OpenGLStyledMapRenderer((GLGraphics2D) g2d, mv, inactive);
         }
         	painter.render(osmLayer.data, virtual, box);
 //        }

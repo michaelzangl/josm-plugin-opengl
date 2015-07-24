@@ -7,7 +7,6 @@ import java.util.Hashtable;
 import java.util.List;
 
 import org.jogamp.glg2d.GLGraphics2D;
-import org.openstreetmap.josm.Main;
 import org.openstreetmap.josm.data.Bounds;
 import org.openstreetmap.josm.data.osm.BBox;
 import org.openstreetmap.josm.data.osm.DataSet;
@@ -16,23 +15,18 @@ import org.openstreetmap.josm.data.osm.OsmPrimitive;
 import org.openstreetmap.josm.data.osm.Relation;
 import org.openstreetmap.josm.data.osm.Way;
 import org.openstreetmap.josm.data.osm.visitor.paint.StyledMapRenderer;
-import org.openstreetmap.josm.gsoc2015.opengl.geometrycache.DirectDrawRecorder;
 import org.openstreetmap.josm.gsoc2015.opengl.geometrycache.RecordedOsmGeometries;
 import org.openstreetmap.josm.gsoc2015.opengl.osm.StyledGeometryGenerator.ChacheDataSupplier;
-import org.openstreetmap.josm.gsoc2015.opengl.osm.search.ElementSearcher;
 import org.openstreetmap.josm.gsoc2015.opengl.osm.search.NodeElementSearcher;
 import org.openstreetmap.josm.gsoc2015.opengl.osm.search.OsmPrimitiveHandler;
 import org.openstreetmap.josm.gsoc2015.opengl.osm.search.RelationElementSearcher;
 import org.openstreetmap.josm.gsoc2015.opengl.osm.search.WayElementSearcher;
 import org.openstreetmap.josm.gui.NavigatableComponent;
-import org.openstreetmap.josm.gui.mappaint.StyleSource;
-
-import com.sun.org.apache.xalan.internal.xsltc.compiler.sym;
 
 public class OpenGLStyledMapRenderer extends StyledMapRenderer {
 
 	public OpenGLStyledMapRenderer(GLGraphics2D g, NavigatableComponent nc,
-			boolean isInactiveMode, PrimitiveManager cache) {
+			boolean isInactiveMode) {
 		super(g, nc, isInactiveMode);
 	}
 
@@ -151,7 +145,7 @@ public class OpenGLStyledMapRenderer extends StyledMapRenderer {
 		public void receivePrimitives(java.util.List<T> primitives) {
 			// We could now split this into bulks.
 			// TODO: Use different threads.
-			new StyledGeometryGenerator<>(primitives, sgs).run();
+			//new StyledGeometryGenerator<>(primitives, sgs).run();
 		}
 	}
 
@@ -173,7 +167,7 @@ public class OpenGLStyledMapRenderer extends StyledMapRenderer {
 			long time1 = System.currentTimeMillis();
 //			StyleWorkQueue styleWorkQueue = new StyleWorkQueue(data);
 //			styleWorkQueue.setArea(bbox);
-			List<RecordedOsmGeometries> geometries = manager.getDrawGeometries(bbox);
+			List<RecordedOsmGeometries> geometries = manager.getDrawGeometries(bbox, new StyleGenerationState());
 			long time2 = System.currentTimeMillis();
 
 			for (RecordedOsmGeometries s : geometries) {

@@ -5,7 +5,6 @@ import java.awt.Shape;
 import java.awt.Stroke;
 
 import org.jogamp.glg2d.impl.AbstractShapeHelper;
-import org.jogamp.glg2d.impl.gl2.FastLineVisitor;
 
 public class RecordingShapeHelper extends AbstractShapeHelper {
 

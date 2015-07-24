@@ -1,13 +1,11 @@
 package org.openstreetmap.josm.gsoc2015.opengl.temp;
 
-import java.awt.Container;
 import java.awt.Dimension;
 import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.CopyOnWriteArrayList;
 
-import org.openstreetmap.josm.data.ProjectionBounds;
 import org.openstreetmap.josm.data.coor.EastNorth;
 import org.openstreetmap.josm.gui.MapView;
 

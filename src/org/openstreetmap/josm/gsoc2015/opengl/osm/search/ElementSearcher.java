@@ -30,7 +30,9 @@ public abstract class ElementSearcher<T extends OsmPrimitive> implements Runnabl
 	public abstract List<T> searchElements();
 
 	public void run() {
+		long time = System.currentTimeMillis();
 		List<T> primitives = searchElements();
+		System.out.println("Search took " + (System.currentTimeMillis() - time) + " ms and returned " + primitives.size() + " results ");
 		handler.receivePrimitives(primitives);
 	}
 }

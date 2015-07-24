@@ -9,7 +9,6 @@ import org.openstreetmap.josm.data.Bounds;
 import org.openstreetmap.josm.gsoc2015.opengl.osm.OsmLayerDrawer;
 import org.openstreetmap.josm.gui.MapView;
 import org.openstreetmap.josm.gui.layer.MapViewPaintable;
-import org.openstreetmap.josm.gui.layer.MapViewPaintable;
 import org.openstreetmap.josm.gui.layer.OsmDataLayer;
 
 /**

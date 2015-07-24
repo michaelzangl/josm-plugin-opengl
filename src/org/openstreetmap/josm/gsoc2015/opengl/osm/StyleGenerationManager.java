@@ -1,6 +1,7 @@
 package org.openstreetmap.josm.gsoc2015.opengl.osm;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
@@ -8,15 +9,15 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
-import javax.media.opengl.GL2;
-
 import org.openstreetmap.josm.data.osm.BBox;
 import org.openstreetmap.josm.data.osm.DataSet;
 import org.openstreetmap.josm.data.osm.Node;
 import org.openstreetmap.josm.data.osm.OsmPrimitive;
 import org.openstreetmap.josm.data.osm.Relation;
 import org.openstreetmap.josm.data.osm.Way;
+import org.openstreetmap.josm.gsoc2015.opengl.geometrycache.OsmPrimitiveRecorder.RecordedPrimitiveReceiver;
 import org.openstreetmap.josm.gsoc2015.opengl.geometrycache.RecordedOsmGeometries;
+import org.openstreetmap.josm.gsoc2015.opengl.osm.OpenGLStyledMapRenderer.StyleGenerationState;
 import org.openstreetmap.josm.gsoc2015.opengl.osm.search.NodeElementSearcher;
 import org.openstreetmap.josm.gsoc2015.opengl.osm.search.OsmPrimitiveHandler;
 import org.openstreetmap.josm.gsoc2015.opengl.osm.search.RelationElementSearcher;
@@ -108,7 +109,7 @@ public class StyleGenerationManager {
 	 */
 	private static class DrawThreadPool {
 		private ExecutorService drawThreads = Executors.newFixedThreadPool(4);
-		private LinkedList<Future<?>> futuresToAwait = new LinkedList();
+		private LinkedList<Future<?>> futuresToAwait = new LinkedList<>();
 
 		public void scheduleTask(Runnable r) {
 			futuresToAwait.add(drawThreads.submit(r));
@@ -130,21 +131,51 @@ public class StyleGenerationManager {
 		}
 	}
 
+	private static class SimpleRecodingReceiver implements
+			RecordedPrimitiveReceiver {
+
+		private List<RecordedOsmGeometries> recorded;
+
+		public SimpleRecodingReceiver(List<RecordedOsmGeometries> recorded) {
+			this.recorded = recorded;
+		}
+
+		@Override
+		public void receiveForNode(RecordedOsmGeometries geometry) {
+			recorded.add(geometry);
+		}
+
+		@Override
+		public void receiveForWay(RecordedOsmGeometries geometry) {
+			recorded.add(geometry);
+		}
+
+		@Override
+		public void receiveForRelation(RecordedOsmGeometries geometry) {
+			recorded.add(geometry);
+		}
+
+	}
+
 	private class PrimitiveForDrawSearcher<T extends OsmPrimitive> implements
 			OsmPrimitiveHandler<T> {
-		private static final int BULK_SIZE = 1000;
-		private final ArrayList<RecordedOsmGeometries> recorded;
+		//TODO: Adaptive for nodes/rest
+		private static final int BULK_SIZE = 200;
+		private final List<RecordedOsmGeometries> recorded;
+		private StyleGenerationState sgs;
 
-		public PrimitiveForDrawSearcher(
-				ArrayList<RecordedOsmGeometries> recorded) {
-					this.recorded = recorded;
+		public PrimitiveForDrawSearcher(StyleGenerationState sgs,
+				List<RecordedOsmGeometries> recorded) {
+			this.sgs = sgs;
+			this.recorded = recorded;
 		}
 
 		@Override
 		public void receivePrimitives(List<T> primitives) {
 			for (int i = 0; i < primitives.size(); i += BULK_SIZE) {
 				drawThreadPool.scheduleTask(new QueryCachePrimitive<T>(
-						primitives, i, i + BULK_SIZE, recorded));
+						primitives, i, Math.min(primitives.size(), i + BULK_SIZE), sgs,
+						new SimpleRecodingReceiver(recorded)));
 			}
 		}
 	}
@@ -156,15 +187,22 @@ public class StyleGenerationManager {
 	 *            The bbox.
 	 * @return
 	 */
-	public List<RecordedOsmGeometries> getDrawGeometries(BBox bbox) {
-		ArrayList<RecordedOsmGeometries> recorded = new ArrayList<>();
+	public List<RecordedOsmGeometries> getDrawGeometries(BBox bbox,
+			StyleGenerationState sgs) {
+		long time1 = System.currentTimeMillis();
+		List<RecordedOsmGeometries> recorded = Collections.<RecordedOsmGeometries>synchronizedList(new ArrayList<RecordedOsmGeometries>());
 		drawThreadPool.scheduleTask(new NodeElementSearcher(
-				new PrimitiveForDrawSearcher<Node>(recorded), data, bbox));
+				new PrimitiveForDrawSearcher<Node>(sgs, recorded), data, bbox));
 		drawThreadPool.scheduleTask(new WayElementSearcher(
-				new PrimitiveForDrawSearcher<Way>(recorded), data, bbox));
+				new PrimitiveForDrawSearcher<Way>(sgs, recorded), data, bbox));
 		drawThreadPool.scheduleTask(new RelationElementSearcher(
-				new PrimitiveForDrawSearcher<Relation>(recorded), data, bbox));
+				new PrimitiveForDrawSearcher<Relation>(sgs, recorded), data,
+				bbox));
 		drawThreadPool.finish();
+		long time2 = System.currentTimeMillis();
+		Collections.sort(recorded);
+		System.out.println("STYLE GEN in getDrawGeometries()" + (time2 - time1));
+		System.out.println("SORTING in getDrawGeometries(): " + (System.currentTimeMillis() - time2));
 		return recorded;
 	}
 }

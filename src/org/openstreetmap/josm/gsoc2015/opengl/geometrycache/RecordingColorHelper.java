@@ -3,11 +3,7 @@ package org.openstreetmap.josm.gsoc2015.opengl.geometrycache;
 import java.awt.AlphaComposite;
 import java.awt.Color;
 import java.awt.Composite;
-import java.awt.Paint;
-import java.awt.RenderingHints.Key;
 
-import org.jogamp.glg2d.GLG2DColorHelper;
-import org.jogamp.glg2d.GLGraphics2D;
 import org.jogamp.glg2d.impl.AbstractColorHelper;
 
 public class RecordingColorHelper extends AbstractColorHelper {

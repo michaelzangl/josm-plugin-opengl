@@ -1,8 +1,7 @@
 package org.openstreetmap.josm.gsoc2015.opengl.geometrycache;
 
-import java.util.IdentityHashMap;
-import java.util.List;
 import java.util.ArrayList;
+import java.util.List;
 
 import org.openstreetmap.josm.data.osm.Changeset;
 import org.openstreetmap.josm.data.osm.Node;
