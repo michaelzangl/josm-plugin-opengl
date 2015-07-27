@@ -28,11 +28,11 @@ public class RecordedGeometry {
 	private static IdentityHashMap<VertexBuffer, VertexBuffer> used = new IdentityHashMap<>();
 
 	private FloatBuffer coordinates;
+	private int points;
 	private int vbo = -1;
 	private final int color;
 	private final int drawMode;
 	private final TextureEntry texture;
-	private final int points;
 
 	/**
 	 * Creates a new recorded geometry.
@@ -90,18 +90,21 @@ public class RecordedGeometry {
 
 			coordinates.rewind();
 
-			int stride = (texture != null ? 4 : 2) * Buffers.SIZEOF_FLOAT;
-			gl.glVertexPointer(2, GL.GL_FLOAT, stride,
-					coordinates);
+			int stride = getBufferEntriesForPoint() * Buffers.SIZEOF_FLOAT;
+			gl.glVertexPointer(2, GL.GL_FLOAT, stride, coordinates);
 			gl.glEnableClientState(GLPointerFunc.GL_VERTEX_ARRAY);
 
 			if (texture != null) {
-			    gl.glTexEnvi(GL2ES1.GL_TEXTURE_ENV, GL2ES1.GL_TEXTURE_ENV_MODE, GL2ES1.GL_MODULATE);
-			    gl.glTexParameterf(GL2ES1.GL_TEXTURE_ENV, GL2ES1.GL_TEXTURE_ENV_MODE, GL.GL_BLEND);
-				float[] dst = new float[16];
+				gl.glTexEnvi(GL2ES1.GL_TEXTURE_ENV, GL2ES1.GL_TEXTURE_ENV_MODE,
+						GL2ES1.GL_MODULATE);
+				gl.glTexParameterf(GL2ES1.GL_TEXTURE_ENV,
+						GL2ES1.GL_TEXTURE_ENV_MODE, GL.GL_BLEND);
+				float[] dst = new float[coordinates.capacity()];
 				coordinates.get(dst);
-				System.out.println("Coordinates: " + Arrays.toString(dst) + ", texture " + texture.getTexture(gl).getTextureObject(gl));
-				
+//				System.out.println("Coordinates: " + Arrays.toString(dst)
+//						+ ", texture "
+//						+ texture.getTexture(gl).getTextureObject(gl));
+
 				texture.getTexture(gl).enable(gl);
 				texture.getTexture(gl).bind(gl);
 				coordinates.position(2);
@@ -120,12 +123,96 @@ public class RecordedGeometry {
 		}
 	}
 
+	private int getBufferEntriesForPoint() {
+		return texture != null ? 4 : 2;
+	}
+
+	/**
+	 * Check whether this draw command has no influence on the output.
+	 * 
+	 * @return <code>true</code> if there is no influence.
+	 */
+	public boolean isNop() {
+		return points == 0;
+	}
+
+	/**
+	 * Creates a hash that suggests which geometries could be combined.
+	 * 
+	 * @return The hash.
+	 */
+	public int getCombineHash() {
+		final int prime = 31;
+		int result = 1;
+		result = prime * result + color;
+		result = prime * result + drawMode;
+		result = prime * result + ((texture == null) ? 0 : texture.hashCode());
+		return result;
+	}
+
+	public boolean couldCombineWith(RecordedGeometry other) {
+		return other.color == color && other.texture == texture
+				&& other.drawMode == drawMode && hasMergeableDrawMode()
+				&& !other.usesVBO() && !usesVBO();
+	}
+
+	private boolean hasMergeableDrawMode() {
+		return drawMode == GL2.GL_QUADS || drawMode == GL2.GL_LINES
+				|| drawMode == GL2.GL_TRIANGLES || drawMode == GL2.GL_POINTS;
+	}
+
+	public boolean attemptCombineWith(RecordedGeometry other) {
+		if (!couldCombineWith(other)) {
+			return false;
+		}
+		if (this == other) {
+			throw new IllegalArgumentException("Cannot combine with myself.");
+		}
+
+		int newPoints = points + other.points;
+		FloatBuffer newCoordinates;
+		int entries = points * getBufferEntriesForPoint();
+		int otherEntries = other.points * getBufferEntriesForPoint();
+
+		// Create coordinates array if required.
+		if (entries + otherEntries <= coordinates.capacity()) {
+			newCoordinates = coordinates;
+			newCoordinates.position(entries);
+		} else {
+			newCoordinates = Buffers.newDirectFloatBuffer(entries
+					+ otherEntries);
+			coordinates.rewind();
+			transfer(coordinates, newCoordinates, entries);
+		}
+
+		other.coordinates.rewind();
+		transfer(other.coordinates, newCoordinates, otherEntries);
+
+		coordinates = newCoordinates;
+		points = newPoints;
+		return true;
+	}
+
+	private void transfer(FloatBuffer from, FloatBuffer to, int entries) {
+		if (from.remaining() == entries) {
+			to.put(from);
+		} else {
+			for (int i = 0; i < entries; i++) {
+				to.put(from.get());
+			}
+		}
+	}
+
 	@Override
 	public String toString() {
 		return "RecordedGeometry ["
-				+ (vbo < 0 ? "coordinates=" + coordinates : "vbo=" + vbo)
+				+ (usesVBO() ? "vbo=" + vbo : "coordinates=" + coordinates)
 				+ ", color=" + Integer.toHexString(color) + ", drawMode="
 				+ drawMode + "]";
+	}
+
+	private boolean usesVBO() {
+		return vbo >= 0;
 	}
 
 	public static RecordedGeometry generateTexture(TextureEntry texture,

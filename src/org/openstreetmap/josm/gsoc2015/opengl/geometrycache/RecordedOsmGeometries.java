@@ -1,7 +1,10 @@
 package org.openstreetmap.josm.gsoc2015.opengl.geometrycache;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Comparator;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
@@ -20,14 +23,17 @@ public class RecordedOsmGeometries implements Comparable<RecordedOsmGeometries> 
 	private Set<OsmPrimitive> primitives = new HashSet<>();
 
 	private long orderIndex;
-	
+	private int[] hashes;
+
 	/**
 	 * 
 	 * @param geometries
-	 *            The geometires. A copy is created.
-	 * @param primitives
+	 *            The geometries. A copy is created.
+	 * @param primitive
+	 *            The initial primitive this record is for.
 	 */
-	public RecordedOsmGeometries(List<RecordedGeometry> geometries, OsmPrimitive primitive, long orderIndex) {
+	public RecordedOsmGeometries(List<RecordedGeometry> geometries,
+			OsmPrimitive primitive, long orderIndex) {
 		this.orderIndex = orderIndex;
 		this.geometries = new ArrayList<>(geometries);
 		this.primitives.add(primitive);
@@ -51,6 +57,77 @@ public class RecordedOsmGeometries implements Comparable<RecordedOsmGeometries> 
 		}
 	}
 
+	/**
+	 * Gets a list of hashes that suggest the combination of two geometries if
+	 * most of their hashes are the same.
+	 * 
+	 * @return The combine hashes.
+	 */
+	public int[] getCombineHashes() {
+		if (hashes == null) {
+			hashes = new int[geometries.size()];
+			for (int i = 0; i < hashes.length; i++) {
+				hashes[i] = geometries.get(i).getCombineHash();
+			}
+			Arrays.sort(hashes);
+		}
+		return hashes;
+	}
+
+	/**
+	 * Merges an other geometry in this geometry.
+	 * 
+	 * @param other
+	 *            The other geometry to merge.
+	 * @return <code>true</code> if the merge was successful.
+	 */
+	public boolean mergeWith(RecordedOsmGeometries other) {
+		if (other.orderIndex != this.orderIndex) {
+			return false;
+		}
+		hashes = null;
+		primitives.addAll(other.primitives);
+		geometries = merge(geometries, other.geometries);
+		
+		return true;
+	}
+
+	private List<RecordedGeometry> merge(List<RecordedGeometry> geometries1,
+			List<RecordedGeometry> geometries2) {
+		RecordedGeometry[] toMerge = combineLists(geometries1, geometries2);
+		Arrays.sort(toMerge, new Comparator<RecordedGeometry>() {
+			@Override
+			public int compare(RecordedGeometry o1, RecordedGeometry o2) {
+				return Integer.compare(o1.getCombineHash(), o2.getCombineHash());
+			}
+		});
+		RecordedGeometry last = null;
+		List<RecordedGeometry> ret = new ArrayList<>();
+		for (RecordedGeometry current : toMerge) {
+			if (last != null && last.attemptCombineWith(current)) {
+				// all good, we combined this one.
+			} else {
+				ret.add(current);
+				last = current;
+			}
+		}
+				
+		return ret;
+	}
+
+	private RecordedGeometry[] combineLists(List<RecordedGeometry> geometries1,
+			List<RecordedGeometry> geometries2) {
+		RecordedGeometry[] toMerge = new RecordedGeometry[geometries1.size() + geometries2.size()];
+		int i = 0;
+		for (RecordedGeometry g : geometries1) {
+			toMerge[i++] = g;
+		}
+		for (RecordedGeometry g : geometries2) {
+			toMerge[i++] = g;
+		}
+		return toMerge;
+	}
+
 	@Override
 	public String toString() {
 		return "RecordedOsmGeometries [geometries=" + geometries
@@ -60,6 +137,17 @@ public class RecordedOsmGeometries implements Comparable<RecordedOsmGeometries> 
 	@Override
 	public int compareTo(RecordedOsmGeometries o) {
 		return Long.compare(orderIndex, o.orderIndex);
+	}
+
+	/**
+	 * A rating how useful it would be to combine those two geometries. Range
+	 * 0..1
+	 * 
+	 * @param geometry
+	 * @return
+	 */
+	public float getCombineRating(RecordedOsmGeometries geometry) {
+		return 1;
 	}
 
 }

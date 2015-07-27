@@ -59,7 +59,7 @@ public class TextureManager {
 		public Texture getTexture(GL2 gl) {
 			if (imageToLoad != null) {
 				// we'll assume the image is complete and can be rendered
-			 texture = AWTTextureIO.newTexture(gl.getGLProfile(),
+				texture = AWTTextureIO.newTexture(gl.getGLProfile(),
 						imageToLoad, false);
 
 				imageToLoad = null;

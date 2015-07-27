@@ -52,4 +52,9 @@ public class RecordingColorHelper extends AbstractColorHelper {
 	public void copyArea(int x, int y, int width, int height, int dx, int dy) {
 		throw new UnsupportedOperationException("Not suported...");
 	}
+	
+	@Override
+	public void setComposite(Composite comp) {
+		System.err.println("Unsupported setComposite call. Got " + comp);
+	}
 }

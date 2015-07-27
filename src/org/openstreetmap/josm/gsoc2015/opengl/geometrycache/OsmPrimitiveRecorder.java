@@ -53,7 +53,9 @@ public class OsmPrimitiveRecorder implements Recorder, Visitor {
 	
 	@Override
 	public void recordGeometry(RecordedGeometry cachedGeometry) {
-		geometries.add(cachedGeometry);
+		if (!cachedGeometry.isNop()) {
+			geometries.add(cachedGeometry);
+		}
 	}
 	
 	private void reset() {

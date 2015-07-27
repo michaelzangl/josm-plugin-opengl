@@ -122,7 +122,6 @@ class RecordingImageHelper implements GLG2DImageHelper {
 			RecordedGeometry rec = RecordedGeometry.generateTexture(
 					texture, color.getRGB(), points, 0, 0, 1, 1);
 
-			System.out.println("Recorded " + rec);
 			recorder.recordGeometry(rec);
 			return true;
 		}
