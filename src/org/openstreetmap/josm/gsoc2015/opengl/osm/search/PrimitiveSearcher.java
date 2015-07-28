@@ -14,13 +14,13 @@ import org.openstreetmap.josm.data.osm.OsmPrimitive;
  *
  * @param <T>
  */
-public abstract class ElementSearcher<T extends OsmPrimitive> implements Runnable {
+public abstract class PrimitiveSearcher<T extends OsmPrimitive> implements Runnable {
 
 	private final OsmPrimitiveHandler<T> handler;
 	protected final BBox bbox;
 	protected final DataSet data;
 
-	public ElementSearcher(OsmPrimitiveHandler<T> handler, DataSet data,
+	public PrimitiveSearcher(OsmPrimitiveHandler<T> handler, DataSet data,
 			BBox bbox) {
 		this.handler = handler;
 		this.data = data;

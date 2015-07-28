@@ -14,6 +14,8 @@ import org.openstreetmap.josm.gui.layer.OsmDataLayer;
 
 public class OsmLayerDrawer extends LayerDrawer {
 	private final OsmDataLayer osmLayer;
+	private boolean cachedIsInactive;
+	private OpenGLStyledMapRenderer cachedRenderer;
 
 	public  OsmLayerDrawer(OsmDataLayer osmLayer) {
 		super(osmLayer);
@@ -28,9 +30,16 @@ public class OsmLayerDrawer extends LayerDrawer {
 
         Rendering painter = MapRendererFactory.getInstance().createActiveRenderer(g2d, mv, inactive);
         if (painter instanceof StyledMapRenderer) {
-        	painter = new OpenGLStyledMapRenderer((GLGraphics2D) g2d, mv, inactive);
+        	if (cachedRenderer == null || cachedIsInactive != inactive) {
+        		cachedRenderer = new OpenGLStyledMapRenderer((GLGraphics2D) g2d, mv, inactive);
+        		cachedIsInactive = inactive;
+        		// TODO: Only invalidate on inactive?
+        	}
+        	painter = cachedRenderer;
+        } else {
+        	cachedRenderer = null;
         }
-        	painter.render(osmLayer.data, virtual, box);
+        painter.render(osmLayer.data, virtual, box);
 //        }
         
         // TODO: Fix this. This should be a temporary layer. Or even a full layer. What about sublayers?

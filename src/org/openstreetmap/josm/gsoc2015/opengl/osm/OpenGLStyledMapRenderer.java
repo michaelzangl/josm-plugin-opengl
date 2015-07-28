@@ -18,10 +18,10 @@ import org.openstreetmap.josm.data.osm.visitor.paint.StyledMapRenderer;
 import org.openstreetmap.josm.gsoc2015.opengl.geometrycache.GeometryMerger;
 import org.openstreetmap.josm.gsoc2015.opengl.geometrycache.RecordedOsmGeometries;
 import org.openstreetmap.josm.gsoc2015.opengl.osm.StyledGeometryGenerator.ChacheDataSupplier;
-import org.openstreetmap.josm.gsoc2015.opengl.osm.search.NodeElementSearcher;
+import org.openstreetmap.josm.gsoc2015.opengl.osm.search.NodeSearcher;
 import org.openstreetmap.josm.gsoc2015.opengl.osm.search.OsmPrimitiveHandler;
-import org.openstreetmap.josm.gsoc2015.opengl.osm.search.RelationElementSearcher;
-import org.openstreetmap.josm.gsoc2015.opengl.osm.search.WayElementSearcher;
+import org.openstreetmap.josm.gsoc2015.opengl.osm.search.RelationSearcher;
+import org.openstreetmap.josm.gsoc2015.opengl.osm.search.WaySearcher;
 import org.openstreetmap.josm.gui.NavigatableComponent;
 
 public class OpenGLStyledMapRenderer extends StyledMapRenderer {
@@ -86,11 +86,11 @@ public class OpenGLStyledMapRenderer extends StyledMapRenderer {
 		public void addArea(final BBox bbox) {
 
 			StyleGenerationState sgs = new StyleGenerationState();
-			new NodeElementSearcher(new StyleGeometryScheduler<Node>(sgs),
+			new NodeSearcher(new StyleGeometryScheduler<Node>(sgs),
 					data, bbox).run();
-			new WayElementSearcher(new StyleGeometryScheduler<Way>(sgs), data,
+			new WaySearcher(new StyleGeometryScheduler<Way>(sgs), data,
 					bbox).run();
-			new RelationElementSearcher(new StyleGeometryScheduler<Relation>(
+			new RelationSearcher(new StyleGeometryScheduler<Relation>(
 					sgs), data, bbox).run();
 		}
 	}
@@ -157,7 +157,8 @@ public class OpenGLStyledMapRenderer extends StyledMapRenderer {
 			Bounds bounds) {
 		if (manager == null) {
 			manager = new StyleGenerationManager(data);
-			//TODO: check manager data set.
+		} else if (!manager.usesDataSet(data)) {
+			throw new IllegalArgumentException("Wrong DataSet provided.");
 		}
 
 		this.renderVirtualNodes = renderVirtualNodes;
@@ -171,14 +172,6 @@ public class OpenGLStyledMapRenderer extends StyledMapRenderer {
 			List<RecordedOsmGeometries> geometries = manager.getDrawGeometries(bbox, new StyleGenerationState());
 			long time2 = System.currentTimeMillis();
 
-			// XXX
-			GeometryMerger merger = new GeometryMerger();
-			System.out.println("Have " + geometries.size() + " geos");
-			merger.addMergeables(geometries);
-			geometries = merger.getGeometries();
-			System.out.println("Have " + geometries.size() + " geos");
-			long time3 = System.currentTimeMillis();
-			// XXX
 			for (RecordedOsmGeometries s : geometries) {
 				s.draw(((GLGraphics2D) g).getGLContext().getGL().getGL2());
 			}
@@ -186,9 +179,8 @@ public class OpenGLStyledMapRenderer extends StyledMapRenderer {
 
 			drawVirtualNodes(data, bbox);
 			long time5 = System.currentTimeMillis();
-			System.out.println("Create styles: " + (time2 - time1) + ", combine: "
-					+ (time3 - time2) + ", draw: "
-					+ (time4 - time3) + ", draw virtual: " + (time5 - time4));
+			System.out.println("Create styles: " + (time2 - time1) + ", draw: "
+					+ (time4 - time2) + ", draw virtual: " + (time5 - time4));
 
 		} finally {
 			data.getReadLock().unlock();

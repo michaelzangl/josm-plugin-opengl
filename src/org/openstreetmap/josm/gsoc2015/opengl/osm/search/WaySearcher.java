@@ -10,9 +10,9 @@ import org.openstreetmap.josm.data.osm.Way;
  * This class searches for ways in a given bounding box.
  * @author Michael Zangl
  */
-public class WayElementSearcher extends ElementSearcher<Way> {
+public class WaySearcher extends PrimitiveSearcher<Way> {
 
-	public WayElementSearcher(OsmPrimitiveHandler<Way> handler,
+	public WaySearcher(OsmPrimitiveHandler<Way> handler,
 			DataSet data, BBox bbox) {
 		super(handler, data, bbox);
 	}

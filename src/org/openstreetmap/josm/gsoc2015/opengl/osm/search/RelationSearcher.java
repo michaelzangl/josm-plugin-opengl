@@ -10,9 +10,9 @@ import org.openstreetmap.josm.data.osm.Relation;
  * This class searches for relations in a given bounding box.
  * @author Michael Zangl
  */
-public class RelationElementSearcher extends ElementSearcher<Relation> {
+public class RelationSearcher extends PrimitiveSearcher<Relation> {
 
-	public RelationElementSearcher(OsmPrimitiveHandler<Relation> handler,
+	public RelationSearcher(OsmPrimitiveHandler<Relation> handler,
 			DataSet data, BBox bbox) {
 		super(handler, data, bbox);
 	}

@@ -1,11 +1,17 @@
 package org.openstreetmap.josm.gsoc2015.opengl.osm;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+
 import org.openstreetmap.josm.data.osm.Node;
 import org.openstreetmap.josm.data.osm.OsmPrimitive;
 import org.openstreetmap.josm.data.osm.Relation;
 import org.openstreetmap.josm.data.osm.visitor.paint.MapPaintSettings;
 import org.openstreetmap.josm.gsoc2015.opengl.geometrycache.OsmPrimitiveRecorder;
 import org.openstreetmap.josm.gsoc2015.opengl.geometrycache.OsmPrimitiveRecorder.RecordedPrimitiveReceiver;
+import org.openstreetmap.josm.gsoc2015.opengl.geometrycache.RecordedOsmGeometries;
 import org.openstreetmap.josm.gsoc2015.opengl.osm.OpenGLStyledMapRenderer.StyleGenerationState;
 import org.openstreetmap.josm.gui.NavigatableComponent;
 import org.openstreetmap.josm.gui.mappaint.ElemStyle;
@@ -65,10 +71,13 @@ public class StyledGeometryGenerator<T extends OsmPrimitive> {
 
 	private final RecordingStyledMapRenderer recordingRenderer;
 
-	public StyledGeometryGenerator(StyleGenerationState sgs,
-			RecordedPrimitiveReceiver receiver) {
+	private Thread activeThread;
+
+	private ArrayList<RecordedOsmGeometries> recorded = new ArrayList<>();
+
+	public StyledGeometryGenerator(StyleGenerationState sgs) {
 		this.sgs = sgs;
-		recorder = new OsmPrimitiveRecorder(receiver);
+		recorder = new OsmPrimitiveRecorder(new SimpleRecodingReceiver(recorded));
 		recordingRenderer = new RecordingStyledMapRenderer(recorder,
 				sgs.getCacheKey(), sgs.isInactiveMode());
 		recordingRenderer.getSettings(sgs.renderVirtualNodes());
@@ -79,21 +88,35 @@ public class StyledGeometryGenerator<T extends OsmPrimitive> {
 	 * Call {@link #endRunning()} afterwards, preferably in a finally-block.
 	 */
 	public void startRunning() {
+		if (activeThread != null) {
+			throw new IllegalStateException("startRunning() already called.");
+		}
 		MapCSSStyleSource.STYLE_SOURCE_LOCK.readLock().lock();
+		activeThread = Thread.currentThread();
 	}
 
 	/**
 	 * Call
 	 */
 	public void endRunning() {
+		if (activeThread != Thread.currentThread()) {
+			throw new IllegalStateException(
+					"endRunning() called in the wrong thread.");
+		}
 		MapCSSStyleSource.STYLE_SOURCE_LOCK.readLock().unlock();
+		activeThread = null;
 	}
 
-	void runFor(T primitive) {
+	public List<RecordedOsmGeometries> runFor(T primitive) {
 		if (primitive instanceof Relation) {
-			return; //XXX Temp bug?
+			return Collections.emptyList(); // XXX Temp bug?
 		}
 		if (primitive.isDrawable()) {
+			if (activeThread != Thread.currentThread()) {
+				throw new IllegalStateException(
+						"endRunning() called in the wrong thread.");
+			}
+
 			StyleList sl = styles.get(primitive, sgs.getCircum(),
 					sgs.getCacheKey());
 
@@ -102,6 +125,9 @@ public class StyledGeometryGenerator<T extends OsmPrimitive> {
 				runForStyle(primitive, s, state);
 			}
 		}
+		ArrayList<RecordedOsmGeometries> received = new ArrayList<>(recorded);
+		recorded.clear();
+		return received;
 	}
 
 	private void runForStyle(T primitive, ElemStyle s, long state) {

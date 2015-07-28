@@ -15,13 +15,12 @@ import org.openstreetmap.josm.data.osm.Node;
 import org.openstreetmap.josm.data.osm.OsmPrimitive;
 import org.openstreetmap.josm.data.osm.Relation;
 import org.openstreetmap.josm.data.osm.Way;
-import org.openstreetmap.josm.gsoc2015.opengl.geometrycache.OsmPrimitiveRecorder.RecordedPrimitiveReceiver;
 import org.openstreetmap.josm.gsoc2015.opengl.geometrycache.RecordedOsmGeometries;
 import org.openstreetmap.josm.gsoc2015.opengl.osm.OpenGLStyledMapRenderer.StyleGenerationState;
-import org.openstreetmap.josm.gsoc2015.opengl.osm.search.NodeElementSearcher;
+import org.openstreetmap.josm.gsoc2015.opengl.osm.search.NodeSearcher;
 import org.openstreetmap.josm.gsoc2015.opengl.osm.search.OsmPrimitiveHandler;
-import org.openstreetmap.josm.gsoc2015.opengl.osm.search.RelationElementSearcher;
-import org.openstreetmap.josm.gsoc2015.opengl.osm.search.WayElementSearcher;
+import org.openstreetmap.josm.gsoc2015.opengl.osm.search.RelationSearcher;
+import org.openstreetmap.josm.gsoc2015.opengl.osm.search.WaySearcher;
 
 /**
  * This class manages a bunch of threads that search primitives, generate styles
@@ -95,9 +94,10 @@ public class StyleGenerationManager {
 
 	private DrawThreadPool drawThreadPool = new DrawThreadPool();
 
+	private final StyleGeometryCache cache = new StyleGeometryCache();
+	
 	public StyleGenerationManager(DataSet data) {
 		this.data = data;
-
 	}
 
 	/**
@@ -131,43 +131,17 @@ public class StyleGenerationManager {
 		}
 	}
 
-	private static class SimpleRecodingReceiver implements
-			RecordedPrimitiveReceiver {
-
-		private List<RecordedOsmGeometries> recorded;
-
-		public SimpleRecodingReceiver(List<RecordedOsmGeometries> recorded) {
-			this.recorded = recorded;
-		}
-
-		@Override
-		public void receiveForNode(RecordedOsmGeometries geometry) {
-			recorded.add(geometry);
-		}
-
-		@Override
-		public void receiveForWay(RecordedOsmGeometries geometry) {
-			recorded.add(geometry);
-		}
-
-		@Override
-		public void receiveForRelation(RecordedOsmGeometries geometry) {
-			recorded.add(geometry);
-		}
-
-	}
-
 	private class PrimitiveForDrawSearcher<T extends OsmPrimitive> implements
 			OsmPrimitiveHandler<T> {
 		//TODO: Adaptive for nodes/rest
 		private static final int BULK_SIZE = 200;
-		private final List<RecordedOsmGeometries> recorded;
-		private StyleGenerationState sgs;
+		private final StyleGenerationState sgs;
+		private final StyleGeometryCache cache;
 
 		public PrimitiveForDrawSearcher(StyleGenerationState sgs,
-				List<RecordedOsmGeometries> recorded) {
+				StyleGeometryCache cache) {
 			this.sgs = sgs;
-			this.recorded = recorded;
+			this.cache = cache;
 		}
 
 		@Override
@@ -175,7 +149,7 @@ public class StyleGenerationManager {
 			for (int i = 0; i < primitives.size(); i += BULK_SIZE) {
 				drawThreadPool.scheduleTask(new QueryCachePrimitive<T>(
 						primitives, i, Math.min(primitives.size(), i + BULK_SIZE), sgs,
-						new SimpleRecodingReceiver(recorded)));
+						cache));
 			}
 		}
 	}
@@ -190,19 +164,24 @@ public class StyleGenerationManager {
 	public List<RecordedOsmGeometries> getDrawGeometries(BBox bbox,
 			StyleGenerationState sgs) {
 		long time1 = System.currentTimeMillis();
-		List<RecordedOsmGeometries> recorded = Collections.<RecordedOsmGeometries>synchronizedList(new ArrayList<RecordedOsmGeometries>());
-		drawThreadPool.scheduleTask(new NodeElementSearcher(
-				new PrimitiveForDrawSearcher<Node>(sgs, recorded), data, bbox));
-		drawThreadPool.scheduleTask(new WayElementSearcher(
-				new PrimitiveForDrawSearcher<Way>(sgs, recorded), data, bbox));
-		drawThreadPool.scheduleTask(new RelationElementSearcher(
-				new PrimitiveForDrawSearcher<Relation>(sgs, recorded), data,
+		cache.startFrame();
+		drawThreadPool.scheduleTask(new NodeSearcher(
+				new PrimitiveForDrawSearcher<Node>(sgs, cache), data, bbox));
+		drawThreadPool.scheduleTask(new WaySearcher(
+				new PrimitiveForDrawSearcher<Way>(sgs, cache), data, bbox));
+		drawThreadPool.scheduleTask(new RelationSearcher(
+				new PrimitiveForDrawSearcher<Relation>(sgs, cache), data,
 				bbox));
 		drawThreadPool.finish();
+		List<RecordedOsmGeometries> recorded = cache.endFrame();
 		long time2 = System.currentTimeMillis();
 		Collections.sort(recorded);
 		System.out.println("STYLE GEN in getDrawGeometries()" + (time2 - time1));
 		System.out.println("SORTING in getDrawGeometries(): " + (System.currentTimeMillis() - time2));
 		return recorded;
+	}
+
+	public boolean usesDataSet(DataSet data2) {
+		return data == data2;
 	}
 }

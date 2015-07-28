@@ -10,9 +10,9 @@ import org.openstreetmap.josm.data.osm.Node;
  * This class searches for nodes in a given bounding box.
  * @author Michael Zangl
  */
-public class NodeElementSearcher extends ElementSearcher<Node> {
+public class NodeSearcher extends PrimitiveSearcher<Node> {
 
-	public NodeElementSearcher(OsmPrimitiveHandler<Node> handler,
+	public NodeSearcher(OsmPrimitiveHandler<Node> handler,
 			DataSet data, BBox bbox) {
 		super(handler, data, bbox);
 	}

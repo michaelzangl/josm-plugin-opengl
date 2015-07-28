@@ -56,6 +56,10 @@ public class RecordedOsmGeometries implements Comparable<RecordedOsmGeometries> 
 			g.draw(gl);
 		}
 	}
+	
+	public Set<OsmPrimitive> getPrimitives() {
+		return primitives;
+	}
 
 	/**
 	 * Gets a list of hashes that suggest the combination of two geometries if
