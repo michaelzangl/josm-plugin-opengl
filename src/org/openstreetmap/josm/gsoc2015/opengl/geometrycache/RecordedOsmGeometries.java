@@ -51,9 +51,9 @@ public class RecordedOsmGeometries implements Comparable<RecordedOsmGeometries> 
 		}
 	}
 
-	public void draw(GL2 gl) {
+	public void draw(GL2 gl, GLState state) {
 		for (RecordedGeometry g : geometries) {
-			g.draw(gl);
+			g.draw(gl, state);
 		}
 	}
 	

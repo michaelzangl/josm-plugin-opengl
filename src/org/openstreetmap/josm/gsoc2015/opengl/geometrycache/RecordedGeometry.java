@@ -12,6 +12,7 @@ import javax.media.opengl.GL2ES1;
 import javax.media.opengl.fixedfunc.GLPointerFunc;
 
 import org.jogamp.glg2d.VertexBuffer;
+import org.openstreetmap.josm.Main;
 import org.openstreetmap.josm.gsoc2015.opengl.geometrycache.TextureManager.TextureEntry;
 
 import com.jogamp.common.nio.Buffers;
@@ -78,48 +79,63 @@ public class RecordedGeometry {
 
 	}
 
-	public void draw(GL2 gl) {
+	public void draw(GL2 gl, GLState state) {
 		if (points == 0) {
 			// nop
-		} else if (vbo >= 0) {
+			return;
+		}
+		
+		if (vbo < 0 && points > 50) {
+			// convert to VBO
+			
+			int[] vboIds = new int[1];
+			gl.glGenBuffers(1, vboIds,0 );
+			vbo = vboIds[0];
+			if (vbo == 0) {
+				Main.warn("Could not generate VBO object.");
+				vbo = -1;
+			} else {
+				gl.glBindBuffer(GL2.GL_ARRAY_BUFFER, vbo);
+				coordinates.rewind();
+				gl.glBufferData(GL2.GL_ARRAY_BUFFER, coordinates.remaining() * Buffers.SIZEOF_FLOAT, coordinates, GL.GL_STATIC_DRAW);
+				// we don't need this any more
+				coordinates = null;
+			}
+		}
+		
+		state.setColor(color);
 
+		int stride = getBufferEntriesForPoint() * Buffers.SIZEOF_FLOAT;
+
+		if (vbo >= 0) {
+			gl.glBindBuffer(GL2.GL_ARRAY_BUFFER, vbo);
+			gl.glVertexPointer(2, GL.GL_FLOAT, stride, 0);
 		} else {
-			int rgb = color;
-			gl.glColor4ub((byte) (rgb >> 16 & 0xFF), (byte) (rgb >> 8 & 0xFF),
-					(byte) (rgb & 0xFF), (byte) (rgb >> 24 & 0xFF));
-
 			coordinates.rewind();
-
-			int stride = getBufferEntriesForPoint() * Buffers.SIZEOF_FLOAT;
 			gl.glVertexPointer(2, GL.GL_FLOAT, stride, coordinates);
-			gl.glEnableClientState(GLPointerFunc.GL_VERTEX_ARRAY);
+		}
 
-			if (texture != null) {
-				gl.glTexEnvi(GL2ES1.GL_TEXTURE_ENV, GL2ES1.GL_TEXTURE_ENV_MODE,
-						GL2ES1.GL_MODULATE);
-				gl.glTexParameterf(GL2ES1.GL_TEXTURE_ENV,
-						GL2ES1.GL_TEXTURE_ENV_MODE, GL.GL_BLEND);
-				float[] dst = new float[coordinates.capacity()];
-				coordinates.get(dst);
-//				System.out.println("Coordinates: " + Arrays.toString(dst)
-//						+ ", texture "
-//						+ texture.getTexture(gl).getTextureObject(gl));
-
-				texture.getTexture(gl).enable(gl);
-				texture.getTexture(gl).bind(gl);
+		state.setTexCoordActive(texture != null);
+		if (texture != null) {
+			texture.getTexture(gl).enable(gl);
+			texture.getTexture(gl).bind(gl);
+			if (vbo >= 0) {
+				gl.glTexCoordPointer(2, GL.GL_FLOAT, stride,
+						2 * Buffers.SIZEOF_FLOAT);
+			} else {
 				coordinates.position(2);
 				gl.glTexCoordPointer(2, GL.GL_FLOAT, stride, coordinates);
-				gl.glEnableClientState(GLPointerFunc.GL_TEXTURE_COORD_ARRAY);
 			}
+		}
 
-			gl.glDrawArrays(drawMode, 0, points);
+		gl.glDrawArrays(drawMode, 0, points);
 
-			if (texture != null) {
-				texture.getTexture(gl).disable(gl);
-				gl.glDisableClientState(GLPointerFunc.GL_TEXTURE_COORD_ARRAY);
-			}
+		if (texture != null) {
+			texture.getTexture(gl).disable(gl);
+		}
 
-			gl.glDisableClientState(GLPointerFunc.GL_VERTEX_ARRAY);
+		if (vbo >= 0) {
+			gl.glBindBuffer(GL2.GL_ARRAY_BUFFER, 0);
 		}
 	}
 

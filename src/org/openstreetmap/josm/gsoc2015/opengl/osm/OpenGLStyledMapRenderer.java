@@ -6,6 +6,8 @@ import java.util.Collections;
 import java.util.Hashtable;
 import java.util.List;
 
+import javax.media.opengl.GL2;
+
 import org.jogamp.glg2d.GLGraphics2D;
 import org.openstreetmap.josm.data.Bounds;
 import org.openstreetmap.josm.data.osm.BBox;
@@ -15,6 +17,7 @@ import org.openstreetmap.josm.data.osm.OsmPrimitive;
 import org.openstreetmap.josm.data.osm.Relation;
 import org.openstreetmap.josm.data.osm.Way;
 import org.openstreetmap.josm.data.osm.visitor.paint.StyledMapRenderer;
+import org.openstreetmap.josm.gsoc2015.opengl.geometrycache.GLState;
 import org.openstreetmap.josm.gsoc2015.opengl.geometrycache.GeometryMerger;
 import org.openstreetmap.josm.gsoc2015.opengl.geometrycache.RecordedOsmGeometries;
 import org.openstreetmap.josm.gsoc2015.opengl.osm.StyledGeometryGenerator.ChacheDataSupplier;
@@ -172,9 +175,13 @@ public class OpenGLStyledMapRenderer extends StyledMapRenderer {
 			List<RecordedOsmGeometries> geometries = manager.getDrawGeometries(bbox, new StyleGenerationState());
 			long time2 = System.currentTimeMillis();
 
+			GL2 gl = ((GLGraphics2D) g).getGLContext().getGL().getGL2();
+			GLState state = new GLState(gl);
+			state.initialize();
 			for (RecordedOsmGeometries s : geometries) {
-				s.draw(((GLGraphics2D) g).getGLContext().getGL().getGL2());
+				s.draw(gl, state);
 			}
+			state.done();
 			long time4 = System.currentTimeMillis();
 
 			drawVirtualNodes(data, bbox);
