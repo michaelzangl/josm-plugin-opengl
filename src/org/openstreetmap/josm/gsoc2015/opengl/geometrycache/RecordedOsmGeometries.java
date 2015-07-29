@@ -2,6 +2,7 @@ package org.openstreetmap.josm.gsoc2015.opengl.geometrycache;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -11,8 +12,19 @@ import java.util.Set;
 import javax.media.opengl.GL2;
 
 import org.openstreetmap.josm.data.osm.OsmPrimitive;
+import org.openstreetmap.josm.gsoc2015.opengl.osm.ViewPosition;
 
 public class RecordedOsmGeometries implements Comparable<RecordedOsmGeometries> {
+	private static final GeometryComperator COMPERATOR = new GeometryComperator();
+
+	private static final class GeometryComperator implements
+			Comparator<RecordedGeometry> {
+		@Override
+		public int compare(RecordedGeometry o1, RecordedGeometry o2) {
+			return Integer.compare(o1.getCombineHash(), o2.getCombineHash());
+		}
+	}
+
 	/**
 	 * The geometries in the order in which they need to be drawn.
 	 */
@@ -20,7 +32,12 @@ public class RecordedOsmGeometries implements Comparable<RecordedOsmGeometries> 
 	/**
 	 * A list of primitives this geometry is for.
 	 */
-	private Set<OsmPrimitive> primitives = new HashSet<>();
+	private final Set<OsmPrimitive> primitives = new HashSet<>();
+	
+	/**
+	 * The zoom and viewport that was used to create this geometry.
+	 */
+	private final ViewPosition viewPosition;
 
 	private long orderIndex;
 	private int[] hashes;
@@ -33,8 +50,9 @@ public class RecordedOsmGeometries implements Comparable<RecordedOsmGeometries> 
 	 *            The initial primitive this record is for.
 	 */
 	public RecordedOsmGeometries(List<RecordedGeometry> geometries,
-			OsmPrimitive primitive, long orderIndex) {
+			OsmPrimitive primitive, long orderIndex, ViewPosition viewPosition) {
 		this.orderIndex = orderIndex;
+		this.viewPosition = viewPosition;
 		this.geometries = new ArrayList<>(geometries);
 		this.primitives.add(primitive);
 	}
@@ -52,6 +70,7 @@ public class RecordedOsmGeometries implements Comparable<RecordedOsmGeometries> 
 	}
 
 	public void draw(GL2 gl, GLState state) {
+		state.toViewPosition(viewPosition);
 		for (RecordedGeometry g : geometries) {
 			g.draw(gl, state);
 		}
@@ -86,7 +105,7 @@ public class RecordedOsmGeometries implements Comparable<RecordedOsmGeometries> 
 	 * @return <code>true</code> if the merge was successful.
 	 */
 	public boolean mergeWith(RecordedOsmGeometries other) {
-		if (other.orderIndex != this.orderIndex) {
+		if (other.orderIndex != this.orderIndex || !viewPosition.equals(other.viewPosition)) {
 			return false;
 		}
 		hashes = null;
@@ -99,12 +118,7 @@ public class RecordedOsmGeometries implements Comparable<RecordedOsmGeometries> 
 	private List<RecordedGeometry> merge(List<RecordedGeometry> geometries1,
 			List<RecordedGeometry> geometries2) {
 		RecordedGeometry[] toMerge = combineLists(geometries1, geometries2);
-		Arrays.sort(toMerge, new Comparator<RecordedGeometry>() {
-			@Override
-			public int compare(RecordedGeometry o1, RecordedGeometry o2) {
-				return Integer.compare(o1.getCombineHash(), o2.getCombineHash());
-			}
-		});
+		Arrays.sort(toMerge, COMPERATOR);
 		RecordedGeometry last = null;
 		List<RecordedGeometry> ret = new ArrayList<>();
 		for (RecordedGeometry current : toMerge) {

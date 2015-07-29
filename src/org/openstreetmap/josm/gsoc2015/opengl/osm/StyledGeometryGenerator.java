@@ -77,7 +77,8 @@ public class StyledGeometryGenerator<T extends OsmPrimitive> {
 
 	public StyledGeometryGenerator(StyleGenerationState sgs) {
 		this.sgs = sgs;
-		recorder = new OsmPrimitiveRecorder(new SimpleRecodingReceiver(recorded));
+		recorder = new OsmPrimitiveRecorder(
+				new SimpleRecodingReceiver(recorded));
 		recordingRenderer = new RecordingStyledMapRenderer(recorder,
 				sgs.getCacheKey(), sgs.isInactiveMode());
 		recordingRenderer.getSettings(sgs.renderVirtualNodes());
@@ -131,7 +132,8 @@ public class StyledGeometryGenerator<T extends OsmPrimitive> {
 	}
 
 	private void runForStyle(T primitive, ElemStyle s, long state) {
-		recorder.start(primitive, getOrderIndex(primitive, s, state));
+		recorder.start(primitive, sgs.getViewPosition(),
+				getOrderIndex(primitive, s, state));
 		s.paintPrimitive(primitive, MapPaintSettings.INSTANCE,
 				recordingRenderer, state == STATE_SELECTED,
 				state == STATE_OUTERMEMBER_OF_SELECTED,

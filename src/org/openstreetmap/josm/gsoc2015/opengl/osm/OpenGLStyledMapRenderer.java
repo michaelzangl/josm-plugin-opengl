@@ -129,6 +129,11 @@ public class OpenGLStyledMapRenderer extends StyledMapRenderer {
 		public double getCircum() {
 			return OpenGLStyledMapRenderer.this.getCircum();
 		}
+
+		public ViewPosition getViewPosition() {
+			// TODO: Cache this.
+			return ViewPosition.from(nc);
+		}
 	}
 
 	/**
@@ -177,7 +182,7 @@ public class OpenGLStyledMapRenderer extends StyledMapRenderer {
 
 			GL2 gl = ((GLGraphics2D) g).getGLContext().getGL().getGL2();
 			GLState state = new GLState(gl);
-			state.initialize();
+			state.initialize(ViewPosition.from(nc));
 			for (RecordedOsmGeometries s : geometries) {
 				s.draw(gl, state);
 			}

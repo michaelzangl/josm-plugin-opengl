@@ -9,6 +9,7 @@ import org.openstreetmap.josm.data.osm.OsmPrimitive;
 import org.openstreetmap.josm.data.osm.Relation;
 import org.openstreetmap.josm.data.osm.Way;
 import org.openstreetmap.josm.data.osm.visitor.Visitor;
+import org.openstreetmap.josm.gsoc2015.opengl.osm.ViewPosition;
 
 /**
  * A recorder that records the geometry for one OSM primitive.
@@ -20,6 +21,7 @@ public class OsmPrimitiveRecorder implements Recorder, Visitor {
 	private OsmPrimitive activePrimitive;
 	private RecordedPrimitiveReceiver receiver ;
 	private long activeOrderIndex;
+	private ViewPosition viewPosition;
 	
 //			new RecordedPrimitiveReceiver() {
 //		
@@ -62,12 +64,13 @@ public class OsmPrimitiveRecorder implements Recorder, Visitor {
 		geometries.clear();
 	}
 	
-	public void start(OsmPrimitive p, long orderIndex) {
+	public void start(OsmPrimitive p, ViewPosition viewPosition, long orderIndex) {
 		if (activePrimitive != null) {
 			throw new IllegalStateException("start() called without a end().");
 		}
 		reset();
 		this.activeOrderIndex = orderIndex;
+		this.viewPosition = viewPosition;
 		activePrimitive = p;
 	}
 	
@@ -81,17 +84,17 @@ public class OsmPrimitiveRecorder implements Recorder, Visitor {
 
 	@Override
 	public void visit(Node n) {
-		receiver.receiveForNode(new RecordedOsmGeometries(geometries, n, activeOrderIndex));
+		receiver.receiveForNode(new RecordedOsmGeometries(geometries, n, activeOrderIndex, viewPosition));
 	}
 
 	@Override
 	public void visit(Way w) {
-		receiver.receiveForWay(new RecordedOsmGeometries(geometries, w, activeOrderIndex));
+		receiver.receiveForWay(new RecordedOsmGeometries(geometries, w, activeOrderIndex, viewPosition));
 	}
 
 	@Override
 	public void visit(Relation r) {
-		receiver.receiveForRelation(new RecordedOsmGeometries(geometries, r, activeOrderIndex));
+		receiver.receiveForRelation(new RecordedOsmGeometries(geometries, r, activeOrderIndex, viewPosition));
 	}
 
 	@Override
