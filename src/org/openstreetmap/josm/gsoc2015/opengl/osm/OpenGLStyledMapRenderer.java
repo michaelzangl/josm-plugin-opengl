@@ -34,69 +34,69 @@ public class OpenGLStyledMapRenderer extends StyledMapRenderer {
 		super(g, nc, isInactiveMode);
 	}
 
-	public class StyleMap {
-		private Hashtable<OsmPrimitive, List<RecordedOsmGeometries>> recordedStyles = new Hashtable<>();
-
-		public synchronized <T extends OsmPrimitive> void add(T primitive,
-				RecordedOsmGeometries geometry) {
-			// For testing
-			// geometry.draw(((GLGraphics2D)g).getGLContext().getGL().getGL2());
-
-			List<RecordedOsmGeometries> list = recordedStyles.get(primitive);
-			if (list == null) {
-				list = new ArrayList<>();
-				recordedStyles.put(primitive, list);
-			}
-			list.add((RecordedOsmGeometries) geometry);
-		}
-
-		public synchronized ArrayList<RecordedOsmGeometries> getOrderedStyles() {
-			ArrayList<RecordedOsmGeometries> list = new ArrayList<>();
-			for (List<RecordedOsmGeometries> v : recordedStyles.values()) {
-				list.addAll(v);
-			}
-			Collections.sort(list);
-			return list;
-		}
-	}
-
-	// TEMP
-	private StyleMap styleMap = new StyleMap();
+//	public class StyleMap {
+//		private Hashtable<OsmPrimitive, List<RecordedOsmGeometries>> recordedStyles = new Hashtable<>();
+//
+//		public synchronized <T extends OsmPrimitive> void add(T primitive,
+//				RecordedOsmGeometries geometry) {
+//			// For testing
+//			// geometry.draw(((GLGraphics2D)g).getGLContext().getGL().getGL2());
+//
+//			List<RecordedOsmGeometries> list = recordedStyles.get(primitive);
+//			if (list == null) {
+//				list = new ArrayList<>();
+//				recordedStyles.put(primitive, list);
+//			}
+//			list.add((RecordedOsmGeometries) geometry);
+//		}
+//
+//		public synchronized ArrayList<RecordedOsmGeometries> getOrderedStyles() {
+//			ArrayList<RecordedOsmGeometries> list = new ArrayList<>();
+//			for (List<RecordedOsmGeometries> v : recordedStyles.values()) {
+//				list.addAll(v);
+//			}
+//			Collections.sort(list);
+//			return list;
+//		}
+//	}
+//
+//	// TEMP
+//	private StyleMap styleMap = new StyleMap();
 	private boolean renderVirtualNodes;
 
-	/**
-	 * This queue recieves an area to process.
-	 * 
-	 * @author michael
-	 *
-	 */
-	private class StyleWorkQueue {
-
-		int activeWorkCycle = 0;
-
-		DataSet data;
-
-		public StyleWorkQueue(DataSet data) {
-			this.data = data;
-		}
-
-		public void setArea(BBox bbox) {
-
-			activeWorkCycle++;
-			addArea(bbox);
-		}
-
-		public void addArea(final BBox bbox) {
-
-			StyleGenerationState sgs = new StyleGenerationState();
-			new NodeSearcher(new StyleGeometryScheduler<Node>(sgs),
-					data, bbox).run();
-			new WaySearcher(new StyleGeometryScheduler<Way>(sgs), data,
-					bbox).run();
-			new RelationSearcher(new StyleGeometryScheduler<Relation>(
-					sgs), data, bbox).run();
-		}
-	}
+//	/**
+//	 * This queue recieves an area to process.
+//	 * 
+//	 * @author michael
+//	 *
+//	 */
+//	private class StyleWorkQueue {
+//
+//		int activeWorkCycle = 0;
+//
+//		DataSet data;
+//
+//		public StyleWorkQueue(DataSet data) {
+//			this.data = data;
+//		}
+//
+//		public void setArea(BBox bbox) {
+//
+//			activeWorkCycle++;
+//			addArea(bbox);
+//		}
+//
+//		public void addArea(final BBox bbox) {
+//
+//			StyleGenerationState sgs = new StyleGenerationState();
+//			new NodeSearcher(new StyleGeometryScheduler<Node>(sgs),
+//					data, bbox).run();
+//			new WaySearcher(new StyleGeometryScheduler<Way>(sgs), data,
+//					bbox).run();
+//			new RelationSearcher(new StyleGeometryScheduler<Relation>(
+//					sgs), data, bbox).run();
+//		}
+//	}
 
 	/**
 	 * TODO: Static, unchangebale.
@@ -120,9 +120,9 @@ public class OpenGLStyledMapRenderer extends StyledMapRenderer {
 			return nc;
 		}
 
-		public StyleMap getStyleReceiver() {
-			return styleMap;
-		}
+//		public StyleMap getStyleReceiver() {
+//			return styleMap;
+//		}
 
 		public Rectangle getClipBounds() {
 			return clip;
@@ -146,27 +146,27 @@ public class OpenGLStyledMapRenderer extends StyledMapRenderer {
 		}
 	}
 
-	/**
-	 * Schedules the generation of a bunch of styles/geometries.
-	 * 
-	 * @author michael
-	 *
-	 * @param <T>
-	 */
-	private static class StyleGeometryScheduler<T extends OsmPrimitive>
-			implements OsmPrimitiveHandler<T> {
-		private StyleGenerationState sgs;
-
-		public StyleGeometryScheduler(StyleGenerationState sgs) {
-			this.sgs = sgs;
-		}
-
-		public void receivePrimitives(java.util.List<T> primitives) {
-			// We could now split this into bulks.
-			// TODO: Use different threads.
-			//new StyledGeometryGenerator<>(primitives, sgs).run();
-		}
-	}
+//	/**
+//	 * Schedules the generation of a bunch of styles/geometries.
+//	 * 
+//	 * @author michael
+//	 *
+//	 * @param <T>
+//	 */
+//	private static class StyleGeometryScheduler<T extends OsmPrimitive>
+//			implements OsmPrimitiveHandler<T> {
+//		private StyleGenerationState sgs;
+//
+//		public StyleGeometryScheduler(StyleGenerationState sgs) {
+//			this.sgs = sgs;
+//		}
+//
+//		public void receivePrimitives(java.util.List<T> primitives) {
+//			// We could now split this into bulks.
+//			// TODO: Use different threads.
+//			//new StyledGeometryGenerator<>(primitives, sgs).run();
+//		}
+//	}
 
 	private StyleGenerationManager manager = null;
 	

@@ -98,6 +98,7 @@ public class StyleGenerationManager {
 	
 	public StyleGenerationManager(DataSet data) {
 		this.data = data;
+		cache.addListeners(data);
 	}
 
 	/**

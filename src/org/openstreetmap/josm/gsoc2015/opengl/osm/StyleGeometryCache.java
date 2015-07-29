@@ -8,6 +8,8 @@ import java.util.Hashtable;
 import java.util.List;
 import java.util.Set;
 
+import org.openstreetmap.josm.data.SelectionChangedListener;
+import org.openstreetmap.josm.data.osm.DataSet;
 import org.openstreetmap.josm.data.osm.OsmPrimitive;
 import org.openstreetmap.josm.gsoc2015.opengl.geometrycache.GeometryMerger;
 import org.openstreetmap.josm.gsoc2015.opengl.geometrycache.RecordedOsmGeometries;
@@ -36,15 +38,76 @@ import org.openstreetmap.josm.gsoc2015.opengl.geometrycache.RecordedOsmGeometrie
  *
  */
 public class StyleGeometryCache {
+	private final class SelectionObserver implements
+			SelectionChangedListener {
+		private DataSet data;
+
+		private Collection<OsmPrimitive> selected;
+		
+		public SelectionObserver(DataSet data) {
+			super();
+			this.data = data;
+			selected = data.getAllSelected();
+		}
+
+
+		@Override
+		public void selectionChanged(Collection<? extends OsmPrimitive> newSelectionInAnyDataSet) {
+			// JOSM fires for all data sets. I cannot filter this.
+			Collection<OsmPrimitive> newSelection = data.getAllSelected();
+			if (newSelection == selected) {
+				return;
+			}
+			//TODO: Use sets here.
+			for (OsmPrimitive s : selected) {
+				if (!newSelection.contains(s)) {
+					invalidateGeometry(s);
+				}
+			}
+			for (OsmPrimitive s : newSelection) {
+				if (!selected.contains(s)) {
+					invalidateGeometry(s);
+				}
+			}
+			
+			selected = newSelection;
+		}
+	}
+
+
+
 	private Hashtable<OsmPrimitive, List<RecordedOsmGeometries>> recordedForPrimitive = new Hashtable<>();
 
 	private Set<RecordedOsmGeometries> collectedForFrame = Collections
 			.synchronizedSet(new HashSet<RecordedOsmGeometries>());
 
 	private GeometryMerger collectedForFrameMerger;
+	
+	private SelectionChangedListener selectionListener;
 
 	public void invalidateAll() {
 		recordedForPrimitive.clear();
+	}
+
+	public void invalidateGeometry(OsmPrimitive s) {
+		List<RecordedOsmGeometries> geometries = new ArrayList<>(recordedForPrimitive.get(s));
+		for (RecordedOsmGeometries g : geometries) {
+			invalidateGeometry(g);
+		}
+		// XXX TEMP.
+		recordedForPrimitive.remove(s);
+	}
+
+	private synchronized void invalidateGeometry(RecordedOsmGeometries g) {
+		// TODO Only schedule deletion, dispose, regenerate the other geometries affected.
+		for (OsmPrimitive p : g.getPrimitives()) {
+			List<RecordedOsmGeometries> list = recordedForPrimitive.get(p);
+			if (list == null) {
+				// this should never happen.
+				continue;
+			}
+			list.remove(g);
+		}
 	}
 
 	public void startFrame() {
@@ -127,5 +190,10 @@ public class StyleGeometryCache {
 			}
 			list.add(geometry);
 		}
+	}
+	
+	public void addListeners(DataSet data) {
+		selectionListener = new SelectionObserver(data);
+		data.addSelectionListener(selectionListener);
 	}
 }
