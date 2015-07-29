@@ -1,6 +1,7 @@
 package org.openstreetmap.josm.gsoc2015.opengl.geometrycache;
 
 import java.awt.Color;
+import java.nio.FloatBuffer;
 
 import javax.media.opengl.GL;
 import javax.media.opengl.GL2;
@@ -8,6 +9,8 @@ import javax.media.opengl.GL2ES1;
 import javax.media.opengl.fixedfunc.GLPointerFunc;
 
 import org.openstreetmap.josm.gsoc2015.opengl.osm.ViewPosition;
+
+import com.jogamp.common.nio.Buffers;
 
 /**
  * This is a state cache for OpenGL. All color changes need to be passed through
@@ -27,8 +30,11 @@ public class GLState {
 	private int activeColor;
 	private boolean texCoordActive;
 	private ViewPosition currentViewPosition;
+	private FloatBuffer oldModelview = Buffers.newDirectFloatBuffer(16);
 
 	public void initialize(ViewPosition viewPosition) {
+		gl.glGetFloatv(GL2.GL_MODELVIEW_MATRIX, oldModelview);
+		
 		currentViewPosition = viewPosition;
 		activeColor = Color.white.getRGB();
 		setColorImpl(activeColor);
@@ -54,6 +60,7 @@ public class GLState {
 
 	public void done() {
 		gl.glDisableClientState(GLPointerFunc.GL_VERTEX_ARRAY);
+		gl.glLoadMatrixf(oldModelview);
 	}
 
 	public void setColor(int rgba) {
@@ -69,16 +76,18 @@ public class GLState {
 	}
 
 	public void toViewPosition(ViewPosition viewPosition) {
-		// convert the current matrix to the new view position.
-		float[] m = new float[] { 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0,
-				1 };
-		float scale = (float) currentViewPosition.translateScaleTo(viewPosition);
-		m[0] = scale;
-		m[5] = scale;
-		m[12] = (float) currentViewPosition.translateXTo(viewPosition);
-		m[13] = (float) currentViewPosition.translateYTo(viewPosition);
-		gl.glMultMatrixf(m, 0);
-		//gl.glLoadMatrixf(m, 0);
-		currentViewPosition = viewPosition;
+		if (!viewPosition.equals(currentViewPosition)) {
+			// convert the current matrix to the new view position.
+			float[] m = new float[] { 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0,
+					1 };
+			float scale = (float) currentViewPosition.translateScaleTo(viewPosition);
+			m[0] = scale;
+			m[5] = scale;
+			m[12] = (float) currentViewPosition.translateXTo(viewPosition);
+			m[13] = (float) currentViewPosition.translateYTo(viewPosition);
+			gl.glMultMatrixf(m, 0);
+			//gl.glLoadMatrixf(m, 0);
+			currentViewPosition = viewPosition;
+		}
 	}
 }

@@ -104,6 +104,17 @@ public class OpenGLStyledMapRenderer extends StyledMapRenderer {
 	 *
 	 */
 	public class StyleGenerationState implements ChacheDataSupplier {
+		private Rectangle clip;
+		private double circum;
+		private ViewPosition viewPosition;
+
+		public StyleGenerationState() {
+			// We don't really clip since we need the whole geometry for our cache.
+			clip = new Rectangle(-1000000, -1000000, 2000000, 2000000);
+			circum = OpenGLStyledMapRenderer.this.getCircum();
+			viewPosition = ViewPosition.from(nc);
+		}
+		
 		@Override
 		public NavigatableComponent getCacheKey() {
 			return nc;
@@ -114,7 +125,7 @@ public class OpenGLStyledMapRenderer extends StyledMapRenderer {
 		}
 
 		public Rectangle getClipBounds() {
-			return g.getClipBounds();
+			return clip;
 		}
 
 		public boolean renderVirtualNodes() {
@@ -127,12 +138,11 @@ public class OpenGLStyledMapRenderer extends StyledMapRenderer {
 
 		@Override
 		public double getCircum() {
-			return OpenGLStyledMapRenderer.this.getCircum();
+			return circum;
 		}
 
 		public ViewPosition getViewPosition() {
-			// TODO: Cache this.
-			return ViewPosition.from(nc);
+			return viewPosition;
 		}
 	}
 

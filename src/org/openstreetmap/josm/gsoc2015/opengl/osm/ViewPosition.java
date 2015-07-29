@@ -2,7 +2,6 @@ package org.openstreetmap.josm.gsoc2015.opengl.osm;
 
 import java.awt.Dimension;
 
-import org.openstreetmap.josm.Main;
 import org.openstreetmap.josm.data.coor.EastNorth;
 import org.openstreetmap.josm.gui.NavigatableComponent;
 
@@ -39,6 +38,51 @@ public class ViewPosition {
 
 	public double translateScaleTo(ViewPosition other) {
 		return other.scale / this.scale;
+	}
+
+	@Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = 1;
+		long temp;
+		temp = Double.doubleToLongBits(scale);
+		result = prime * result + (int) (temp ^ (temp >>> 32));
+		result = prime * result
+				+ ((upperLeft == null) ? 0 : upperLeft.hashCode());
+		result = prime * result
+				+ ((windowSize == null) ? 0 : windowSize.hashCode());
+		return result;
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj)
+			return true;
+		if (obj == null)
+			return false;
+		if (getClass() != obj.getClass())
+			return false;
+		ViewPosition other = (ViewPosition) obj;
+		if (Double.doubleToLongBits(scale) != Double
+				.doubleToLongBits(other.scale))
+			return false;
+		if (upperLeft == null) {
+			if (other.upperLeft != null)
+				return false;
+		} else if (!upperLeft.equals(other.upperLeft))
+			return false;
+		if (windowSize == null) {
+			if (other.windowSize != null)
+				return false;
+		} else if (!windowSize.equals(other.windowSize))
+			return false;
+		return true;
+	}
+
+	@Override
+	public String toString() {
+		return "ViewPosition [scale=" + scale + ", upperLeft=" + upperLeft
+				+ ", windowSize=" + windowSize + "]";
 	}
 	
 }
