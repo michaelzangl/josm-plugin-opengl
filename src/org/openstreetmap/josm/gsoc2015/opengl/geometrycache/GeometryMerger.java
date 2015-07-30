@@ -6,70 +6,92 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 
+import org.openstreetmap.josm.data.osm.OsmPrimitive;
+
 /**
  * This class merges a list of geometries into a new list.
  * 
  * @author Michael Zangl
  */
 public class GeometryMerger {
-	private HashMap<Integer, List<RecordedOsmGeometries>> combineMap = new HashMap<>();
+//	private HashMap<Integer, List<RecordedOsmGeometries>> combineMap = new HashMap<>();
 
-	private ArrayList<RecordedOsmGeometries> geometries = new ArrayList<>();
+//	private ArrayList<RecordedOsmGeometries> geometries = new ArrayList<>();
+
+	private ArrayList<MergeGroup> mergeGroups = new ArrayList<>();
 
 	public GeometryMerger() {
 	}
 
-	public synchronized void addMergeable(RecordedOsmGeometries geometry) {
-		if (geometries.contains(geometry)) {
-			throw new IllegalArgumentException(
-					"Attempted to merge in a geometry that is already merged.");
-		}
+//	public synchronized void addMergeable(RecordedOsmGeometries geometry) {
+//		if (geometries.contains(geometry)) {
+//			throw new IllegalArgumentException(
+//					"Attempted to merge in a geometry that is already merged.");
+//		}
+//
+//		for (int hash : geometry.getCombineHashes()) {
+//			List<RecordedOsmGeometries> list = combineMap.get(hash);
+//			if (list != null) {
+//				for (RecordedOsmGeometries r : list) {
+//					if (attemptMerge(geometry, r)) {
+//						return;
+//					}
+//				}
+//			}
+//		}
+//
+//		geometries.add(geometry);
+//		addHashes(geometry, geometry.getCombineHashes(), new int[0]);
+//	}
 
-		for (int hash : geometry.getCombineHashes()) {
-			List<RecordedOsmGeometries> list = combineMap.get(hash);
-			if (list != null) {
-				for (RecordedOsmGeometries r : list) {
-					if (attemptMerge(geometry, r)) {
-						return;
-					}
-				}
+//	private boolean attemptMerge(RecordedOsmGeometries geometry,
+//			RecordedOsmGeometries mergeInto) {
+//		if (mergeInto.getCombineRating(geometry) > 0) {
+//			int[] oldHashes = mergeInto.getCombineHashes();
+//			if (mergeInto.mergeWith(geometry)) {
+//				addHashes(mergeInto, mergeInto.getCombineHashes(), oldHashes);
+//				return true;
+//			}
+//		}
+//		return false;
+//	}
+
+//	private void addHashes(RecordedOsmGeometries geometry, int[] combineHashes,
+//			int[] except) {
+//		for (int c : combineHashes) {
+//			if (Arrays.binarySearch(except, c) < 0) {
+//				List<RecordedOsmGeometries> list = combineMap.get(c);
+//				if (list == null) {
+//					list = new ArrayList<>();
+//				}
+//				list.add(geometry);
+//				combineMap.put(c, list);
+//			}
+//		}
+//	}
+
+	/**
+	 * Adds the geometries.
+	 * @param primitive The primitive to add the geometries for.
+	 * @param geometries All geometries for that primitive.
+	 */
+	public synchronized void addMergeables(OsmPrimitive primitive, Collection<RecordedOsmGeometries> geometries) {
+		MergeGroup maxMergeRated = null;
+		float maxMergeRating = 0;
+		for (MergeGroup g : mergeGroups) {
+			float mergeRating = g.getMergeRating(primitive, geometries);
+			if (mergeRating > maxMergeRating) {
+				maxMergeRated = g;
+				maxMergeRating = mergeRating;
 			}
 		}
-
-		geometries.add(geometry);
-		addHashes(geometry, geometry.getCombineHashes(), new int[0]);
-	}
-
-	private boolean attemptMerge(RecordedOsmGeometries geometry,
-			RecordedOsmGeometries mergeInto) {
-		if (mergeInto.getCombineRating(geometry) > 0) {
-			int[] oldHashes = mergeInto.getCombineHashes();
-			if (mergeInto.mergeWith(geometry)) {
-				addHashes(mergeInto, mergeInto.getCombineHashes(), oldHashes);
-				return true;
-			}
+		if (maxMergeRated != null) {
+		} else {
+			MergeGroup group = new MergeGroup();
+			mergeGroups.add(group);
+			maxMergeRated = group;
 		}
-		return false;
-	}
-
-	private void addHashes(RecordedOsmGeometries geometry, int[] combineHashes,
-			int[] except) {
-		for (int c : combineHashes) {
-			if (Arrays.binarySearch(except, c) < 0) {
-				List<RecordedOsmGeometries> list = combineMap.get(c);
-				if (list == null) {
-					list = new ArrayList<>();
-				}
-				list.add(geometry);
-				combineMap.put(c, list);
-			}
-		}
-	}
-
-	public void addMergeables(Collection<RecordedOsmGeometries> geometries) {
-		for (RecordedOsmGeometries g : geometries) {
-			addMergeable(g);
-		}
+		maxMergeRated.merge(primitive, geometries);
 	}
 
 	/**
@@ -80,6 +102,10 @@ public class GeometryMerger {
 	 * @return The merged geometries.
 	 */
 	public ArrayList<RecordedOsmGeometries> getGeometries() {
-		return geometries;
+		ArrayList<RecordedOsmGeometries> geometries = new ArrayList<>();
+		for (MergeGroup m : mergeGroups) {
+			geometries.addAll(m.getGeometries());
+		}
+		return geometries ;
 	}
 }

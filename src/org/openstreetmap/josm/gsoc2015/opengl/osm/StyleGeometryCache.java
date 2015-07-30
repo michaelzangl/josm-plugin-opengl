@@ -90,7 +90,8 @@ public class StyleGeometryCache {
 	}
 
 	public void invalidateGeometry(OsmPrimitive s) {
-		List<RecordedOsmGeometries> geometries = new ArrayList<>(recordedForPrimitive.get(s));
+		List<RecordedOsmGeometries> recorded = recordedForPrimitive.get(s);
+		List<RecordedOsmGeometries> geometries = new ArrayList<>(recorded);
 		for (RecordedOsmGeometries g : geometries) {
 			invalidateGeometry(g);
 		}
@@ -160,7 +161,7 @@ public class StyleGeometryCache {
 				// -- pass on to merger
 				List<RecordedOsmGeometries> geometries = generator
 						.runFor(primitive);
-				collectedForFrameMerger.addMergeables(geometries);
+				collectedForFrameMerger.addMergeables(primitive, geometries);
 			} else {
 				// if not exists and no generator is set
 				// -- schedule for background generation

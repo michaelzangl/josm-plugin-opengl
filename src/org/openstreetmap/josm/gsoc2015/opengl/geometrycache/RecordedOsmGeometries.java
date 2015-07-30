@@ -113,8 +113,7 @@ public class RecordedOsmGeometries implements Comparable<RecordedOsmGeometries> 
 	 * @return <code>true</code> if the merge was successful.
 	 */
 	public boolean mergeWith(RecordedOsmGeometries other) {
-		if (other.orderIndex != this.orderIndex
-				|| !viewPosition.equals(other.viewPosition)) {
+		if (!isMergeable(other)) {
 			return false;
 		}
 		hashes = null;
@@ -124,6 +123,18 @@ public class RecordedOsmGeometries implements Comparable<RecordedOsmGeometries> 
 		return true;
 	}
 
+	private boolean isMergeable(RecordedOsmGeometries other) {
+		return other.orderIndex == this.orderIndex && viewPosition.equals(other.viewPosition);
+	}
+
+	/**
+	 * Merges two list of geometries. The order of geomtries is respected and
+	 * stays the same after each merge.
+	 * 
+	 * @param geometries1
+	 * @param geometries2
+	 * @return A new, merged list of geometries.
+	 */
 	private List<RecordedGeometry> merge(List<RecordedGeometry> geometries1,
 			List<RecordedGeometry> geometries2) {
 		List<RecordedGeometry> ret = new ArrayList<>();
@@ -140,7 +151,8 @@ public class RecordedOsmGeometries implements Comparable<RecordedOsmGeometries> 
 				return Integer.compare(o1.a, o2.a);
 			}
 		});
-		// Since all crossing pairs are removed, we can be sure that paris are ordered by a and by b.
+		// Since all crossing pairs are removed, we can be sure that paris are
+		// ordered by a and by b.
 
 		int geometry1Index = 0, geometry2Index = 0;
 		for (Pair<Integer, Integer> p : filtered) {
@@ -247,7 +259,7 @@ public class RecordedOsmGeometries implements Comparable<RecordedOsmGeometries> 
 	 * @return
 	 */
 	public float getCombineRating(RecordedOsmGeometries geometry) {
-		return 1;
+		return isMergeable(geometry) ? 1 : 0;
 	}
 
 }
