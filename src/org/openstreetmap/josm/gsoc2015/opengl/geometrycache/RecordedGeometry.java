@@ -166,6 +166,11 @@ public class RecordedGeometry {
 		return result;
 	}
 
+	/**
+	 * Checks if two geomtries could be combined. The result is symetric.
+	 * @param other
+	 * @return
+	 */
 	public boolean couldCombineWith(RecordedGeometry other) {
 		return other.color == color && other.texture == texture
 				&& other.drawMode == drawMode && hasMergeableDrawMode()

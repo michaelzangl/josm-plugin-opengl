@@ -5,6 +5,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
@@ -13,7 +14,14 @@ import javax.media.opengl.GL2;
 
 import org.openstreetmap.josm.data.osm.OsmPrimitive;
 import org.openstreetmap.josm.gsoc2015.opengl.osm.ViewPosition;
+import org.openstreetmap.josm.tools.Pair;
 
+/**
+ * This is a list of geometries that are recorded to draw the given geometries.
+ * 
+ * @author michael
+ *
+ */
 public class RecordedOsmGeometries implements Comparable<RecordedOsmGeometries> {
 	private static final GeometryComperator COMPERATOR = new GeometryComperator();
 
@@ -33,7 +41,7 @@ public class RecordedOsmGeometries implements Comparable<RecordedOsmGeometries> 
 	 * A list of primitives this geometry is for.
 	 */
 	private final Set<OsmPrimitive> primitives = new HashSet<>();
-	
+
 	/**
 	 * The zoom and viewport that was used to create this geometry.
 	 */
@@ -75,7 +83,7 @@ public class RecordedOsmGeometries implements Comparable<RecordedOsmGeometries> 
 			g.draw(gl, state);
 		}
 	}
-	
+
 	public Set<OsmPrimitive> getPrimitives() {
 		return primitives;
 	}
@@ -105,37 +113,111 @@ public class RecordedOsmGeometries implements Comparable<RecordedOsmGeometries> 
 	 * @return <code>true</code> if the merge was successful.
 	 */
 	public boolean mergeWith(RecordedOsmGeometries other) {
-		if (other.orderIndex != this.orderIndex || !viewPosition.equals(other.viewPosition)) {
+		if (other.orderIndex != this.orderIndex
+				|| !viewPosition.equals(other.viewPosition)) {
 			return false;
 		}
 		hashes = null;
 		primitives.addAll(other.primitives);
 		geometries = merge(geometries, other.geometries);
-		
+
 		return true;
 	}
 
 	private List<RecordedGeometry> merge(List<RecordedGeometry> geometries1,
 			List<RecordedGeometry> geometries2) {
-		RecordedGeometry[] toMerge = combineLists(geometries1, geometries2);
-		Arrays.sort(toMerge, COMPERATOR);
-		RecordedGeometry last = null;
 		List<RecordedGeometry> ret = new ArrayList<>();
-		for (RecordedGeometry current : toMerge) {
+
+		LinkedList<Pair<Integer, Integer>> pairs = firstMergePairs(geometries1,
+				geometries2);
+		ArrayList<Pair<Integer, Integer>> filtered = removeCrossingPairs(pairs);
+
+		// Sort pairs by a
+		Collections.sort(filtered, new Comparator<Pair<Integer, Integer>>() {
+			@Override
+			public int compare(Pair<Integer, Integer> o1,
+					Pair<Integer, Integer> o2) {
+				return Integer.compare(o1.a, o2.a);
+			}
+		});
+		// Since all crossing pairs are removed, we can be sure that paris are ordered by a and by b.
+
+		int geometry1Index = 0, geometry2Index = 0;
+		for (Pair<Integer, Integer> p : filtered) {
+			for (; geometry1Index < p.a; geometry1Index++) {
+				ret.add(geometries1.get(geometry1Index));
+			}
+			for (; geometry2Index < p.b; geometry2Index++) {
+				ret.add(geometries2.get(geometry2Index));
+			}
+		}
+		for (; geometry1Index < geometries1.size(); geometry1Index++) {
+			ret.add(geometries1.get(geometry1Index));
+		}
+		for (; geometry2Index < geometries2.size(); geometry2Index++) {
+			ret.add(geometries2.get(geometry2Index));
+		}
+
+		RecordedGeometry last = null;
+		Iterator<RecordedGeometry> iterator = ret.iterator();
+		while (iterator.hasNext()) {
+			RecordedGeometry current = iterator.next();
 			if (last != null && last.attemptCombineWith(current)) {
 				// all good, we combined this one.
+				iterator.remove();
 			} else {
-				ret.add(current);
 				last = current;
 			}
 		}
-				
+
 		return ret;
+	}
+
+	private ArrayList<Pair<Integer, Integer>> removeCrossingPairs(
+			LinkedList<Pair<Integer, Integer>> pairs) {
+		// TODO: Test if sorting by |pair.a - pair.b| helps.
+		ArrayList<Pair<Integer, Integer>> filtered = new ArrayList<>();
+		while (!pairs.isEmpty()) {
+			Pair<Integer, Integer> p = pairs.pollFirst();
+			removeAllCrossingPairs(pairs, p);
+			filtered.add(p);
+		}
+		return filtered;
+	}
+
+	private void removeAllCrossingPairs(
+			LinkedList<Pair<Integer, Integer>> pairs,
+			Pair<Integer, Integer> crossingWith) {
+		Iterator<Pair<Integer, Integer>> iterator = pairs.iterator();
+		while (iterator.hasNext()) {
+			Pair<Integer, Integer> pair = iterator.next();
+			if (pair.a <= crossingWith.a && pair.b >= crossingWith.b
+					|| pair.a >= crossingWith.a && pair.b <= crossingWith.b) {
+				iterator.remove();
+			}
+		}
+	}
+
+	private LinkedList<Pair<Integer, Integer>> firstMergePairs(
+			List<RecordedGeometry> geometries1,
+			List<RecordedGeometry> geometries2) {
+		LinkedList<Pair<Integer, Integer>> mergePairs = new LinkedList<>();
+		for (int i = 0; i < geometries1.size(); i++) {
+			RecordedGeometry g1 = geometries1.get(i);
+			for (int j = 0; j < geometries2.size(); j++) {
+				RecordedGeometry g2 = geometries1.get(i);
+				if (g1.couldCombineWith(g2)) {
+					mergePairs.add(new Pair<>(i, j));
+				}
+			}
+		}
+		return mergePairs;
 	}
 
 	private RecordedGeometry[] combineLists(List<RecordedGeometry> geometries1,
 			List<RecordedGeometry> geometries2) {
-		RecordedGeometry[] toMerge = new RecordedGeometry[geometries1.size() + geometries2.size()];
+		RecordedGeometry[] toMerge = new RecordedGeometry[geometries1.size()
+				+ geometries2.size()];
 		int i = 0;
 		for (RecordedGeometry g : geometries1) {
 			toMerge[i++] = g;
