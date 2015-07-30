@@ -135,7 +135,7 @@ public class StyleGenerationManager {
 	private class PrimitiveForDrawSearcher<T extends OsmPrimitive> implements
 			OsmPrimitiveHandler<T> {
 		//TODO: Adaptive for nodes/rest
-		private static final int BULK_SIZE = 200;
+		private static final int BULK_SIZE = 5000;
 		private final StyleGenerationState sgs;
 		private final StyleGeometryCache cache;
 
@@ -166,6 +166,7 @@ public class StyleGenerationManager {
 			StyleGenerationState sgs) {
 		long time1 = System.currentTimeMillis();
 		cache.startFrame();
+		QueryCachePrimitive.GENERATE.set(10000);
 		drawThreadPool.scheduleTask(new NodeSearcher(
 				new PrimitiveForDrawSearcher<Node>(sgs, cache), data, bbox));
 		drawThreadPool.scheduleTask(new WaySearcher(

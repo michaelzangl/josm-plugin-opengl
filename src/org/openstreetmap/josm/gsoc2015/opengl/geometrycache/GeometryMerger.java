@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 
 import org.openstreetmap.josm.data.osm.OsmPrimitive;
@@ -18,6 +20,7 @@ public class GeometryMerger {
 
 //	private ArrayList<RecordedOsmGeometries> geometries = new ArrayList<>();
 
+	private LinkedHashSet<MergeGroup> openMergeGroups = new LinkedHashSet<>();
 	private ArrayList<MergeGroup> mergeGroups = new ArrayList<>();
 
 	public GeometryMerger() {
@@ -78,7 +81,7 @@ public class GeometryMerger {
 	public synchronized void addMergeables(OsmPrimitive primitive, Collection<RecordedOsmGeometries> geometries) {
 		MergeGroup maxMergeRated = null;
 		float maxMergeRating = 0;
-		for (MergeGroup g : mergeGroups) {
+		for (MergeGroup g : openMergeGroups) {
 			float mergeRating = g.getMergeRating(primitive, geometries);
 			if (mergeRating > maxMergeRating) {
 				maxMergeRated = g;
@@ -89,9 +92,16 @@ public class GeometryMerger {
 		} else {
 			MergeGroup group = new MergeGroup();
 			mergeGroups.add(group);
+			openMergeGroups.add(group);
+			if (openMergeGroups.size() > 50) {
+				openMergeGroups.remove(openMergeGroups.iterator().next());
+			}
 			maxMergeRated = group;
 		}
 		maxMergeRated.merge(primitive, geometries);
+		if (!maxMergeRated.moreMergesRecommended()) {
+			openMergeGroups.remove(maxMergeRated);
+		}
 	}
 
 	/**
@@ -107,5 +117,9 @@ public class GeometryMerger {
 			geometries.addAll(m.getGeometries());
 		}
 		return geometries ;
+	}
+	
+	public ArrayList<MergeGroup> getMergeGroups() {
+		return mergeGroups;
 	}
 }

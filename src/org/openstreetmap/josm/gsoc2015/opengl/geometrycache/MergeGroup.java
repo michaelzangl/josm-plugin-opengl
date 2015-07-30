@@ -55,4 +55,8 @@ public class MergeGroup {
 	public ArrayList<RecordedOsmGeometries> getGeometries() {
 		return geometries;
 	}
+	
+	public ArrayList<OsmPrimitive> getPrimitives() {
+		return primitives;
+	}
 }
