@@ -166,7 +166,6 @@ public class StyleGenerationManager {
 			StyleGenerationState sgs) {
 		long time1 = System.currentTimeMillis();
 		cache.startFrame();
-		QueryCachePrimitive.GENERATE.set(10000);
 		drawThreadPool.scheduleTask(new NodeSearcher(
 				new PrimitiveForDrawSearcher<Node>(sgs, cache), data, bbox));
 		drawThreadPool.scheduleTask(new WaySearcher(

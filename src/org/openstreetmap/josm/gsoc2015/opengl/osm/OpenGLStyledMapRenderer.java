@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Hashtable;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.media.opengl.GL2;
 
@@ -26,6 +27,8 @@ import org.openstreetmap.josm.gsoc2015.opengl.osm.search.OsmPrimitiveHandler;
 import org.openstreetmap.josm.gsoc2015.opengl.osm.search.RelationSearcher;
 import org.openstreetmap.josm.gsoc2015.opengl.osm.search.WaySearcher;
 import org.openstreetmap.josm.gui.NavigatableComponent;
+
+import sun.awt.RepaintArea;
 
 public class OpenGLStyledMapRenderer extends StyledMapRenderer {
 
@@ -104,9 +107,13 @@ public class OpenGLStyledMapRenderer extends StyledMapRenderer {
 	 *
 	 */
 	public class StyleGenerationState implements ChacheDataSupplier {
+		private static final int MAX_GEOMETRIES_GENERATED = 1000;
 		private Rectangle clip;
 		private double circum;
 		private ViewPosition viewPosition;
+		
+		int geometriesGenerated = 0;
+		private boolean enoughGometriesGenerated;
 
 		public StyleGenerationState() {
 			// We don't really clip since we need the whole geometry for our cache.
@@ -143,6 +150,27 @@ public class OpenGLStyledMapRenderer extends StyledMapRenderer {
 
 		public ViewPosition getViewPosition() {
 			return viewPosition;
+		}
+		
+		/**
+		 * Tests if we should generate one more geometry.
+		 * @return
+		 */
+		public synchronized boolean shouldGenerateGeometry() {
+			return !enoughGometriesGenerated;
+		}
+		
+		public synchronized boolean hasGeneratedAllGeometries() {
+			System.out.println("Generated: " + geometriesGenerated);
+			// Note: Inaccurate by 1 geometry.
+			return !enoughGometriesGenerated;
+		}
+
+		public synchronized void incrementDrawCounter() {
+			geometriesGenerated++;
+			if (geometriesGenerated > MAX_GEOMETRIES_GENERATED) {
+				enoughGometriesGenerated = true;
+			}
 		}
 	}
 
@@ -187,7 +215,8 @@ public class OpenGLStyledMapRenderer extends StyledMapRenderer {
 			long time1 = System.currentTimeMillis();
 //			StyleWorkQueue styleWorkQueue = new StyleWorkQueue(data);
 //			styleWorkQueue.setArea(bbox);
-			List<RecordedOsmGeometries> geometries = manager.getDrawGeometries(bbox, new StyleGenerationState());
+			StyleGenerationState sgs = new StyleGenerationState();
+			List<RecordedOsmGeometries> geometries = manager.getDrawGeometries(bbox, sgs);
 			long time2 = System.currentTimeMillis();
 
 			GL2 gl = ((GLGraphics2D) g).getGLContext().getGL().getGL2();
@@ -204,6 +233,11 @@ public class OpenGLStyledMapRenderer extends StyledMapRenderer {
 			System.out.println("Create styles: " + (time2 - time1) + ", draw: "
 					+ (time4 - time2) + ", draw virtual: " + (time5 - time4));
 
+			if (!sgs.hasGeneratedAllGeometries()) {
+				// Repaint again to collect the rest of the geometries.
+				nc.repaint();
+			}
+			
 		} finally {
 			data.getReadLock().unlock();
 		}
