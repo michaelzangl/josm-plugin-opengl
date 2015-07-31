@@ -76,9 +76,6 @@ public class GeometryMerger {
 	 * @param geometries All geometries for that primitive.
 	 */
 	public synchronized void addMergeables(OsmPrimitive primitive, Collection<RecordedOsmGeometries> geometries) {
-		if (findDuplicates(geometries).size() > 0) {
-			throw new RuntimeException("Duplicates while adding :-(" + geometries);
-		}
 		for (RecordedOsmGeometries g : geometries) {
 			if (this.geometries.contains(g)) {
 				throw new IllegalArgumentException("Attempt to add twice: " + g);
