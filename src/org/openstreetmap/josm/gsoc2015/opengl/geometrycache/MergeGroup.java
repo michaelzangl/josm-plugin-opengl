@@ -43,13 +43,34 @@ public class MergeGroup {
 	}
 
 	public void merge(OsmPrimitive p, Collection<RecordedOsmGeometries> geometries) {
+		//XXX This can be removed if performance is an issue.
+		for (RecordedOsmGeometries m : geometries) {
+			if (this.geometries.contains(m)) {
+				throw new IllegalArgumentException("Attemt to merge a geometry that is already in this group.");
+			}
+			if (m.mergeGroup != null) {
+				throw new IllegalArgumentException("Got a geometry that already has a merge group.");
+			}
+		}
+		
 		primitives.add(p);
-		// TODO: Real merge.
-		this.geometries.addAll(geometries);
+		for (RecordedOsmGeometries m : geometries) {
+			boolean merged = false;
+			for (RecordedOsmGeometries g : this.geometries) {
+				if (g.mergeWith(m)) {
+					merged = true;
+					break;
+				}
+			}
+			if (!merged) {
+				m.mergeGroup = this;
+				this.geometries.add(m);
+			}
+		}
 	}
 	
 	public boolean moreMergesRecommended() {
-		return geometries.size() < 20 && primitives.size() < 40; 
+		return geometries.size() < 30 && primitives.size() < 80; 
 	}
 
 	public ArrayList<RecordedOsmGeometries> getGeometries() {

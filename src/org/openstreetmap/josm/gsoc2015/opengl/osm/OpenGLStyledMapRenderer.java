@@ -65,7 +65,6 @@ public class OpenGLStyledMapRenderer extends StyledMapRenderer {
 //
 //	// TEMP
 //	private StyleMap styleMap = new StyleMap();
-	private boolean renderVirtualNodes;
 
 //	/**
 //	 * This queue recieves an area to process.
@@ -102,38 +101,40 @@ public class OpenGLStyledMapRenderer extends StyledMapRenderer {
 //	}
 
 	/**
-	 * TODO: Static, unchangebale.
 	 * @author michael
 	 *
 	 */
-	public class StyleGenerationState implements ChacheDataSupplier {
-		private static final int MAX_GEOMETRIES_GENERATED = 1000;
-		private Rectangle clip;
+	public static class StyleGenerationState implements ChacheDataSupplier {
+		private static final int MAX_GEOMETRIES_GENERATED = 5000;
 		private double circum;
 		private ViewPosition viewPosition;
 		
 		int geometriesGenerated = 0;
 		private boolean enoughGometriesGenerated;
 
-		public StyleGenerationState() {
-			// We don't really clip since we need the whole geometry for our cache.
-			clip = new Rectangle(-1000000, -1000000, 2000000, 2000000);
-			circum = OpenGLStyledMapRenderer.this.getCircum();
-			viewPosition = ViewPosition.from(nc);
+		private boolean renderVirtualNodes, isInactiveMode;
+		
+		private NavigatableComponent cacheKey;
+		
+		public StyleGenerationState(double circum, ViewPosition viewPosition,
+				boolean renderVirtualNodes, boolean isInactiveMode,
+				NavigatableComponent cacheKey) {
+			super();
+			this.circum = circum;
+			this.viewPosition = viewPosition;
+			this.renderVirtualNodes = renderVirtualNodes;
+			this.isInactiveMode = isInactiveMode;
+			this.cacheKey = cacheKey;
 		}
 		
 		@Override
 		public NavigatableComponent getCacheKey() {
-			return nc;
+			return cacheKey;
 		}
 
 //		public StyleMap getStyleReceiver() {
 //			return styleMap;
 //		}
-
-		public Rectangle getClipBounds() {
-			return clip;
-		}
 
 		public boolean renderVirtualNodes() {
 			return renderVirtualNodes;
@@ -207,7 +208,6 @@ public class OpenGLStyledMapRenderer extends StyledMapRenderer {
 			throw new IllegalArgumentException("Wrong DataSet provided.");
 		}
 
-		this.renderVirtualNodes = renderVirtualNodes;
 		BBox bbox = bounds.toBBox();
 		getSettings(renderVirtualNodes);
 		data.getReadLock().lock();
@@ -215,7 +215,7 @@ public class OpenGLStyledMapRenderer extends StyledMapRenderer {
 			long time1 = System.currentTimeMillis();
 //			StyleWorkQueue styleWorkQueue = new StyleWorkQueue(data);
 //			styleWorkQueue.setArea(bbox);
-			StyleGenerationState sgs = new StyleGenerationState();
+			StyleGenerationState sgs = new StyleGenerationState(getCircum(), ViewPosition.from(nc), renderVirtualNodes, isInactiveMode, nc);
 			List<RecordedOsmGeometries> geometries = manager.getDrawGeometries(bbox, sgs);
 			long time2 = System.currentTimeMillis();
 

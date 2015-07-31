@@ -1,5 +1,6 @@
 package org.openstreetmap.josm.gsoc2015.opengl.osm;
 
+import java.awt.Rectangle;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -82,7 +83,8 @@ public class StyledGeometryGenerator<T extends OsmPrimitive> {
 		recordingRenderer = new RecordingStyledMapRenderer(recorder,
 				sgs.getCacheKey(), sgs.isInactiveMode());
 		recordingRenderer.getSettings(sgs.renderVirtualNodes());
-		recordingRenderer.setClipBounds(sgs.getClipBounds());
+		// We don't really clip since we need the whole geometry for our cache.
+		recordingRenderer.setClipBounds(new Rectangle(-1000000, -1000000, 2000000, 2000000));
 	}
 
 	/**

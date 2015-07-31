@@ -50,6 +50,9 @@ public class RecordedOsmGeometries implements Comparable<RecordedOsmGeometries> 
 	private long orderIndex;
 	private int[] hashes;
 
+	//XXX TEMP
+	public MergeGroup mergeGroup;
+	
 	/**
 	 * 
 	 * @param geometries
@@ -101,6 +104,16 @@ public class RecordedOsmGeometries implements Comparable<RecordedOsmGeometries> 
 				hashes[i] = geometries.get(i).getCombineHash();
 			}
 			Arrays.sort(hashes);
+			// now remove dupplicates from that array.
+			int newIndex = 1;
+			for (int i = 1; i < hashes.length; i++) {
+				if (hashes[i] != hashes[i-1]) {
+					hashes[newIndex++] = hashes[i];
+				}
+			}
+			if (newIndex < hashes.length) {
+				hashes = Arrays.copyOf(hashes, newIndex);
+			}
 		}
 		return hashes;
 	}
@@ -259,7 +272,21 @@ public class RecordedOsmGeometries implements Comparable<RecordedOsmGeometries> 
 	 * @return
 	 */
 	public float getCombineRating(RecordedOsmGeometries geometry) {
-		return isMergeable(geometry) ? 1 : 0;
+		if (!isMergeable(geometry)) {
+			return 0;
+		}
+		int commonHashes = 0;
+		int[] otherHashes = geometry.getCombineHashes();
+		int[] myHashes = getCombineHashes();
+		for (int h : myHashes) {
+			int inOtherHashes = Arrays.binarySearch(otherHashes, h);
+			if (inOtherHashes >= 0) {
+				commonHashes++;
+			}
+		}
+		int totalHashes = otherHashes.length + myHashes.length - commonHashes;
+		
+		return (float) commonHashes / totalHashes;
 	}
 
 }
