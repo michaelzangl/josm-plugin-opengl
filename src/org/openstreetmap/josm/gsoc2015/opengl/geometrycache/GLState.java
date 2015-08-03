@@ -66,6 +66,7 @@ public class GLState {
 	public void setColor(int rgba) {
 		if (activeColor != rgba) {
 			setColorImpl(rgba);
+			DrawStats.setColor(rgba);
 			activeColor = rgba;
 		}
 	}

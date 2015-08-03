@@ -130,6 +130,9 @@ public class StyledGeometryGenerator<T extends OsmPrimitive> {
 			}
 		}
 		ArrayList<RecordedOsmGeometries> received = new ArrayList<>(recorded);
+		for (RecordedOsmGeometries r : received) {
+			r.mergeChildren();
+		}
 		recorded.clear();
 		return received;
 	}

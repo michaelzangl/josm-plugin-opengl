@@ -18,6 +18,7 @@ import org.openstreetmap.josm.data.osm.OsmPrimitive;
 import org.openstreetmap.josm.data.osm.Relation;
 import org.openstreetmap.josm.data.osm.Way;
 import org.openstreetmap.josm.data.osm.visitor.paint.StyledMapRenderer;
+import org.openstreetmap.josm.gsoc2015.opengl.geometrycache.DrawStats;
 import org.openstreetmap.josm.gsoc2015.opengl.geometrycache.GLState;
 import org.openstreetmap.josm.gsoc2015.opengl.geometrycache.GeometryMerger;
 import org.openstreetmap.josm.gsoc2015.opengl.geometrycache.RecordedOsmGeometries;
@@ -219,6 +220,8 @@ public class OpenGLStyledMapRenderer extends StyledMapRenderer {
 			List<RecordedOsmGeometries> geometries = manager.getDrawGeometries(bbox, sgs);
 			long time2 = System.currentTimeMillis();
 
+			DrawStats.reset();
+			
 			GL2 gl = ((GLGraphics2D) g).getGLContext().getGL().getGL2();
 			GLState state = new GLState(gl);
 			state.initialize(ViewPosition.from(nc));
@@ -232,6 +235,7 @@ public class OpenGLStyledMapRenderer extends StyledMapRenderer {
 			long time5 = System.currentTimeMillis();
 			System.out.println("Create styles: " + (time2 - time1) + ", draw: "
 					+ (time4 - time2) + ", draw virtual: " + (time5 - time4));
+			DrawStats.printStats();
 
 			if (!sgs.hasGeneratedAllGeometries()) {
 				// Repaint again to collect the rest of the geometries.

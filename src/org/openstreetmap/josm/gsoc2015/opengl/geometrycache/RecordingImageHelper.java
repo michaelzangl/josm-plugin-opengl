@@ -112,10 +112,11 @@ class RecordingImageHelper implements GLG2DImageHelper {
 			if (width < 0 || height < 0) {
 				return false;
 			}
-			float[] points = new float[] { 0, 0, // <-sw
+			float[] points = new float[] {
 					0, width, // <-se
 					height, width, // <-ne
 					height, 0, // <-nw
+					0, 0, // <-sw
 			};
 			xform.transform(points, 0, points, 0, 4);
 

@@ -289,4 +289,21 @@ public class RecordedOsmGeometries implements Comparable<RecordedOsmGeometries> 
 		return (float) commonHashes / totalHashes;
 	}
 
+	/**
+	 * Attempts to merge all stored {@link RecordedGeometry}s
+	 */
+	public void mergeChildren() {
+		ArrayList<RecordedGeometry> storedGeometries = new ArrayList<>(geometries);
+		geometries.clear();
+		RecordedGeometry last = null;
+		for (RecordedGeometry r : storedGeometries) {
+			if (last != null && last.attemptCombineWith(r)) {
+				//pass
+			} else {
+				geometries.add(r);
+				last = r;
+			}
+		}
+	}
+
 }

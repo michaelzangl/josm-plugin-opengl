@@ -3,13 +3,10 @@ package org.openstreetmap.josm.gsoc2015.opengl.geometrycache;
 import java.awt.geom.Point2D;
 import java.nio.Buffer;
 import java.nio.FloatBuffer;
-import java.util.Arrays;
 import java.util.IdentityHashMap;
 
 import javax.media.opengl.GL;
 import javax.media.opengl.GL2;
-import javax.media.opengl.GL2ES1;
-import javax.media.opengl.fixedfunc.GLPointerFunc;
 
 import org.jogamp.glg2d.VertexBuffer;
 import org.openstreetmap.josm.Main;
@@ -26,14 +23,20 @@ import com.jogamp.common.nio.Buffers;
  *
  */
 public class RecordedGeometry {
+	/**
+	 * Up to how many triangle fan points is conversion to a triangle strip
+	 * good?
+	 */
+	private static final int MAX_CONVERT_POINTS = 50;
+
 	private static IdentityHashMap<VertexBuffer, VertexBuffer> used = new IdentityHashMap<>();
 
-	private FloatBuffer coordinates;
-	private int points;
+	protected FloatBuffer coordinates;
+	protected int points;
 	private int vbo = -1;
-	private final int color;
-	private final int drawMode;
-	private final TextureEntry texture;
+	protected final int color;
+	protected int drawMode;
+	protected final TextureEntry texture;
 
 	/**
 	 * Creates a new recorded geometry.
@@ -46,7 +49,7 @@ public class RecordedGeometry {
 	 * @param color
 	 * @param texture
 	 */
-	public RecordedGeometry(int drawMode, FloatBuffer coordinates, int color,
+	private RecordedGeometry(int drawMode, FloatBuffer coordinates, int color,
 			TextureEntry texture) {
 		if (!coordinates.isDirect()) {
 			throw new IllegalArgumentException(
@@ -56,7 +59,7 @@ public class RecordedGeometry {
 		this.coordinates = coordinates;
 		this.color = color;
 		this.texture = texture;
-		this.points = coordinates.position() / (texture != null ? 4 : 2);
+		this.points = coordinates.position() / getBufferEntriesForPoint();
 	}
 
 	public RecordedGeometry(int drawMode, VertexBuffer vBuffer, int color) {
@@ -76,7 +79,7 @@ public class RecordedGeometry {
 	 * @param gl
 	 */
 	public void dispose(GL2 gl) {
-
+		// TODO: Do this, but delay deletion.
 	}
 
 	public void draw(GL2 gl, GLState state) {
@@ -84,12 +87,12 @@ public class RecordedGeometry {
 			// nop
 			return;
 		}
-		
+
 		if (vbo < 0 && points > 50) {
 			// convert to VBO
-			
+
 			int[] vboIds = new int[1];
-			gl.glGenBuffers(1, vboIds,0 );
+			gl.glGenBuffers(1, vboIds, 0);
 			vbo = vboIds[0];
 			if (vbo == 0) {
 				Main.warn("Could not generate VBO object.");
@@ -97,12 +100,13 @@ public class RecordedGeometry {
 			} else {
 				gl.glBindBuffer(GL2.GL_ARRAY_BUFFER, vbo);
 				coordinates.rewind();
-				gl.glBufferData(GL2.GL_ARRAY_BUFFER, coordinates.remaining() * Buffers.SIZEOF_FLOAT, coordinates, GL.GL_STATIC_DRAW);
+				gl.glBufferData(GL2.GL_ARRAY_BUFFER, coordinates.remaining()
+						* Buffers.SIZEOF_FLOAT, coordinates, GL.GL_STATIC_DRAW);
 				// we don't need this any more
 				coordinates = null;
 			}
 		}
-		
+
 		state.setColor(color);
 
 		int stride = getBufferEntriesForPoint() * Buffers.SIZEOF_FLOAT;
@@ -128,7 +132,9 @@ public class RecordedGeometry {
 			}
 		}
 
+		DrawStats.drawArrays(drawMode, points);
 		gl.glDrawArrays(drawMode, 0, points);
+		gl.glDrawArrays(GL2.GL_LINE_STRIP, 0, points);
 
 		if (texture != null) {
 			texture.getTexture(gl).disable(gl);
@@ -161,23 +167,44 @@ public class RecordedGeometry {
 		final int prime = 31;
 		int result = 1;
 		result = prime * result + color;
-		result = prime * result + drawMode;
+		result = prime * result + getBestCombineDrawMode();
 		result = prime * result + ((texture == null) ? 0 : texture.hashCode());
 		return result;
 	}
 
 	/**
+	 * Get the draw mode that should be used when combing this buffer. In some
+	 * draw modes, putting multiple geometries in one buffer is not possible.
+	 * Those are converted to a geometry that is suited for combining.
+	 * 
+	 * @return The draw mode to use after combining geometries.
+	 */
+	private int getBestCombineDrawMode() {
+		if (shouldConvertToTriangles()) {
+			return GL2.GL_TRIANGLES;
+		}
+		return drawMode;
+	}
+
+	private boolean shouldConvertToTriangles() {
+		return (drawMode == GL2.GL_TRIANGLE_STRIP || drawMode == GL2.GL_TRIANGLE_FAN)
+				&& points < MAX_CONVERT_POINTS;
+	}
+
+	/**
 	 * Checks if two geomtries could be combined. The result is symetric.
+	 * 
 	 * @param other
 	 * @return
 	 */
 	public boolean couldCombineWith(RecordedGeometry other) {
 		return other.color == color && other.texture == texture
-				&& other.drawMode == drawMode && hasMergeableDrawMode()
-				&& !other.usesVBO() && !usesVBO();
+				&& other.getBestCombineDrawMode() == getBestCombineDrawMode()
+				&& hasMergeableDrawMode() && !other.usesVBO() && !usesVBO();
 	}
 
 	private boolean hasMergeableDrawMode() {
+		int drawMode = getBestCombineDrawMode();
 		return drawMode == GL2.GL_QUADS || drawMode == GL2.GL_LINES
 				|| drawMode == GL2.GL_TRIANGLES || drawMode == GL2.GL_POINTS;
 	}
@@ -190,32 +217,133 @@ public class RecordedGeometry {
 			throw new IllegalArgumentException("Cannot combine with myself.");
 		}
 
-		int newPoints = points + other.points;
+		System.out.println("Combine " + drawMode + " with " + other.drawMode);
+		int newPoints = getPointsAfterConversion()
+				+ other.getPointsAfterConversion();
 		FloatBuffer newCoordinates;
-		int entries = points * getBufferEntriesForPoint();
-		int otherEntries = other.points * getBufferEntriesForPoint();
 
 		// Create coordinates array if required.
-		if (entries + otherEntries <= coordinates.capacity()) {
+		int newBufferSize = newPoints * getBufferEntriesForPoint();
+		if (newBufferSize <= coordinates.capacity()) {
 			newCoordinates = coordinates;
-			newCoordinates.position(entries);
-		} else {
-			newCoordinates = Buffers.newDirectFloatBuffer(entries
-					+ otherEntries);
 			coordinates.rewind();
-			transfer(coordinates, newCoordinates, entries);
+		} else {
+			newCoordinates = Buffers.newDirectFloatBuffer(newBufferSize);
 		}
+		transferToBuffer(newCoordinates);
 
-		other.coordinates.rewind();
-		transfer(other.coordinates, newCoordinates, otherEntries);
+		other.transferToBuffer(newCoordinates);
 
 		coordinates = newCoordinates;
 		points = newPoints;
+		drawMode = getBestCombineDrawMode();
 		return true;
 	}
 
-	private void transfer(FloatBuffer from, FloatBuffer to, int entries) {
-		if (from.remaining() == entries) {
+	private int getPointsAfterConversion() {
+		if (shouldConvertToTriangles()) {
+			return (points - 2) * 3;
+		} else {
+			return points;
+		}
+	}
+
+	/**
+	 * Transfers my coordinates to the given buffer, converting if needed.
+	 * <p>
+	 * Positions the cursor at the end of the data.
+	 * 
+	 * @param to
+	 * @return
+	 */
+	private void transferToBuffer(FloatBuffer to) {
+		coordinates.rewind();
+		if (shouldConvertToTriangles()) {
+			transferAndConvertToTriangles(coordinates, to, points, drawMode, getBufferEntriesForPoint());
+		} else {
+			int entries = points * getBufferEntriesForPoint();
+			transfer(coordinates, to, entries);
+		}
+	}
+
+	/**
+	 * Transfers between two buffers converting them between draw modes on the
+	 * fly.
+	 * <p>
+	 * For a triangle fan, we convert to triangles with the points (1,2,3),
+	 * (1,3,4), (1,4,5), ...
+	 * <p>
+	 * For a triangle strip, we convert to triangles with the points (1,2,3),
+	 * (3,2,4), (3,4,5) ...
+	 * 
+	 * @param from
+	 *            The buffer to take from.
+	 * @param to
+	 *            A buffer to write to. May be the same as the buffer to take
+	 *            from but then it should be at the same position. Needs at
+	 *            least (oldEntries - 2) * 3 places.
+	 * @param oldPoints
+	 *            Old number of stored points.
+	 * @param oldDrawMode
+	 */
+	private static void transferAndConvertToTriangles(FloatBuffer from,
+			FloatBuffer to, int oldPoints, int oldDrawMode, int pointSize) {
+		int triangles = (oldPoints - 2);
+		int oldOffset = from.position();
+		int newOffset = to.position();
+		System.out.println("Converting " + triangles + " triangles: from@" + oldOffset + " of " + from.capacity() + ", to@"+newOffset + " of " + to.capacity());
+		float[] v1Transfer = new float[pointSize];
+		float[] v2Transfer = new float[pointSize];
+		float[] v3Transfer = new float[pointSize];
+
+		if (oldDrawMode == GL2.GL_TRIANGLE_STRIP) {
+		} else if (oldDrawMode == GL2.GL_TRIANGLE_FAN) {
+			getVertex(from, oldOffset, v1Transfer);
+		} else {
+			throw new IllegalArgumentException("Cannot convert to triangles: "
+					+ oldDrawMode);
+		}
+
+		// Go backward to support in-buffer conversion.
+		for (int triangle = triangles - 1; triangle >= 0; triangle--) {
+			if (oldDrawMode == GL2.GL_TRIANGLE_STRIP) {
+				int odd = triangle % 2; // 0 or 1
+				// We could reduce number of gets here by storing the result.
+				getVertex(from, oldOffset + (triangle + odd) * pointSize, v1Transfer);
+				getVertex(from, oldOffset + (triangle + 1 - odd) * pointSize, v2Transfer);
+			} else {
+				getVertex(from, oldOffset + (triangle + 1) * pointSize, v2Transfer);
+			}
+
+			setVertex(to, newOffset + (triangle * 3) * pointSize, v1Transfer);
+			setVertex(to, newOffset + (triangle * 3 + 1) * pointSize, v2Transfer);
+			getVertex(from, oldOffset + (triangle + 2) * pointSize, v3Transfer);
+			setVertex(to, newOffset + (triangle * 3 + 2) * pointSize, v3Transfer);
+		}
+		to.position(newOffset + triangles * 3 * pointSize);
+	}
+
+	private static void getVertex(FloatBuffer from, int index,
+			float[] transferBuffer) {
+		from.position(index);
+		from.get(transferBuffer);
+	}
+
+	private static void setVertex(FloatBuffer to, int index,
+			float[] transferBuffer) {
+		try {
+		to.position(index);
+		} catch (IllegalArgumentException e) {
+			System.err.println("Position: " + index);
+			throw e;
+		}
+		to.put(transferBuffer);
+	}
+
+	private static void transfer(FloatBuffer from, FloatBuffer to, int entries) {
+		if (from == to) {
+			from.position(from.position() + entries);
+		} else if (from.remaining() == entries) {
 			to.put(from);
 		} else {
 			for (int i = 0; i < entries; i++) {

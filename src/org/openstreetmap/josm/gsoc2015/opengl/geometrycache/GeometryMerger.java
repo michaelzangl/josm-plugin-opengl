@@ -16,7 +16,7 @@ public class GeometryMerger {
 
 	private HashSet<RecordedOsmGeometries> geometries = new HashSet<>();
 
-	private static final int ACTIVE_MERGE_GROUPS = 5000;
+	private static final int ACTIVE_MERGE_GROUPS = 100;
 	private LinkedHashSet<MergeGroup> openMergeGroups = new LinkedHashSet<>();
 	private ArrayList<MergeGroup> mergeGroups = new ArrayList<>();
 
