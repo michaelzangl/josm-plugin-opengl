@@ -228,6 +228,7 @@ public class RecordedGeometry {
 		int newPoints = getPointsAfterConversion()
 				+ other.getPointsAfterConversion();
 		FloatBuffer newCoordinates;
+		int newDrawMode = getBestCombineDrawMode();
 
 		// Create coordinates array if required.
 		int newBufferSize = newPoints * getBufferEntriesForPoint();
@@ -243,7 +244,7 @@ public class RecordedGeometry {
 
 		coordinates = newCoordinates;
 		points = newPoints;
-		drawMode = getBestCombineDrawMode();
+		drawMode = newDrawMode;
 		return true;
 	}
 
