@@ -3,6 +3,7 @@ package org.openstreetmap.josm.gsoc2015.opengl.geometrycache;
 import java.awt.geom.Point2D;
 import java.nio.Buffer;
 import java.nio.FloatBuffer;
+import java.util.Arrays;
 import java.util.IdentityHashMap;
 
 import javax.media.opengl.GL;
@@ -78,11 +79,14 @@ public class RecordedGeometry {
 	 * 
 	 * @param gl
 	 */
-	public void dispose(GL2 gl) {
+	public synchronized void dispose(GL2 gl) {
 		// TODO: Do this, but delay deletion.
+		
+		// This is to avoid more draw calls.
+		points = 0;
 	}
 
-	public void draw(GL2 gl, GLState state) {
+	public synchronized void draw(GL2 gl, GLState state) {
 		if (points == 0) {
 			// nop
 			return;
@@ -134,7 +138,10 @@ public class RecordedGeometry {
 
 		DrawStats.drawArrays(drawMode, points);
 		gl.glDrawArrays(drawMode, 0, points);
-		gl.glDrawArrays(GL2.GL_LINE_STRIP, 0, points);
+//		for (int i = points; drawMode == GL.GL_TRIANGLES && i > 0 && points < 20 * 3; i -=3) {
+//			gl.glDrawArrays(drawMode, 0, i);
+//		}
+		//gl.glDrawArrays(GL2.GL_LINE_STRIP, 0, points);
 
 		if (texture != null) {
 			texture.getTexture(gl).disable(gl);
@@ -197,7 +204,7 @@ public class RecordedGeometry {
 	 * @param other
 	 * @return
 	 */
-	public boolean couldCombineWith(RecordedGeometry other) {
+	public synchronized boolean couldCombineWith(RecordedGeometry other) {
 		return other.color == color && other.texture == texture
 				&& other.getBestCombineDrawMode() == getBestCombineDrawMode()
 				&& hasMergeableDrawMode() && !other.usesVBO() && !usesVBO();
@@ -209,7 +216,7 @@ public class RecordedGeometry {
 				|| drawMode == GL2.GL_TRIANGLES || drawMode == GL2.GL_POINTS;
 	}
 
-	public boolean attemptCombineWith(RecordedGeometry other) {
+	public synchronized boolean attemptCombineWith(RecordedGeometry other) {
 		if (!couldCombineWith(other)) {
 			return false;
 		}
@@ -289,56 +296,65 @@ public class RecordedGeometry {
 	private static void transferAndConvertToTriangles(FloatBuffer from,
 			FloatBuffer to, int oldPoints, int oldDrawMode, int pointSize) {
 		int triangles = (oldPoints - 2);
-		int oldOffset = from.position();
-		int newOffset = to.position();
-		System.out.println("Converting " + triangles + " triangles: from@" + oldOffset + " of " + from.capacity() + ", to@"+newOffset + " of " + to.capacity());
-		float[] v1Transfer = new float[pointSize];
-		float[] v2Transfer = new float[pointSize];
-		float[] v3Transfer = new float[pointSize];
+		int fromOffset = from.position();
+		int toOffset = to.position();
+		System.out.println("Converting " + triangles + " triangles: from@" + fromOffset + " of " + from.capacity() + ", to@"+toOffset + " of " + to.capacity());
 
 		if (oldDrawMode == GL2.GL_TRIANGLE_STRIP) {
 		} else if (oldDrawMode == GL2.GL_TRIANGLE_FAN) {
-			getVertex(from, oldOffset, v1Transfer);
 		} else {
 			throw new IllegalArgumentException("Cannot convert to triangles: "
 					+ oldDrawMode);
 		}
+		
+		FloatBuffer toPut = null;
+		if (to == from) {
+			toPut = to;
+			to = Buffers.newDirectFloatBuffer(triangles * 3 * pointSize);
+		}
+		FloatBuffer fromCopy = from.duplicate();
 
 		// Go backward to support in-buffer conversion.
-		for (int triangle = triangles - 1; triangle >= 0; triangle--) {
+		for (int triangle = 0; triangle < triangles; triangle++) {
+			int vertex1, vertex2;
 			if (oldDrawMode == GL2.GL_TRIANGLE_STRIP) {
 				int odd = triangle % 2; // 0 or 1
 				// We could reduce number of gets here by storing the result.
-				getVertex(from, oldOffset + (triangle + odd) * pointSize, v1Transfer);
-				getVertex(from, oldOffset + (triangle + 1 - odd) * pointSize, v2Transfer);
+				vertex1 = triangle + odd;
+				vertex2 = triangle + 1 - odd;
 			} else {
-				getVertex(from, oldOffset + (triangle + 1) * pointSize, v2Transfer);
+				vertex1 = 0;
+				vertex2 = triangle + 1;
 			}
-
-			setVertex(to, newOffset + (triangle * 3) * pointSize, v1Transfer);
-			setVertex(to, newOffset + (triangle * 3 + 1) * pointSize, v2Transfer);
-			getVertex(from, oldOffset + (triangle + 2) * pointSize, v3Transfer);
-			setVertex(to, newOffset + (triangle * 3 + 2) * pointSize, v3Transfer);
+			int vertex3 = triangle + 2;
+			selectVertexAndPut(fromCopy, fromOffset, vertex1, pointSize, to);
+			selectVertexAndPut(fromCopy, fromOffset, vertex2, pointSize, to);
+			selectVertexAndPut(fromCopy, fromOffset, vertex3, pointSize, to);
 		}
-		to.position(newOffset + triangles * 3 * pointSize);
+		
+		if (toPut != null) {
+			to.rewind();
+			toPut.put(to);
+		}
 	}
 
-	private static void getVertex(FloatBuffer from, int index,
-			float[] transferBuffer) {
-		from.position(index);
-		from.get(transferBuffer);
+	private static void selectVertexAndPut(FloatBuffer fromCopy,
+			int fromOffset, int vertexN, int pointSize, FloatBuffer to) {
+		selectVertex(fromCopy, fromOffset, vertexN, pointSize);
+		to.put(fromCopy);
 	}
 
-	private static void setVertex(FloatBuffer to, int index,
-			float[] transferBuffer) {
+	private static void selectVertex(FloatBuffer fromCopy, int fromOffset,
+			int vertexN, int pointSize) {
 		try {
-		to.position(index);
+			fromCopy.limit(fromOffset + (vertexN + 1) * pointSize);
+			fromCopy.position(fromOffset + vertexN * pointSize);
 		} catch (IllegalArgumentException e) {
-			System.err.println("Position: " + index);
+			System.err.println("Position: " + (fromOffset + vertexN * pointSize));
 			throw e;
 		}
-		to.put(transferBuffer);
 	}
+
 
 	private static void transfer(FloatBuffer from, FloatBuffer to, int entries) {
 		if (from == to) {
