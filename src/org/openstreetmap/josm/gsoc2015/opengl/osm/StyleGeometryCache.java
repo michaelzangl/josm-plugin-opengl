@@ -39,43 +39,41 @@ import org.openstreetmap.josm.gsoc2015.opengl.geometrycache.RecordedOsmGeometrie
  *
  */
 public class StyleGeometryCache {
-	private final class SelectionObserver implements
-			SelectionChangedListener {
+	private final class SelectionObserver implements SelectionChangedListener {
 		private DataSet data;
 
 		private Collection<OsmPrimitive> selected;
-		
+
 		public SelectionObserver(DataSet data) {
 			super();
 			this.data = data;
 			selected = data.getAllSelected();
 		}
 
-
 		@Override
-		public void selectionChanged(Collection<? extends OsmPrimitive> newSelectionInAnyDataSet) {
+		public void selectionChanged(
+				Collection<? extends OsmPrimitive> newSelectionInAnyDataSet) {
 			// JOSM fires for all data sets. I cannot filter this.
 			Collection<OsmPrimitive> newSelection = data.getAllSelected();
 			if (newSelection == selected) {
 				return;
 			}
-			//TODO: Use sets here.
+			// TODO: Use sets here.
 			for (OsmPrimitive s : selected) {
 				if (!newSelection.contains(s)) {
-					invalidateGeometry(s);
+					// TODO: Give a priority when invalidating.
+					// XXX invalidateGeometry(s);
 				}
 			}
 			for (OsmPrimitive s : newSelection) {
 				if (!selected.contains(s)) {
-					invalidateGeometry(s);
+					// XXX invalidateGeometry(s);
 				}
 			}
-			
+
 			selected = newSelection;
 		}
 	}
-
-
 
 	private Hashtable<OsmPrimitive, MergeGroup> recordedForPrimitive = new Hashtable<>();
 
@@ -83,14 +81,14 @@ public class StyleGeometryCache {
 			.synchronizedSet(new HashSet<RecordedOsmGeometries>());
 
 	private GeometryMerger collectedForFrameMerger;
-	
+
 	private SelectionChangedListener selectionListener;
 
 	public void invalidateAll() {
 		recordedForPrimitive.clear();
 	}
 
-	public void invalidateGeometry(OsmPrimitive s) {
+	public synchronized void invalidateGeometry(OsmPrimitive s) {
 		MergeGroup recorded = recordedForPrimitive.get(s);
 		if (recorded != null) {
 			invalidate(recorded);
@@ -98,7 +96,8 @@ public class StyleGeometryCache {
 	}
 
 	private void invalidate(MergeGroup mergeGroup) {
-		// TODO Only schedule deletion, dispose, regenerate the other geometries affected.
+		// TODO Only schedule deletion, dispose, regenerate the other geometries
+		// affected.
 		removeCacheEntries(mergeGroup);
 	}
 
@@ -113,8 +112,10 @@ public class StyleGeometryCache {
 				collectedForFrame);
 		ArrayList<RecordedOsmGeometries> fromMerger = collectedForFrameMerger
 				.getGeometries();
-		System.out.println("Received " + list.size() + " geometries from cache and " + fromMerger.size() + " generated this frame.");
-		
+		System.out.println("Received " + list.size()
+				+ " geometries from cache and " + fromMerger.size()
+				+ " generated this frame.");
+
 		updateMergeGroups(collectedForFrameMerger.getMergeGroups());
 		list.addAll(fromMerger);
 		collectedForFrameMerger = null;
@@ -129,11 +130,13 @@ public class StyleGeometryCache {
 				recordedForPrimitive.put(p, mergeGroup);
 			}
 		}
-		
+
 	}
 
 	/**
-	 * Removes the cached entry for the primitive p and all related primitives immediately.
+	 * Removes the cached entry for the primitive p and all related primitives
+	 * immediately.
+	 * 
 	 * @param p
 	 */
 	private void removeCacheEntry(OsmPrimitive p) {
@@ -148,7 +151,7 @@ public class StyleGeometryCache {
 			recordedForPrimitive.remove(inGroup);
 		}
 		for (RecordedOsmGeometries geo : g.getGeometries()) {
-			//TODO: geo.dispose(gl);
+			// TODO: geo.dispose(gl);
 		}
 	}
 
@@ -164,6 +167,17 @@ public class StyleGeometryCache {
 			StyledGeometryGenerator<OsmPrimitive> generator) {
 		// query primitive
 		MergeGroup list = recordedForPrimitive.get(primitive);
+		// style change. TODO: Handle zoom changes.
+		// TODO: Listen to cache invalidation events.
+		if (primitive.mappaintStyle == null
+				|| (list != null && (primitive.mappaintStyle != list
+						.getStyleCacheUsed(primitive) || primitive
+						.isHighlighted() != list
+						.getStyleCacheUsedHighlighted(primitive)))) {
+			System.out.println("Mappaint style change found.");
+			invalidateGeometry(primitive);
+			list = recordedForPrimitive.get(primitive);
+		}
 		// if not exists and generator is set
 		if (list == null) {
 			if (generator != null) {
@@ -183,26 +197,29 @@ public class StyleGeometryCache {
 
 	}
 
-//	private void putGeometries(Collection<RecordedOsmGeometries> geometries) {
-//		System.out.println("There are " + recordedForPrimitive.size() + " geos in cache");
-//		for (RecordedOsmGeometries g : geometries) {
-//			putGeometry(g);
-//		}
-//		System.out.println("There are " + recordedForPrimitive.size() + " geos in cache");
-//	}
-//
-//	private synchronized void putGeometry(RecordedOsmGeometries geometry) {
-//		for (OsmPrimitive primitive : geometry.getPrimitives()) {
-//			List<RecordedOsmGeometries> list = recordedForPrimitive
-//					.get(primitive);
-//			if (list == null) {
-//				list = new ArrayList<>();
-//				recordedForPrimitive.put(primitive, list);
-//			}
-//			list.add(geometry);
-//		}
-//	}
-	
+	// private void putGeometries(Collection<RecordedOsmGeometries> geometries)
+	// {
+	// System.out.println("There are " + recordedForPrimitive.size() +
+	// " geos in cache");
+	// for (RecordedOsmGeometries g : geometries) {
+	// putGeometry(g);
+	// }
+	// System.out.println("There are " + recordedForPrimitive.size() +
+	// " geos in cache");
+	// }
+	//
+	// private synchronized void putGeometry(RecordedOsmGeometries geometry) {
+	// for (OsmPrimitive primitive : geometry.getPrimitives()) {
+	// List<RecordedOsmGeometries> list = recordedForPrimitive
+	// .get(primitive);
+	// if (list == null) {
+	// list = new ArrayList<>();
+	// recordedForPrimitive.put(primitive, list);
+	// }
+	// list.add(geometry);
+	// }
+	// }
+
 	public void addListeners(DataSet data) {
 		selectionListener = new SelectionObserver(data);
 		data.addSelectionListener(selectionListener);

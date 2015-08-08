@@ -2,8 +2,11 @@ package org.openstreetmap.josm.gsoc2015.opengl.geometrycache;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 
+import org.openstreetmap.josm.Main;
 import org.openstreetmap.josm.data.osm.OsmPrimitive;
+import org.openstreetmap.josm.gui.mappaint.StyleCache;
 
 /**
  * This is a set of primitives and their merged geomtries. Once the geometries
@@ -19,6 +22,10 @@ public class MergeGroup {
 
 	private ArrayList<RecordedOsmGeometries> geometries = new ArrayList<>();
 	private ArrayList<OsmPrimitive> primitives = new ArrayList<>();
+	
+	// TODO: This should be temporary.
+	private HashMap<OsmPrimitive, StyleCache> primitiveStyleUsed = new HashMap<>();
+	private HashMap<OsmPrimitive, Boolean> primitiveStyleHighlighted = new HashMap<>();
 	
 	public float getMergeRating(OsmPrimitive p, Collection<RecordedOsmGeometries> geometries) {
 		float m = 0;
@@ -54,6 +61,13 @@ public class MergeGroup {
 		}
 		
 		primitives.add(p);
+		StyleCache style = p.mappaintStyle;
+		if (style != null) {
+			primitiveStyleUsed.put(p, style);
+		} else {
+			Main.warn("No style set for " + p);
+		}
+		primitiveStyleHighlighted.put(p, p.isHighlighted());
 		for (RecordedOsmGeometries m : geometries) {
 			boolean merged = false;
 			for (RecordedOsmGeometries g : this.geometries) {
@@ -79,5 +93,13 @@ public class MergeGroup {
 	
 	public ArrayList<OsmPrimitive> getPrimitives() {
 		return primitives;
+	}
+
+	public synchronized StyleCache getStyleCacheUsed(OsmPrimitive primitive) {
+		return primitiveStyleUsed.get(primitive);
+	}
+
+	public boolean getStyleCacheUsedHighlighted(OsmPrimitive primitive) {
+		return primitiveStyleHighlighted.get(primitive);
 	}
 }

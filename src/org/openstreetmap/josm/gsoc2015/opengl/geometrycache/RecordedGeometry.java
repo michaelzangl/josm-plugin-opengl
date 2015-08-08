@@ -81,7 +81,7 @@ public class RecordedGeometry {
 	 */
 	public synchronized void dispose(GL2 gl) {
 		// TODO: Do this, but delay deletion.
-		
+
 		// This is to avoid more draw calls.
 		points = 0;
 	}
@@ -138,10 +138,11 @@ public class RecordedGeometry {
 
 		DrawStats.drawArrays(drawMode, points);
 		gl.glDrawArrays(drawMode, 0, points);
-//		for (int i = points; drawMode == GL.GL_TRIANGLES && i > 0 && points < 20 * 3; i -=3) {
-//			gl.glDrawArrays(drawMode, 0, i);
-//		}
-		//gl.glDrawArrays(GL2.GL_LINE_STRIP, 0, points);
+		// for (int i = points; drawMode == GL.GL_TRIANGLES && i > 0 && points <
+		// 20 * 3; i -=3) {
+		// gl.glDrawArrays(drawMode, 0, i);
+		// }
+		// gl.glDrawArrays(GL2.GL_LINE_STRIP, 0, points);
 
 		if (texture != null) {
 			texture.getTexture(gl).disable(gl);
@@ -224,10 +225,10 @@ public class RecordedGeometry {
 			throw new IllegalArgumentException("Cannot combine with myself.");
 		}
 
-		System.out.println("Combine " + drawMode + " with " + other.drawMode);
 		int newPoints = getPointsAfterConversion()
 				+ other.getPointsAfterConversion();
 		FloatBuffer newCoordinates;
+
 		int newDrawMode = getBestCombineDrawMode();
 
 		// Create coordinates array if required.
@@ -267,7 +268,8 @@ public class RecordedGeometry {
 	private void transferToBuffer(FloatBuffer to) {
 		coordinates.rewind();
 		if (shouldConvertToTriangles()) {
-			transferAndConvertToTriangles(coordinates, to, points, drawMode, getBufferEntriesForPoint());
+			transferAndConvertToTriangles(coordinates, to, points, drawMode,
+					getBufferEntriesForPoint());
 		} else {
 			int entries = points * getBufferEntriesForPoint();
 			transfer(coordinates, to, entries);
@@ -298,8 +300,10 @@ public class RecordedGeometry {
 			FloatBuffer to, int oldPoints, int oldDrawMode, int pointSize) {
 		int triangles = (oldPoints - 2);
 		int fromOffset = from.position();
-		int toOffset = to.position();
-		System.out.println("Converting " + triangles + " triangles: from@" + fromOffset + " of " + from.capacity() + ", to@"+toOffset + " of " + to.capacity());
+//		int toOffset = to.position();
+//		System.out.println("Converting " + triangles + " triangles: from@"
+//				+ fromOffset + " of " + from.capacity() + ", to@" + toOffset
+//				+ " of " + to.capacity());
 
 		if (oldDrawMode == GL2.GL_TRIANGLE_STRIP) {
 		} else if (oldDrawMode == GL2.GL_TRIANGLE_FAN) {
@@ -307,7 +311,7 @@ public class RecordedGeometry {
 			throw new IllegalArgumentException("Cannot convert to triangles: "
 					+ oldDrawMode);
 		}
-		
+
 		FloatBuffer toPut = null;
 		if (to == from) {
 			toPut = to;
@@ -332,7 +336,7 @@ public class RecordedGeometry {
 			selectVertexAndPut(fromCopy, fromOffset, vertex2, pointSize, to);
 			selectVertexAndPut(fromCopy, fromOffset, vertex3, pointSize, to);
 		}
-		
+
 		if (toPut != null) {
 			to.rewind();
 			toPut.put(to);
@@ -351,11 +355,11 @@ public class RecordedGeometry {
 			fromCopy.limit(fromOffset + (vertexN + 1) * pointSize);
 			fromCopy.position(fromOffset + vertexN * pointSize);
 		} catch (IllegalArgumentException e) {
-			System.err.println("Position: " + (fromOffset + vertexN * pointSize));
+			System.err.println("Position: "
+					+ (fromOffset + vertexN * pointSize));
 			throw e;
 		}
 	}
-
 
 	private static void transfer(FloatBuffer from, FloatBuffer to, int entries) {
 		if (from == to) {
