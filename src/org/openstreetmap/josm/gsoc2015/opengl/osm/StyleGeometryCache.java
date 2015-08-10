@@ -185,7 +185,9 @@ public class StyleGeometryCache {
 				// -- pass on to merger
 				List<RecordedOsmGeometries> geometries = generator
 						.runFor(primitive);
+				long time = System.currentTimeMillis();
 				collectedForFrameMerger.addMergeables(primitive, geometries);
+				System.out.println("Merge time: " + (System.currentTimeMillis() - time) + "ms");
 			} else {
 				// if not exists and no generator is set
 				// -- schedule for background generation

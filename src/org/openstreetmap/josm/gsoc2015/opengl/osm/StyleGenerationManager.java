@@ -109,8 +109,9 @@ public class StyleGenerationManager {
 	 *
 	 */
 	private static class DrawThreadPool {
-		private ExecutorService drawThreads = Executors.newFixedThreadPool(4);
-		private LinkedList<Future<?>> futuresToAwait = new LinkedList<>();
+		// XXX private final ExecutorService drawThreads = Executors.newFixedThreadPool(4);
+		private final ExecutorService drawThreads = Executors.newFixedThreadPool(1);
+		private final LinkedList<Future<?>> futuresToAwait = new LinkedList<>();
 
 		public void scheduleTask(Runnable r) {
 			futuresToAwait.add(drawThreads.submit(r));
