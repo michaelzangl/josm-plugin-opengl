@@ -174,7 +174,6 @@ public class StyleGeometryCache {
 						.getStyleCacheUsed(primitive) || primitive
 						.isHighlighted() != list
 						.getStyleCacheUsedHighlighted(primitive)))) {
-			System.out.println("Mappaint style change found.");
 			invalidateGeometry(primitive);
 			list = recordedForPrimitive.get(primitive);
 		}
@@ -185,9 +184,9 @@ public class StyleGeometryCache {
 				// -- pass on to merger
 				List<RecordedOsmGeometries> geometries = generator
 						.runFor(primitive);
-				long time = System.currentTimeMillis();
+//				long time = System.currentTimeMillis();
 				collectedForFrameMerger.addMergeables(primitive, geometries);
-				System.out.println("Merge time: " + (System.currentTimeMillis() - time) + "ms");
+//				System.out.println("Merge time: " + (System.currentTimeMillis() - time) + "ms");
 			} else {
 				// if not exists and no generator is set
 				// -- schedule for background generation

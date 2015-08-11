@@ -233,8 +233,8 @@ public class OpenGLStyledMapRenderer extends StyledMapRenderer {
 
 			drawVirtualNodes(data, bbox);
 			long time5 = System.currentTimeMillis();
-			System.out.println("Create styles: " + (time2 - time1) + ", draw: "
-					+ (time4 - time2) + ", draw virtual: " + (time5 - time4));
+//			System.out.println("Create styles: " + (time2 - time1) + ", draw: "
+//					+ (time4 - time2) + ", draw virtual: " + (time5 - time4));
 			DrawStats.printStats();
 
 			if (!sgs.hasGeneratedAllGeometries()) {

@@ -32,7 +32,7 @@ public abstract class PrimitiveSearcher<T extends OsmPrimitive> implements Runna
 	public void run() {
 		long time = System.currentTimeMillis();
 		List<T> primitives = searchElements();
-		System.out.println("Search took " + (System.currentTimeMillis() - time) + " ms and returned " + primitives.size() + " results ");
+		// System.out.println("Search took " + (System.currentTimeMillis() - time) + " ms and returned " + primitives.size() + " results ");
 		handler.receivePrimitives(primitives);
 	}
 }

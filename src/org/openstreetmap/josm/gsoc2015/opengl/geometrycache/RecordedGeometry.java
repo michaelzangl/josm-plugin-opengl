@@ -39,6 +39,8 @@ public class RecordedGeometry {
 	protected int drawMode;
 	protected final TextureEntry texture;
 
+	private GLLineStrippleDefinition lineStripple;
+
 	/**
 	 * Creates a new recorded geometry.
 	 * 
@@ -51,26 +53,24 @@ public class RecordedGeometry {
 	 * @param texture
 	 */
 	private RecordedGeometry(int drawMode, FloatBuffer coordinates, int color,
-			TextureEntry texture) {
+			TextureEntry texture, GLLineStrippleDefinition lineStripple) {
 		if (!coordinates.isDirect()) {
 			throw new IllegalArgumentException(
 					"Can only handle direct float buffers.");
+		}
+		if (lineStripple != null && drawMode != GL.GL_LINE_LOOP && drawMode != GL.GL_LINE_STRIP && drawMode != GL.GL_LINES) {
+			throw new IllegalArgumentException("line stripple given in wrong draw mode.");
 		}
 		this.drawMode = drawMode;
 		this.coordinates = coordinates;
 		this.color = color;
 		this.texture = texture;
 		this.points = coordinates.position() / getBufferEntriesForPoint();
+		this.lineStripple = lineStripple;
 	}
 
 	public RecordedGeometry(int drawMode, VertexBuffer vBuffer, int color) {
-		// For testing
-		// if (used.containsKey(vBuffer)) {
-		// throw new IllegalArgumentException("Got VBuffer twice.");
-		// }
-		// used.put(vBuffer, vBuffer);
-		// Test code end
-		this(drawMode, vBuffer.getBuffer(), color, null);
+		this(drawMode, vBuffer.getBuffer(), color, null, null);
 	}
 
 	/**
@@ -112,6 +112,7 @@ public class RecordedGeometry {
 		}
 
 		state.setColor(color);
+		state.setLineStripple(lineStripple);
 
 		int stride = getBufferEntriesForPoint() * Buffers.SIZEOF_FLOAT;
 
@@ -415,6 +416,18 @@ public class RecordedGeometry {
 		cornerBuffer.put(corners, 6, 2);
 		cornerBuffer.put(relSx1);
 		cornerBuffer.put(relSy1);
-		return new RecordedGeometry(GL2.GL_QUADS, cornerBuffer, color, texture);
+		return new RecordedGeometry(GL2.GL_QUADS, cornerBuffer, color, texture, null);
+	}
+
+	public static RecordedGeometry generateLine(
+			GLLineStrippleDefinition stripple, int color,
+			VertexBuffer vBuffer, boolean closedLine) {
+		int mode;
+		if (vBuffer.getBuffer().position() == 4) {
+			mode = GL.GL_LINES;
+		} else {
+			mode = closedLine ? GL.GL_LINE_LOOP : GL.GL_LINE_STRIP;
+		}
+		return new RecordedGeometry(mode, vBuffer.getBuffer(), color, null, stripple);
 	}
 }

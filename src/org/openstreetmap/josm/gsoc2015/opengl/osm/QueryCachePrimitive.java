@@ -40,8 +40,6 @@ public class QueryCachePrimitive<T extends OsmPrimitive> implements Runnable {
 		} finally {
 			gen.endRunning();
 		}
-		System.out.println("Got primitives to query: " + primitives.size() + " from "
-				+ min + " to " + max + ", time: " + (System.currentTimeMillis() - start));
 	}
 
 }

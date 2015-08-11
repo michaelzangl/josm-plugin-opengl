@@ -15,6 +15,7 @@ public class RecordingShapeHelper extends AbstractShapeHelper {
 
 	private final RecordingStrokeLineVisitor lineVisitor;
 	private final RecordingStarOrTesselatorVisitor fillVisitor;
+	private final RecordingLineVisitor fastLineVisitor;
 
 	private enum Clockwise {
 		CLOCKWISE, COUNTER_CLOCKWISE, NOT_SURE;
@@ -206,6 +207,7 @@ public class RecordingShapeHelper extends AbstractShapeHelper {
 		fillVisitor = new RecordingStarOrTesselatorVisitor(colorHelper,
 				recorder);
 		lineVisitor = new RecordingStrokeLineVisitor(colorHelper, recorder);
+		fastLineVisitor = new RecordingLineVisitor(colorHelper, recorder);
 	}
 
 	@Override
@@ -214,7 +216,13 @@ public class RecordingShapeHelper extends AbstractShapeHelper {
 		// long time1 = System.currentTimeMillis();
 		if (stroke instanceof BasicStroke) {
 			BasicStroke basicStroke = (BasicStroke) stroke;
-			if (basicStroke.getDashArray() == null) {
+			GLLineStrippleDefinition stripple = GLLineStrippleDefinition
+					.generate(basicStroke);
+			if (stripple != null) {
+				fastLineVisitor.setStripple(stripple);
+				traceShape(shape, fastLineVisitor);
+				return;
+			} else if (basicStroke.getDashArray() == null) {
 				lineVisitor.setStroke(basicStroke);
 				// System.out.println("Slow line beign? lineVisitor");
 				traceShape(shape, lineVisitor);

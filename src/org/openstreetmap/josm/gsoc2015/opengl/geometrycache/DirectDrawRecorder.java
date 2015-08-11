@@ -20,7 +20,7 @@ public class DirectDrawRecorder implements Recorder {
 	
 	@Override
 	public void recordGeometry(RecordedGeometry cachedGeometry) {
-		System.out.println("Drawing geometry..." + cachedGeometry);
+		// System.out.println("Drawing geometry..." + cachedGeometry);
 		GLState state = new GLState(gl);
 		state.initialize(viewPosition);
 		cachedGeometry.draw(gl, state);

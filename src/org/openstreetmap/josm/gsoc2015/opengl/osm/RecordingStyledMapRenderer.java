@@ -18,19 +18,6 @@ public class RecordingStyledMapRenderer extends StyledMapRenderer {
 		super(new RecordingGraphics2D(recorder), nc, isInactiveMode);
 	}
 
-//	@Override
-//	protected void displaySegments(GeneralPath path,
-//			GeneralPath orientationArrows, GeneralPath onewayArrows,
-//			GeneralPath onewayArrowsCasing, Color color, BasicStroke line,
-//			BasicStroke dashes, Color dashedColor) {
-////		color = isInactiveMode ? inactiveColor : color;
-////		g.setStroke(line);
-////		g.draw(path);
-////		System.out.println("Got segments...");
-//		super.displaySegments(path, orientationArrows, onewayArrows,
-//				onewayArrowsCasing, color, line, dashes, dashedColor);
-//	}
-	
 	public void flush() {
 	}
 

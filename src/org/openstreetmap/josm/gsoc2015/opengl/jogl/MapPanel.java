@@ -67,7 +67,7 @@ public class MapPanel extends GLJPanel implements RepaintListener {
 
 		@Override
 		public void display(GLAutoDrawable drawable) {
-			System.out.println("BEGIN display()");
+			//System.out.println("BEGIN display()");
 			drawable.getGL().glViewport(0, 0, drawable.getSurfaceWidth(),
 					drawable.getSurfaceHeight());
 			long time = System.currentTimeMillis();
@@ -80,7 +80,7 @@ public class MapPanel extends GLJPanel implements RepaintListener {
 				System.err.println(t);
 				t.printStackTrace();
 			}
-			System.out.println(String.format("END display(), t = %d ms", System.currentTimeMillis() - time));
+			//System.out.println(String.format("END display(), t = %d ms", System.currentTimeMillis() - time));
 		}
 
 		private void drawTestScene(GL2 gl) {
