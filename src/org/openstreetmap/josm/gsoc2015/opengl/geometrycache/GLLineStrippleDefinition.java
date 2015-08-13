@@ -68,10 +68,10 @@ public class GLLineStrippleDefinition {
 			// Now fill using the dashes array.
 			pattern = 0;
 			for (int i = 0; i < 16; i++) {
-				boolean isDash = getInDashArray(dashes, phase + i + .5f);
-				System.out.println("For " + i + " testing "
-						+ (phase + i + .5f) + " in "
-						+ Arrays.toString(dashes) + " => " + isDash);
+				boolean isDash = getInDashArray(dashes, phase + (i + .5f) * factor);
+//				System.out.println("For " + i + " testing "
+//						+ (phase + (i + .5f) * factor) + " in "
+//						+ Arrays.toString(dashes) + " => " + isDash);
 				if (isDash) {
 					pattern |= 1 << i;
 				}
