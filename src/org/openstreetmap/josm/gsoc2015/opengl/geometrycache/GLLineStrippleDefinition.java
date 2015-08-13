@@ -1,6 +1,7 @@
 package org.openstreetmap.josm.gsoc2015.opengl.geometrycache;
 
 import java.awt.BasicStroke;
+import java.util.Arrays;
 
 import javax.media.opengl.GL2;
 
@@ -68,8 +69,11 @@ public class GLLineStrippleDefinition {
 			pattern = 0;
 			for (int i = 0; i < 16; i++) {
 				boolean isDash = getInDashArray(dashes, phase + i + .5f);
+				System.out.println("For " + i + " testing "
+						+ (phase + i + .5f) + " in "
+						+ Arrays.toString(dashes) + " => " + isDash);
 				if (isDash) {
-					pattern |= 1 << (16 - i);
+					pattern |= 1 << i;
 				}
 			}
 		}
@@ -106,6 +110,18 @@ public class GLLineStrippleDefinition {
 			}
 			float difference = Math.abs((float) length / dashesRepeated
 					- dashesLength);
+			
+			float distanceWalked = 0;
+			for (int i = 0; i < dashes.length; i++) {
+				distanceWalked += dashes[i];
+				if (dashes[i] < factor) {
+					// bad...
+					difference += factor;
+				} else {
+					difference += distanceToNextInt(distanceWalked / factor);
+				}
+			}
+			
 			// XXX: We might want to add the difference for the individual
 			// dashes.
 
@@ -115,6 +131,10 @@ public class GLLineStrippleDefinition {
 			}
 		}
 		return bestFactor;
+	}
+
+	private static float distanceToNextInt(float f) {
+		return Math.abs(f - Math.round(f));
 	}
 
 	private static float sum(float[] floats) {
