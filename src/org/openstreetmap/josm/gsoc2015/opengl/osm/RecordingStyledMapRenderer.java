@@ -24,4 +24,8 @@ public class RecordingStyledMapRenderer extends StyledMapRenderer {
 	public void setClipBounds(Rectangle clipBounds) {
 		g.setClip(clipBounds);
 	}
+
+	public void dispose() {
+		((RecordingGraphics2D) g).dispose();
+	}
 }

@@ -1,7 +1,6 @@
 package org.openstreetmap.josm.gsoc2015.opengl.geometrycache;
 
 import java.awt.BasicStroke;
-import java.util.Arrays;
 
 import javax.media.opengl.GL2;
 

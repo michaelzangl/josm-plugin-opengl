@@ -5,7 +5,6 @@ import java.nio.FloatBuffer;
 
 import javax.media.opengl.GL;
 import javax.media.opengl.GL2;
-import javax.media.opengl.GL2ES1;
 import javax.media.opengl.fixedfunc.GLPointerFunc;
 
 import org.openstreetmap.josm.gsoc2015.opengl.osm.ViewPosition;

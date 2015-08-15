@@ -2,8 +2,8 @@ package org.openstreetmap.josm.gsoc2015.opengl.osm;
 
 import java.util.List;
 
-import org.openstreetmap.josm.gsoc2015.opengl.geometrycache.RecordedOsmGeometries;
 import org.openstreetmap.josm.gsoc2015.opengl.geometrycache.OsmPrimitiveRecorder.RecordedPrimitiveReceiver;
+import org.openstreetmap.josm.gsoc2015.opengl.geometrycache.RecordedOsmGeometries;
 
 class SimpleRecodingReceiver implements
 		RecordedPrimitiveReceiver {

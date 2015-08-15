@@ -14,6 +14,7 @@ import javax.media.opengl.GL2;
 
 import org.openstreetmap.josm.data.osm.OsmPrimitive;
 import org.openstreetmap.josm.gsoc2015.opengl.osm.ViewPosition;
+import org.openstreetmap.josm.gsoc2015.opengl.util.DebugUtils;
 import org.openstreetmap.josm.tools.Pair;
 
 /**
@@ -71,12 +72,10 @@ public class RecordedOsmGeometries implements Comparable<RecordedOsmGeometries> 
 	/**
 	 * Disposes the underlying buffer and frees all allocated resources. The
 	 * object may not be used afterwards.
-	 * 
-	 * @param gl
 	 */
-	public void dispose(GL2 gl) {
+	public void dispose() {
 		for (RecordedGeometry g : geometries) {
-			g.dispose(gl);
+			g.dispose();
 		}
 	}
 
@@ -150,6 +149,7 @@ public class RecordedOsmGeometries implements Comparable<RecordedOsmGeometries> 
 	 */
 	private List<RecordedGeometry> merge(List<RecordedGeometry> geometries1,
 			List<RecordedGeometry> geometries2) {
+		List<RecordedGeometry> ordered = new ArrayList<>();
 		List<RecordedGeometry> ret = new ArrayList<>();
 
 		LinkedList<Pair<Integer, Integer>> pairs = firstMergePairs(geometries1,
@@ -170,29 +170,34 @@ public class RecordedOsmGeometries implements Comparable<RecordedOsmGeometries> 
 		int geometry1Index = 0, geometry2Index = 0;
 		for (Pair<Integer, Integer> p : filtered) {
 			for (; geometry1Index < p.a; geometry1Index++) {
-				ret.add(geometries1.get(geometry1Index));
+				ordered.add(geometries1.get(geometry1Index));
 			}
 			for (; geometry2Index < p.b; geometry2Index++) {
-				ret.add(geometries2.get(geometry2Index));
+				ordered.add(geometries2.get(geometry2Index));
 			}
 		}
 		for (; geometry1Index < geometries1.size(); geometry1Index++) {
-			ret.add(geometries1.get(geometry1Index));
+			ordered.add(geometries1.get(geometry1Index));
 		}
 		for (; geometry2Index < geometries2.size(); geometry2Index++) {
-			ret.add(geometries2.get(geometry2Index));
+			ordered.add(geometries2.get(geometry2Index));
 		}
 
 		RecordedGeometry last = null;
-		Iterator<RecordedGeometry> iterator = ret.iterator();
+		Iterator<RecordedGeometry> iterator = ordered.iterator();
 		while (iterator.hasNext()) {
 			RecordedGeometry current = iterator.next();
 			if (last != null && last.attemptCombineWith(current)) {
 				// all good, we combined this one.
-				iterator.remove();
 			} else {
 				last = current;
+				ret.add(current);
 			}
+		}
+		
+		//XXX
+		if (DebugUtils.findDuplicates(ret).size() > 0) {
+			throw new IllegalStateException(ret.toString());
 		}
 
 		return ret;

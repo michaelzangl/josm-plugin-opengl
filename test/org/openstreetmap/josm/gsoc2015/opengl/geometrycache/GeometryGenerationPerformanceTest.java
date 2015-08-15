@@ -30,7 +30,11 @@ import org.openstreetmap.josm.data.coor.LatLon;
 import org.openstreetmap.josm.data.osm.DataSet;
 import org.openstreetmap.josm.data.osm.OsmDataGenerator;
 import org.openstreetmap.josm.data.osm.OsmDataGenerator.DataGenerator;
+import org.openstreetmap.josm.data.osm.OsmDataGenerator.NodeDataGenerator;
 import org.openstreetmap.josm.gsoc2015.opengl.osm.OsmLayerDrawer;
+import org.openstreetmap.josm.gsoc2015.opengl.osm.OpenGLStyledMapRenderer.StyleGenerationState;
+import org.openstreetmap.josm.gsoc2015.opengl.pool.SimpleBufferPool;
+import org.openstreetmap.josm.gsoc2015.opengl.pool.VertexBufferPool;
 import org.openstreetmap.josm.gui.MapView;
 import org.openstreetmap.josm.gui.layer.OsmDataLayer;
 import org.openstreetmap.josm.gui.mappaint.ElemStyles;
@@ -51,6 +55,10 @@ import com.jogamp.opengl.util.awt.AWTGLReadBufferUtil;
  *
  */
 public class GeometryGenerationPerformanceTest {
+	/**
+	 * If we should also run it using java2d to see the difference.
+	 */
+	private static final boolean RUN_REFERENCE = true;
 
 	private static class GeometryGenerationRunner implements Runnable {
 
@@ -70,6 +78,7 @@ public class GeometryGenerationPerformanceTest {
 		@Override
 		public void run() {
 			System.out.println(description + "...");
+			StyleGenerationState.MAX_GEOMETRIES_GENERATED = Integer.MAX_VALUE;
 			MapCSSStyleSource source = new MapCSSStyleSource(css);
 			PerformanceTestTimer timer = PerformanceTestUtils
 					.startTimer("MapCSSStyleSource#loadStyleSource(...) for "
@@ -80,6 +89,8 @@ public class GeometryGenerationPerformanceTest {
 
 			GLAutoDrawable drawable = createGLContext();
 
+			timer = PerformanceTestUtils.startTimer("Generate test data for "
+					+ description);
 			OsmDataLayer osmLayer = dataGenerator.createDataLayer();
 			OsmLayerDrawer drawer = new OsmLayerDrawer(osmLayer);
 
@@ -91,6 +102,8 @@ public class GeometryGenerationPerformanceTest {
 			// mapView.zoomTo(new Bounds(new LatLon(0, 0), new LatLon(1, 1)));
 			Bounds box = mapView.getLatLonBounds(new Rectangle(mapView
 					.getSize()));
+			timer.done();
+
 			GLGraphics2D g2d = new GLGraphics2D();
 			g2d.prePaint(drawable.getContext());
 			g2d.setColor(Color.WHITE);
@@ -117,21 +130,25 @@ public class GeometryGenerationPerformanceTest {
 				ImageIO.write(im, "png", new File(dir, "test result for "
 						+ description + ".png"));
 				// Generate reference image...
-				MapPaintStyles.getStyles().clearCached();
-				BufferedImage expected = new BufferedImage(WIDTH, HEIGHT,
-						BufferedImage.TYPE_3BYTE_BGR);
-				Graphics2D g = expected.createGraphics();
-				g.setClip(0, 0, WIDTH, HEIGHT);
-				timer = PerformanceTestUtils.startTimer("first Java2D paint() for "
-						+ description);
-				paintOnImage(osmLayer, mapView, box, g);
-				timer.done();
-				timer = PerformanceTestUtils.startTimer("second Java2D paint() for "
-						+ description);
-				paintOnImage(osmLayer, mapView, box, g);
-				timer.done();
-				ImageIO.write(expected, "png", new File(dir, "expected for "
-						+ description + ".png"));
+				if (RUN_REFERENCE) {
+					MapPaintStyles.getStyles().clearCached();
+					BufferedImage expected = new BufferedImage(WIDTH, HEIGHT,
+							BufferedImage.TYPE_3BYTE_BGR);
+					Graphics2D g = expected.createGraphics();
+					g.setClip(0, 0, WIDTH, HEIGHT);
+					timer = PerformanceTestUtils
+							.startTimer("first Java2D paint() for "
+									+ description);
+					paintOnImage(osmLayer, mapView, box, g);
+					timer.done();
+					timer = PerformanceTestUtils
+							.startTimer("second Java2D paint() for "
+									+ description);
+					paintOnImage(osmLayer, mapView, box, g);
+					timer.done();
+					ImageIO.write(expected, "png", new File(dir,
+							"expected for " + description + ".png"));
+				}
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
@@ -192,7 +209,7 @@ public class GeometryGenerationPerformanceTest {
 		runTest(new GeometryGenerationRunner(
 				"tiangles",
 				"node { fill-color: blue; symbol-size: 20; symbol-shape: triangle }",
-				OsmDataGenerator.getNodes()));
+				getRandomNodeGenerator()));
 	}
 
 	@Test
@@ -201,7 +218,7 @@ public class GeometryGenerationPerformanceTest {
 		runTest(new GeometryGenerationRunner(
 				"octagons",
 				"node {symbol-fill-color: red; symbol-size: 20; symbol-shape: octagon }",
-				OsmDataGenerator.getNodes()));
+				getRandomNodeGenerator()));
 	}
 
 	@Test
@@ -209,11 +226,13 @@ public class GeometryGenerationPerformanceTest {
 		// Should be merged and drawn with fast drawer,
 		String css = "";
 		for (int i = 1; i <= 20; i++) {
-			int c = new Color(i / 20f, 1 - i/20f, 0).getRGB() & 0xffffff;
-			css += String.format("node::l%1$d {symbol-fill-color: #%2$06x; symbol-size: %1$d; symbol-shape: octagon; major-z-index: %3$d }\n", i, c, 20 - i);
+			int c = new Color(i / 20f, 1 - i / 20f, 0).getRGB() & 0xffffff;
+			css += String
+					.format("node::l%1$d {symbol-fill-color: #%2$06x; symbol-size: %1$d; symbol-shape: octagon; major-z-index: %3$d }\n",
+							i, c, 20 - i);
 		}
 		runTest(new GeometryGenerationRunner("multiple ocatagons", css,
-				OsmDataGenerator.getNodes()));
+				getRandomNodeGenerator()));
 	}
 
 	@Test
@@ -221,7 +240,14 @@ public class GeometryGenerationPerformanceTest {
 		runTest(new GeometryGenerationRunner(
 				"octagons with border",
 				"node {symbol-fill-color: red; symbol-size: 20; symbol-stroke-width: 2; symbol-stroke-opacity: 0.5; symbol-stroke-color: blue; symbol-shape: octagon }",
-				OsmDataGenerator.getNodes()));
+				getRandomNodeGenerator()));
+		System.out.println(SimpleBufferPool.miss.getAndSet(0));
+		System.out.println(SimpleBufferPool.hit.getAndSet(0));
+	}
+
+	private NodeDataGenerator getRandomNodeGenerator() {
+		return new OsmDataGenerator.NodeDataGenerator("many-nodes", 1000000) {
+		};
 	}
 
 	private void runTest(GeometryGenerationRunner geometryGenerationRunner)

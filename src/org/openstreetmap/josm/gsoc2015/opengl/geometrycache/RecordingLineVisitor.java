@@ -4,8 +4,9 @@ import java.awt.BasicStroke;
 
 import javax.media.opengl.GL;
 
-import org.jogamp.glg2d.VertexBuffer;
 import org.jogamp.glg2d.impl.SimplePathVisitor;
+import org.openstreetmap.josm.gsoc2015.opengl.pool.VertexBufferProvider;
+import org.openstreetmap.josm.gsoc2015.opengl.pool.VertexBufferProvider.ReleaseableVertexBuffer;
 
 /**
  * This visitor records a line as {@link GL#GL_LINE_LOOP} or
@@ -26,16 +27,19 @@ public class RecordingLineVisitor extends SimplePathVisitor {
 
 	private GLLineStrippleDefinition stripple;
 
-	private VertexBuffer vBuffer = new VertexBuffer(DEFAULT_LINE_LENGTH);
+	private ReleaseableVertexBuffer vBuffer;
 
-	private RecordingColorHelper colorHelper;
+	private final RecordingColorHelper colorHelper;
 
-	private Recorder recorder;
+	private final Recorder recorder;
+
+	private final VertexBufferProvider VERTEX_BUFFER_PROVIDER = VertexBufferProvider.DEFAULT;
 
 	public RecordingLineVisitor(RecordingColorHelper colorHelper,
 			Recorder recorder) {
 		this.colorHelper = colorHelper;
 		this.recorder = recorder;
+		resetVBuffer();
 	}
 
 	public void setStripple(GLLineStrippleDefinition stripple) {
@@ -60,10 +64,14 @@ public class RecordingLineVisitor extends SimplePathVisitor {
 		if (vBuffer.getBuffer().position() > 2) {
 			recorder.recordGeometry(RecordedGeometry.generateLine(stripple,
 					colorHelper.getActiveColor(), vBuffer, closedLine));
-			vBuffer = new VertexBuffer(DEFAULT_LINE_LENGTH);
+			resetVBuffer();
 		} else {
 			vBuffer.getBuffer().rewind();
 		}
+	}
+
+	private void resetVBuffer() {
+		vBuffer = VERTEX_BUFFER_PROVIDER.getVertexBuffer(DEFAULT_LINE_LENGTH);
 	}
 
 	@Override
@@ -83,6 +91,10 @@ public class RecordingLineVisitor extends SimplePathVisitor {
 	@Override
 	public void endPoly() {
 		commitIfRequired(false);
+	}
+
+	public void dispose() {
+		vBuffer.release();
 	}
 
 }

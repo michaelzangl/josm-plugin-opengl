@@ -7,5 +7,6 @@
 	<classpathentry kind="lib" path="resources/lib/gluegen-rt.jar"/>
 	<classpathentry kind="lib" path="resources/lib/jogl-all.jar"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.junit.JUNIT_CONTAINER/4"/>
+	<classpathentry kind="lib" path="java_hooks_bin" sourcepath="java_hooks"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

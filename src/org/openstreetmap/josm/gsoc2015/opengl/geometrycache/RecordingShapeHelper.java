@@ -7,9 +7,10 @@ import java.nio.FloatBuffer;
 
 import javax.media.opengl.GL;
 
-import org.jogamp.glg2d.VertexBuffer;
 import org.jogamp.glg2d.impl.AbstractShapeHelper;
 import org.jogamp.glg2d.impl.SimplePathVisitor;
+import org.openstreetmap.josm.gsoc2015.opengl.pool.VertexBufferProvider;
+import org.openstreetmap.josm.gsoc2015.opengl.pool.VertexBufferProvider.ReleaseableVertexBuffer;
 
 public class RecordingShapeHelper extends AbstractShapeHelper {
 
@@ -50,9 +51,7 @@ public class RecordingShapeHelper extends AbstractShapeHelper {
 	 * the case if and only if all triangles have the same orientation (either
 	 * clockwise or counter-clockwise)
 	 * 
-	 * 
 	 * @author Michael Zangl
-	 *
 	 */
 	private static class RecordingStarOrTesselatorVisitor extends
 			SimplePathVisitor {
@@ -79,7 +78,9 @@ public class RecordingShapeHelper extends AbstractShapeHelper {
 
 		private Clockwise isClockwise = Clockwise.NOT_SURE;
 
-		private VertexBuffer vBuffer = new VertexBuffer(DEFAULT_SIZE);
+		private final VertexBufferProvider VERTEX_BUFFER_PROVIDER = VertexBufferProvider.DEFAULT;
+		private ReleaseableVertexBuffer vBuffer = VERTEX_BUFFER_PROVIDER
+				.getVertexBuffer(DEFAULT_SIZE);
 
 		public RecordingStarOrTesselatorVisitor(
 				RecordingColorHelper colorHelper, Recorder recorder) {
@@ -194,16 +195,23 @@ public class RecordingShapeHelper extends AbstractShapeHelper {
 			if (!failed && vBuffer.getBuffer().position() > 0) {
 				recorder.recordGeometry(new RecordedGeometry(GL.GL_TRIANGLES,
 						vBuffer, colorRecorder.getActiveColor()));
-				vBuffer = new VertexBuffer(DEFAULT_SIZE);
+				vBuffer = VERTEX_BUFFER_PROVIDER.getVertexBuffer(DEFAULT_SIZE);
 			}
 			inDraw = false;
 			isClockwise = Clockwise.NOT_SURE;
 			failed = false;
 		}
+
+		public void dispose() {
+			vBuffer.release();
+			vBuffer = null;
+			fallback.dispose();
+		}
 	}
 
 	public RecordingShapeHelper(RecordingColorHelper colorHelper,
 			Recorder recorder) {
+		// fillVisitor = new RecordingTesselatorVisitor(colorHelper, recorder);
 		fillVisitor = new RecordingStarOrTesselatorVisitor(colorHelper,
 				recorder);
 		lineVisitor = new RecordingStrokeLineVisitor(colorHelper, recorder);
@@ -248,4 +256,11 @@ public class RecordingShapeHelper extends AbstractShapeHelper {
 		// + (System.currentTimeMillis() - time1) + "ms, ");
 	}
 
+	@Override
+	public void dispose() {
+		lineVisitor.dispose();
+		fillVisitor.dispose();
+		fastLineVisitor.dispose();
+		super.dispose();
+	}
 }

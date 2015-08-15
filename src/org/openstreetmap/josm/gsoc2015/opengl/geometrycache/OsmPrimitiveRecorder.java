@@ -3,6 +3,7 @@ package org.openstreetmap.josm.gsoc2015.opengl.geometrycache;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.openstreetmap.josm.Main;
 import org.openstreetmap.josm.data.osm.Changeset;
 import org.openstreetmap.josm.data.osm.Node;
 import org.openstreetmap.josm.data.osm.OsmPrimitive;
@@ -57,6 +58,9 @@ public class OsmPrimitiveRecorder implements Recorder, Visitor {
 	public void recordGeometry(RecordedGeometry cachedGeometry) {
 		if (!cachedGeometry.isNop()) {
 			geometries.add(cachedGeometry);
+		} else {
+			Main.warn("Skipping a nop geometry");
+			cachedGeometry.dispose();
 		}
 	}
 	

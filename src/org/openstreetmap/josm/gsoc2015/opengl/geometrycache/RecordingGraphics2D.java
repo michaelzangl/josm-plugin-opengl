@@ -4,8 +4,6 @@ import static org.jogamp.glg2d.impl.AbstractShapeHelper.visitShape;
 
 import java.awt.Shape;
 import java.awt.font.GlyphVector;
-import java.awt.geom.PathIterator;
-import java.awt.geom.Point2D;
 import java.text.AttributedCharacterIterator;
 
 import org.jogamp.glg2d.G2DDrawingHelper;
@@ -15,14 +13,11 @@ import org.jogamp.glg2d.GLG2DShapeHelper;
 import org.jogamp.glg2d.GLG2DTextHelper;
 import org.jogamp.glg2d.GLG2DTransformHelper;
 import org.jogamp.glg2d.GLGraphics2D;
-import org.jogamp.glg2d.PathVisitor;
 import org.jogamp.glg2d.impl.AbstractMatrixHelper;
 import org.jogamp.glg2d.impl.AbstractShapeHelper;
 import org.jogamp.glg2d.impl.AbstractTextDrawer;
 import org.jogamp.glg2d.impl.shader.text.CollectingTesselator;
 import org.jogamp.glg2d.impl.shader.text.CollectingTesselator.Triangles;
-
-import com.jogamp.opengl.util.awt.TextRenderer;
 
 /**
  * This is a graphics2D implementation that sends all OpenGL calls to a given
@@ -42,8 +37,7 @@ public class RecordingGraphics2D extends GLGraphics2D {
 
 		@Override
 		public void dispose() {
-			// TODO Auto-generated method stub
-
+			fillVisitor.dispose();
 		}
 
 		@Override
@@ -53,11 +47,6 @@ public class RecordingGraphics2D extends GLGraphics2D {
 
 		@Override
 		public void drawString(String string, float x, float y) {
-			// pipeline.setColor(gl,
-			// g2d.getUniformsObject().colorHook.getRGBA());
-			// pipeline.setTransform(gl,
-			// g2d.getUniformsObject().transformHook.getGLMatrixData());
-
 			GlyphVector glyphs = getFont().createGlyphVector(
 					getFontRenderContext(), string);
 			for (int i = 0; i < string.length(); i++) {
@@ -160,6 +149,15 @@ public class RecordingGraphics2D extends GLGraphics2D {
 	protected GLG2DShapeHelper createShapeHelper() {
 		return new RecordingShapeHelper(getOrCreateColorHelper(),
 				recorder);
+	}
+	
+	@Override
+	public void dispose() {
+		for (G2DDrawingHelper h : helpers) {
+			// GLG2D does not do this on default.
+			h.dispose();
+		}
+		super.dispose();
 	}
 
 	@Override

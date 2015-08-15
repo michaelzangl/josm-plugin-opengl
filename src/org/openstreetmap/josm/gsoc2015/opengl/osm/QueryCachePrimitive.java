@@ -1,7 +1,6 @@
 package org.openstreetmap.josm.gsoc2015.opengl.osm;
 
 import java.util.List;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import org.openstreetmap.josm.data.osm.OsmPrimitive;
 import org.openstreetmap.josm.gsoc2015.opengl.osm.OpenGLStyledMapRenderer.StyleGenerationState;

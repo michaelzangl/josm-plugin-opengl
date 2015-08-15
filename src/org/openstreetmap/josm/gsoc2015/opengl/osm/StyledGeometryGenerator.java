@@ -2,7 +2,6 @@ package org.openstreetmap.josm.gsoc2015.opengl.osm;
 
 import java.awt.Rectangle;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
@@ -11,7 +10,6 @@ import org.openstreetmap.josm.data.osm.OsmPrimitive;
 import org.openstreetmap.josm.data.osm.Relation;
 import org.openstreetmap.josm.data.osm.visitor.paint.MapPaintSettings;
 import org.openstreetmap.josm.gsoc2015.opengl.geometrycache.OsmPrimitiveRecorder;
-import org.openstreetmap.josm.gsoc2015.opengl.geometrycache.OsmPrimitiveRecorder.RecordedPrimitiveReceiver;
 import org.openstreetmap.josm.gsoc2015.opengl.geometrycache.RecordedOsmGeometries;
 import org.openstreetmap.josm.gsoc2015.opengl.osm.OpenGLStyledMapRenderer.StyleGenerationState;
 import org.openstreetmap.josm.gui.NavigatableComponent;
@@ -70,7 +68,7 @@ public class StyledGeometryGenerator<T extends OsmPrimitive> {
 
 	private final OsmPrimitiveRecorder recorder;
 
-	private final RecordingStyledMapRenderer recordingRenderer;
+	private RecordingStyledMapRenderer recordingRenderer;
 
 	private Thread activeThread;
 
@@ -80,11 +78,6 @@ public class StyledGeometryGenerator<T extends OsmPrimitive> {
 		this.sgs = sgs;
 		recorder = new OsmPrimitiveRecorder(
 				new SimpleRecodingReceiver(recorded));
-		recordingRenderer = new RecordingStyledMapRenderer(recorder,
-				sgs.getCacheKey(), sgs.isInactiveMode());
-		recordingRenderer.getSettings(sgs.renderVirtualNodes());
-		// We don't really clip since we need the whole geometry for our cache.
-		recordingRenderer.setClipBounds(new Rectangle(-1000000, -1000000, 2000000, 2000000));
 	}
 
 	/**
@@ -94,6 +87,11 @@ public class StyledGeometryGenerator<T extends OsmPrimitive> {
 		if (activeThread != null) {
 			throw new IllegalStateException("startRunning() already called.");
 		}
+		recordingRenderer = new RecordingStyledMapRenderer(recorder,
+				sgs.getCacheKey(), sgs.isInactiveMode());
+		recordingRenderer.getSettings(sgs.renderVirtualNodes());
+		// We don't really clip since we need the whole geometry for our cache.
+		recordingRenderer.setClipBounds(new Rectangle(-1000000, -1000000, 2000000, 2000000));
 		MapCSSStyleSource.STYLE_SOURCE_LOCK.readLock().lock();
 		activeThread = Thread.currentThread();
 	}
@@ -106,6 +104,7 @@ public class StyledGeometryGenerator<T extends OsmPrimitive> {
 			throw new IllegalStateException(
 					"endRunning() called in the wrong thread.");
 		}
+		recordingRenderer.dispose();
 		MapCSSStyleSource.STYLE_SOURCE_LOCK.readLock().unlock();
 		activeThread = null;
 	}

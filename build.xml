@@ -29,8 +29,14 @@
     <!--<property name="plugin.early" value="..."/>-->
     <!--<property name="plugin.requires" value="..."/>-->
     <!--<property name="plugin.stage" value="..."/>-->
+    <property name="plugin.requires.jar" value="java_hooks"/>
+    
+    <target name="generate-java" extensionOf="pre-compile">
+        <echo message="compiling java hooks ..."/>
+        <javac srcdir="java_hooks" debug="true" destdir="java_hooks_bin" includeantruntime="false" encoding="UTF-8">
+        </javac>
+    </target>
 
     <!-- ** include targets that all plugins have in common ** -->
     <import file="build-common.xml"/>
-    
 </project>

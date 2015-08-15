@@ -1,6 +1,5 @@
 package org.openstreetmap.josm.gsoc2015.opengl.geometrycache;
 
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.*;
 
 import java.nio.FloatBuffer;
@@ -9,11 +8,13 @@ import javax.media.opengl.GL2;
 
 import org.jogamp.glg2d.VertexBuffer;
 import org.junit.Test;
+import org.openstreetmap.josm.gsoc2015.opengl.pool.VertexBufferPool;
+import org.openstreetmap.josm.gsoc2015.opengl.pool.VertexBufferPool.PooledVertexBuffer;
 
 public class RecordedGeometryMerge {
 	private class AccesibleRecordedGeometry extends RecordedGeometry {
-		public AccesibleRecordedGeometry(int drawMode, VertexBuffer vBuffer,
-				int color) {
+		public AccesibleRecordedGeometry(int drawMode,
+				PooledVertexBuffer vBuffer, int color) {
 			super(drawMode, vBuffer, color);
 		}
 
@@ -22,7 +23,7 @@ public class RecordedGeometryMerge {
 		}
 
 		FloatBuffer getCoordinates() {
-			return coordinates;
+			return coordinates.getBuffer();
 		}
 	}
 
@@ -49,11 +50,11 @@ public class RecordedGeometryMerge {
 		expected.get(expectedA);
 		actual.get(actualA);
 		assertArrayEquals(expectedA, actualA, 0.001f);
-		
-//		for (int i = 0; i < len; i++) {
-//			assertEquals("Buffer at " + i, expected.get(i), actual.get(i),
-//					0.0001);
-//		}
+
+		// for (int i = 0; i < len; i++) {
+		// assertEquals("Buffer at " + i, expected.get(i), actual.get(i),
+		// 0.0001);
+		// }
 	}
 
 	@Test
@@ -65,7 +66,8 @@ public class RecordedGeometryMerge {
 		assertTrue(g1.attemptCombineWith(g2));
 		assertEquals((long) 3 * 3 + 20, (long) g1.getPoints());
 		VertexBuffer res = genVBufferTriangleStrip(0, 5);
-		res.addVertices((FloatBuffer) genVBuffer(20, 20).getBuffer().position(0).limit(40));
+		res.addVertices((FloatBuffer) genVBuffer(20, 20).getBuffer()
+				.position(0).limit(40));
 		assertBufferEquals(res.getBuffer(), g1.getCoordinates(),
 				g1.getPoints() * 2);
 	}
@@ -79,13 +81,14 @@ public class RecordedGeometryMerge {
 		assertTrue(g1.attemptCombineWith(g2));
 		assertEquals((long) 3 * 3 + 20, (long) g1.getPoints());
 		VertexBuffer res = genVBufferTriangleFan(0, 5);
-		res.addVertices((FloatBuffer) genVBuffer(20, 20).getBuffer().position(0).limit(40));
+		res.addVertices((FloatBuffer) genVBuffer(20, 20).getBuffer()
+				.position(0).limit(40));
 		assertBufferEquals(res.getBuffer(), g1.getCoordinates(),
 				g1.getPoints() * 2);
 	}
 
-	private VertexBuffer genVBuffer(int start, int length) {
-		VertexBuffer b = new VertexBuffer(length);
+	private PooledVertexBuffer genVBuffer(int start, int length) {
+		PooledVertexBuffer b = VertexBufferPool.DEFAULT_POOL.getVertexBuffer(length);
 		for (int i = start; i < start + length; i++) {
 			b.addVertex(i, i);
 		}

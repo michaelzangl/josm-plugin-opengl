@@ -1,11 +1,6 @@
 package org.openstreetmap.josm.gsoc2015.opengl.osm;
 
-import java.awt.Rectangle;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Hashtable;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.media.opengl.GL2;
 
@@ -13,23 +8,12 @@ import org.jogamp.glg2d.GLGraphics2D;
 import org.openstreetmap.josm.data.Bounds;
 import org.openstreetmap.josm.data.osm.BBox;
 import org.openstreetmap.josm.data.osm.DataSet;
-import org.openstreetmap.josm.data.osm.Node;
-import org.openstreetmap.josm.data.osm.OsmPrimitive;
-import org.openstreetmap.josm.data.osm.Relation;
-import org.openstreetmap.josm.data.osm.Way;
 import org.openstreetmap.josm.data.osm.visitor.paint.StyledMapRenderer;
 import org.openstreetmap.josm.gsoc2015.opengl.geometrycache.DrawStats;
 import org.openstreetmap.josm.gsoc2015.opengl.geometrycache.GLState;
-import org.openstreetmap.josm.gsoc2015.opengl.geometrycache.GeometryMerger;
 import org.openstreetmap.josm.gsoc2015.opengl.geometrycache.RecordedOsmGeometries;
 import org.openstreetmap.josm.gsoc2015.opengl.osm.StyledGeometryGenerator.ChacheDataSupplier;
-import org.openstreetmap.josm.gsoc2015.opengl.osm.search.NodeSearcher;
-import org.openstreetmap.josm.gsoc2015.opengl.osm.search.OsmPrimitiveHandler;
-import org.openstreetmap.josm.gsoc2015.opengl.osm.search.RelationSearcher;
-import org.openstreetmap.josm.gsoc2015.opengl.osm.search.WaySearcher;
 import org.openstreetmap.josm.gui.NavigatableComponent;
-
-import sun.awt.RepaintArea;
 
 public class OpenGLStyledMapRenderer extends StyledMapRenderer {
 
@@ -106,7 +90,7 @@ public class OpenGLStyledMapRenderer extends StyledMapRenderer {
 	 *
 	 */
 	public static class StyleGenerationState implements ChacheDataSupplier {
-		private static final int MAX_GEOMETRIES_GENERATED = 5000;
+		public static int MAX_GEOMETRIES_GENERATED = 5000;
 		private double circum;
 		private ViewPosition viewPosition;
 		

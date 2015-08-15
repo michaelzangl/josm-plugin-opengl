@@ -24,6 +24,7 @@ import org.openstreetmap.josm.data.projection.Projection;
 import org.openstreetmap.josm.gsoc2015.opengl.osm.OpenGLStyledMapRenderer.StyleGenerationState;
 import org.openstreetmap.josm.gsoc2015.opengl.osm.StyleGenerationManager;
 import org.openstreetmap.josm.gsoc2015.opengl.osm.ViewPosition;
+import org.openstreetmap.josm.gsoc2015.opengl.util.DebugUtils;
 import org.openstreetmap.josm.gui.MapView;
 import org.openstreetmap.josm.gui.layer.OsmDataLayer;
 import org.openstreetmap.josm.gui.mappaint.ElemStyles;
@@ -87,24 +88,12 @@ public class MergeStatistics {
 		System.out.println("We got " + geometries.size() + " geometries.");
 
 		assertEquals("Geometries have dupplicates", 0,
-				findDuplicates(geometries).size());
+				DebugUtils.findDuplicates(geometries).size());
 
 		System.out.println("Of those " + countMergeables(geometries, .99)
 				+ " pairs would be mergeable.");
 		System.out.println("Of those " + countMergeables(geometries, .6)
 				+ " pairs might be mergeable.");
-	}
-
-	private <T> Collection<T> findDuplicates(Collection<T> geometries) {
-		HashSet<T> foundOnce = new HashSet<>();
-		HashSet<T> foundMultipleTimes = new HashSet<>();
-		for (T g : geometries) {
-			if (!foundOnce.add(g)) {
-				foundMultipleTimes.add(g);
-				System.out.println("found duplicate: " + g);
-			}
-		}
-		return foundMultipleTimes;
 	}
 
 	private String countMergeables(List<RecordedOsmGeometries> geometries,
