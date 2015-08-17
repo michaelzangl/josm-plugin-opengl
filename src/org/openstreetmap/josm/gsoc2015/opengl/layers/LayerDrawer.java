@@ -16,7 +16,6 @@ public abstract class LayerDrawer {
 
 	public LayerDrawer(MapViewPaintable layer) {
 		this.layer = layer;
-
 	}
 
 	public abstract void drawLayer(Graphics2D g2d, MapView mv, Bounds box);

@@ -28,8 +28,7 @@ public class MapPanel extends GLJPanel implements RepaintListener {
 		@Override
 		public void paintModeChanged(PaintMode newMode) {
 			if (activeDrawer != null) {
-				removeGLEventListener(activeDrawer);
-				activeDrawer.dispose(MapPanel.this);
+				disposeGLEventListener(activeDrawer, true);
 				activeDrawer = null;
 			}
 			if (newMode == PaintMode.OPENGL) {
