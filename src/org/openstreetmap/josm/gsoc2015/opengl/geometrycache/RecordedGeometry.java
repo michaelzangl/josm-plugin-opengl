@@ -112,8 +112,8 @@ public class RecordedGeometry {
 			return;
 		}
 
-		FloatBuffer buffer = coordinates.getBuffer();
 		if (vbo < 0 && points > MIN_VBO_POINTS) {
+			FloatBuffer buffer = coordinates.getBuffer();
 			// convert to VBO
 
 			int[] vboIds = new int[1];
@@ -138,11 +138,12 @@ public class RecordedGeometry {
 		state.setLineStripple(lineStripple);
 
 		int stride = getBufferEntriesForPoint() * Buffers.SIZEOF_FLOAT;
-
+		FloatBuffer buffer = null;
 		if (vbo >= 0) {
 			gl.glBindBuffer(GL2.GL_ARRAY_BUFFER, vbo);
 			gl.glVertexPointer(2, GL.GL_FLOAT, stride, 0);
 		} else {
+			buffer = coordinates.getBuffer();
 			buffer.rewind();
 			gl.glVertexPointer(2, GL.GL_FLOAT, stride, buffer);
 		}
