@@ -23,21 +23,29 @@ public class OpenGLStyledMapRenderer extends StyledMapRenderer {
 	}
 
 	/**
-	 * @author michael
-	 *
+	 * This class is a snapshot of the current MapView for which we are
+	 * rendering styles.
+	 * <p>
+	 * This allows us to do the rendering while the map view state still
+	 * changes.
+	 * <p>
+	 * The style generation / point computation does not use this state. Changes
+	 * to JOSM are required to allow this.
+	 * 
+	 * @author Michael Zangl
 	 */
 	public static class StyleGenerationState implements ChacheDataSupplier {
 		public static int MAX_GEOMETRIES_GENERATED = 5000;
-		private double circum;
-		private ViewPosition viewPosition;
-		
+		private final double circum;
+		private final ViewPosition viewPosition;
+
 		int geometriesGenerated = 0;
 		private boolean enoughGometriesGenerated;
 
-		private boolean renderVirtualNodes, isInactiveMode;
-		
-		private NavigatableComponent cacheKey;
-		
+		private final boolean renderVirtualNodes, isInactiveMode;
+
+		private final NavigatableComponent cacheKey;
+
 		public StyleGenerationState(double circum, ViewPosition viewPosition,
 				boolean renderVirtualNodes, boolean isInactiveMode,
 				NavigatableComponent cacheKey) {
@@ -48,7 +56,7 @@ public class OpenGLStyledMapRenderer extends StyledMapRenderer {
 			this.isInactiveMode = isInactiveMode;
 			this.cacheKey = cacheKey;
 		}
-		
+
 		@Override
 		public NavigatableComponent getCacheKey() {
 			return cacheKey;
@@ -70,17 +78,17 @@ public class OpenGLStyledMapRenderer extends StyledMapRenderer {
 		public ViewPosition getViewPosition() {
 			return viewPosition;
 		}
-		
+
 		/**
 		 * Tests if we should generate one more geometry.
+		 * 
 		 * @return
 		 */
 		public synchronized boolean shouldGenerateGeometry() {
 			return !enoughGometriesGenerated;
 		}
-		
+
 		public synchronized boolean hasGeneratedAllGeometries() {
-			System.out.println("Generated: " + geometriesGenerated);
 			// Note: Inaccurate by 1 geometry.
 			return !enoughGometriesGenerated;
 		}
@@ -94,10 +102,10 @@ public class OpenGLStyledMapRenderer extends StyledMapRenderer {
 	}
 
 	private StyleGenerationManager manager = null;
-	
+
 	@Override
-	public synchronized void render(final DataSet data, boolean renderVirtualNodes,
-			Bounds bounds) {
+	public synchronized void render(final DataSet data,
+			boolean renderVirtualNodes, Bounds bounds) {
 		if (manager == null) {
 			manager = new StyleGenerationManager(data);
 		} else if (!manager.usesDataSet(data)) {
@@ -109,14 +117,17 @@ public class OpenGLStyledMapRenderer extends StyledMapRenderer {
 		data.getReadLock().lock();
 		try {
 			long time1 = System.currentTimeMillis();
-//			StyleWorkQueue styleWorkQueue = new StyleWorkQueue(data);
-//			styleWorkQueue.setArea(bbox);
-			StyleGenerationState sgs = new StyleGenerationState(getCircum(), ViewPosition.from(nc), renderVirtualNodes, isInactiveMode, nc);
-			List<RecordedOsmGeometries> geometries = manager.getDrawGeometries(bbox, sgs);
+			// StyleWorkQueue styleWorkQueue = new StyleWorkQueue(data);
+			// styleWorkQueue.setArea(bbox);
+			StyleGenerationState sgs = new StyleGenerationState(getCircum(),
+					ViewPosition.from(nc), renderVirtualNodes, isInactiveMode,
+					nc);
+			List<RecordedOsmGeometries> geometries = manager.getDrawGeometries(
+					bbox, sgs);
 			long time2 = System.currentTimeMillis();
 
 			DrawStats.reset();
-			
+
 			GL2 gl = ((GLGraphics2D) g).getGLContext().getGL().getGL2();
 			GLState state = new GLState(gl);
 			state.initialize(ViewPosition.from(nc));
@@ -128,8 +139,9 @@ public class OpenGLStyledMapRenderer extends StyledMapRenderer {
 
 			drawVirtualNodes(data, bbox);
 			long time5 = System.currentTimeMillis();
-//			System.out.println("Create styles: " + (time2 - time1) + ", draw: "
-//					+ (time4 - time2) + ", draw virtual: " + (time5 - time4));
+			// System.out.println("Create styles: " + (time2 - time1) +
+			// ", draw: "
+			// + (time4 - time2) + ", draw virtual: " + (time5 - time4));
 			DrawStats.printStats();
 
 			if (!sgs.hasGeneratedAllGeometries()) {
@@ -139,6 +151,10 @@ public class OpenGLStyledMapRenderer extends StyledMapRenderer {
 		} finally {
 			data.getReadLock().unlock();
 		}
+	}
+
+	public void dispose() {
+		manager.dispose();
 	}
 
 }

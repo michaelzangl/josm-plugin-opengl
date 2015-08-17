@@ -226,4 +226,9 @@ public class StyleGeometryCache {
 		selectionListener = new SelectionObserver(data);
 		data.addSelectionListener(selectionListener);
 	}
+
+	public void dispose() {
+		// TODO Auto-generated method stub
+		
+	}
 }

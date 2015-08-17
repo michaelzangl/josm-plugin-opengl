@@ -130,6 +130,13 @@ public class StyleGenerationManager {
 				}
 			}
 		}
+
+		/**
+		 * Stops this thread pool.
+		 */
+		public void stop() {
+			drawThreads.shutdown();
+		}
 	}
 
 	private class PrimitiveForDrawSearcher<T extends OsmPrimitive> implements
@@ -184,5 +191,18 @@ public class StyleGenerationManager {
 
 	public boolean usesDataSet(DataSet data2) {
 		return data == data2;
+	}
+
+	/**
+	 * Stops all threads allocated and deallocates the whole cache.
+	 */
+	public void dispose() {
+		drawThreadPool.scheduleTask(new Runnable() {
+			@Override
+			public void run() {
+				cache.dispose();
+			}
+		});
+		drawThreadPool.stop();
 	}
 }

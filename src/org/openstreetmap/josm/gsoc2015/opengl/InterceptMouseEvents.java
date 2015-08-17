@@ -23,9 +23,14 @@ import org.openstreetmap.josm.gui.MapView;
  */
 public class InterceptMouseEvents extends JPanel {
 	/**
+	 * 
+	 */
+	private static final long serialVersionUID = -9017627618812451008L;
+
+	/**
 	 * Just forwards all events to the MapView and lets the map view.
 	 * 
-	 * @author michael
+	 * @author Michael Zangl
 	 *
 	 */
 	private class MouseEventForwarder implements MouseListener,
