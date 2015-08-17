@@ -12,6 +12,7 @@ import org.openstreetmap.josm.data.SelectionChangedListener;
 import org.openstreetmap.josm.data.osm.DataSet;
 import org.openstreetmap.josm.data.osm.OsmPrimitive;
 import org.openstreetmap.josm.gsoc2015.opengl.geometrycache.GeometryMerger;
+import org.openstreetmap.josm.gsoc2015.opengl.geometrycache.HashGeometryMerger;
 import org.openstreetmap.josm.gsoc2015.opengl.geometrycache.MergeGroup;
 import org.openstreetmap.josm.gsoc2015.opengl.geometrycache.RecordedOsmGeometries;
 
@@ -103,7 +104,7 @@ public class StyleGeometryCache {
 
 	public void startFrame() {
 		collectedForFrame.clear();
-		collectedForFrameMerger = new GeometryMerger();
+		collectedForFrameMerger = new HashGeometryMerger();
 	}
 
 	public ArrayList<RecordedOsmGeometries> endFrame() {

@@ -128,6 +128,7 @@ public class RecordedOsmGeometries implements Comparable<RecordedOsmGeometries> 
 		if (!isMergeable(other)) {
 			return false;
 		}
+		// TODO: Only null if they really changed.
 		hashes = null;
 		primitives.addAll(other.primitives);
 		geometries = merge(geometries, other.geometries);

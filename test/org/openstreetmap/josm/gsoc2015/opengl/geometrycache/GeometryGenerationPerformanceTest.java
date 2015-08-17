@@ -6,7 +6,6 @@ import java.awt.Rectangle;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
-import java.lang.reflect.InvocationTargetException;
 
 import javax.imageio.ImageIO;
 import javax.media.opengl.DefaultGLCapabilitiesChooser;
@@ -26,23 +25,18 @@ import org.openstreetmap.josm.PerformanceTestUtils.PerformanceTestTimer;
 import org.openstreetmap.josm.data.Bounds;
 import org.openstreetmap.josm.data.ProjectionBounds;
 import org.openstreetmap.josm.data.coor.EastNorth;
-import org.openstreetmap.josm.data.coor.LatLon;
 import org.openstreetmap.josm.data.osm.DataSet;
 import org.openstreetmap.josm.data.osm.OsmDataGenerator;
 import org.openstreetmap.josm.data.osm.OsmDataGenerator.DataGenerator;
 import org.openstreetmap.josm.data.osm.OsmDataGenerator.NodeDataGenerator;
-import org.openstreetmap.josm.gsoc2015.opengl.osm.OsmLayerDrawer;
 import org.openstreetmap.josm.gsoc2015.opengl.osm.OpenGLStyledMapRenderer.StyleGenerationState;
+import org.openstreetmap.josm.gsoc2015.opengl.osm.OsmLayerDrawer;
 import org.openstreetmap.josm.gsoc2015.opengl.pool.SimpleBufferPool;
-import org.openstreetmap.josm.gsoc2015.opengl.pool.VertexBufferPool;
 import org.openstreetmap.josm.gui.MapView;
 import org.openstreetmap.josm.gui.layer.OsmDataLayer;
-import org.openstreetmap.josm.gui.mappaint.ElemStyles;
 import org.openstreetmap.josm.gui.mappaint.MapPaintStyles;
 import org.openstreetmap.josm.gui.mappaint.SetGlobalStyle;
 import org.openstreetmap.josm.gui.mappaint.mapcss.MapCSSStyleSource;
-import org.openstreetmap.josm.gui.mappaint.mapcss.parsergen.ParseException;
-import org.openstreetmap.josm.gui.util.GuiHelper;
 
 import com.jogamp.opengl.util.awt.AWTGLReadBufferUtil;
 
@@ -58,7 +52,9 @@ public class GeometryGenerationPerformanceTest {
 	/**
 	 * If we should also run it using java2d to see the difference.
 	 */
-	private static final boolean RUN_REFERENCE = true;
+	private static final boolean RUN_REFERENCE = false;
+	private static final int SIMPLE_NODE_COUNT = 1000000;
+	private static final int COMPLEX_NODE_COUNT = 100000;
 
 	private static class GeometryGenerationRunner implements Runnable {
 
@@ -209,7 +205,7 @@ public class GeometryGenerationPerformanceTest {
 		runTest(new GeometryGenerationRunner(
 				"tiangles",
 				"node { fill-color: blue; symbol-size: 20; symbol-shape: triangle }",
-				getRandomNodeGenerator()));
+				getRandomNodeGenerator(SIMPLE_NODE_COUNT)));
 	}
 
 	@Test
@@ -218,7 +214,7 @@ public class GeometryGenerationPerformanceTest {
 		runTest(new GeometryGenerationRunner(
 				"octagons",
 				"node {symbol-fill-color: red; symbol-size: 20; symbol-shape: octagon }",
-				getRandomNodeGenerator()));
+				getRandomNodeGenerator(SIMPLE_NODE_COUNT)));
 	}
 
 	@Test
@@ -232,7 +228,7 @@ public class GeometryGenerationPerformanceTest {
 							i, c, 20 - i);
 		}
 		runTest(new GeometryGenerationRunner("multiple ocatagons", css,
-				getRandomNodeGenerator()));
+				getRandomNodeGenerator(COMPLEX_NODE_COUNT)));
 	}
 
 	@Test
@@ -240,13 +236,13 @@ public class GeometryGenerationPerformanceTest {
 		runTest(new GeometryGenerationRunner(
 				"octagons with border",
 				"node {symbol-fill-color: red; symbol-size: 20; symbol-stroke-width: 2; symbol-stroke-opacity: 0.5; symbol-stroke-color: blue; symbol-shape: octagon }",
-				getRandomNodeGenerator()));
+				getRandomNodeGenerator(SIMPLE_NODE_COUNT)));
 		System.out.println(SimpleBufferPool.miss.getAndSet(0));
 		System.out.println(SimpleBufferPool.hit.getAndSet(0));
 	}
 
-	private NodeDataGenerator getRandomNodeGenerator() {
-		return new OsmDataGenerator.NodeDataGenerator("many-nodes", 1000000) {
+	private NodeDataGenerator getRandomNodeGenerator(int nodeCount) {
+		return new OsmDataGenerator.NodeDataGenerator("many-nodes", nodeCount) {
 		};
 	}
 

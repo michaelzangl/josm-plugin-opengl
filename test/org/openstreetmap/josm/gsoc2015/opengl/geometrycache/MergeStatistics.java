@@ -1,14 +1,14 @@
 package org.openstreetmap.josm.gsoc2015.opengl.geometrycache;
 
-import java.awt.Component;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
+
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 
 import org.junit.BeforeClass;
@@ -17,10 +17,7 @@ import org.openstreetmap.josm.JOSMFixture;
 import org.openstreetmap.josm.Main;
 import org.openstreetmap.josm.PerformanceTestUtils;
 import org.openstreetmap.josm.PerformanceTestUtils.PerformanceTestTimer;
-import org.openstreetmap.josm.data.Bounds;
-import org.openstreetmap.josm.data.ProjectionBounds;
 import org.openstreetmap.josm.data.osm.DataSet;
-import org.openstreetmap.josm.data.projection.Projection;
 import org.openstreetmap.josm.gsoc2015.opengl.osm.OpenGLStyledMapRenderer.StyleGenerationState;
 import org.openstreetmap.josm.gsoc2015.opengl.osm.StyleGenerationManager;
 import org.openstreetmap.josm.gsoc2015.opengl.osm.ViewPosition;
@@ -34,8 +31,6 @@ import org.openstreetmap.josm.gui.preferences.SourceEntry;
 import org.openstreetmap.josm.io.Compression;
 import org.openstreetmap.josm.io.IllegalDataException;
 import org.openstreetmap.josm.io.OsmReader;
-
-import static org.junit.Assert.*;
 
 public class MergeStatistics {
 	/*

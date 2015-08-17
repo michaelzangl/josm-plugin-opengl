@@ -2,8 +2,6 @@ package org.openstreetmap.josm.gsoc2015.opengl.geometrycache;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashSet;
-import java.util.LinkedHashSet;
 
 import org.openstreetmap.josm.data.osm.OsmPrimitive;
 /**
@@ -11,14 +9,11 @@ import org.openstreetmap.josm.data.osm.OsmPrimitive;
  * 
  * @author Michael Zangl
  */
-public class GeometryMerger {
+public abstract class GeometryMerger {
 //	private HashMap<Integer, List<RecordedOsmGeometries>> combineMap = new HashMap<>();
 
-	private HashSet<RecordedOsmGeometries> geometries = new HashSet<>();
 
-	private static final int ACTIVE_MERGE_GROUPS = 100;
-	private LinkedHashSet<MergeGroup> openMergeGroups = new LinkedHashSet<>();
-	private ArrayList<MergeGroup> mergeGroups = new ArrayList<>();
+	protected ArrayList<MergeGroup> mergeGroups = new ArrayList<>();
 
 	public GeometryMerger() {
 	}
@@ -70,43 +65,7 @@ public class GeometryMerger {
 //		}
 //	}
 
-	/**
-	 * Adds the geometries.
-	 * @param primitive The primitive to add the geometries for.
-	 * @param geometries All geometries for that primitive.
-	 */
-	public synchronized void addMergeables(OsmPrimitive primitive, Collection<RecordedOsmGeometries> geometries) {
-		for (RecordedOsmGeometries g : geometries) {
-			if (this.geometries.contains(g)) {
-				throw new IllegalArgumentException("Attempt to add twice: " + g);
-			}
-		}
-		
-		MergeGroup maxMergeRated = null;
-		float maxMergeRating = .3f; // <- Minimum rating to merge
-		for (MergeGroup g : openMergeGroups) {
-			float mergeRating = g.getMergeRating(primitive, geometries);
-			if (mergeRating > maxMergeRating) {
-				maxMergeRated = g;
-				maxMergeRating = mergeRating;
-			}
-		}
-		if (maxMergeRated != null) {
-		} else {
-			MergeGroup group = new MergeGroup();
-			mergeGroups.add(group);
-			openMergeGroups.add(group);
-			if (openMergeGroups.size() > ACTIVE_MERGE_GROUPS) {
-				openMergeGroups.remove(openMergeGroups.iterator().next());
-			}
-			maxMergeRated = group;
-		}
-		maxMergeRated.merge(primitive, geometries);
-		if (!maxMergeRated.moreMergesRecommended()) {
-			openMergeGroups.remove(maxMergeRated);
-		}
-		this.geometries.addAll(maxMergeRated.getGeometries());
-	}
+	public abstract void addMergeables(OsmPrimitive primitive, Collection<RecordedOsmGeometries> geometries);
 
 	/**
 	 * Gets all geometries that have been added so far. Some of them may have
