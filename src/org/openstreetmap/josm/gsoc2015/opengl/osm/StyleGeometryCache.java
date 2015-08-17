@@ -10,7 +10,17 @@ import java.util.Set;
 
 import org.openstreetmap.josm.data.SelectionChangedListener;
 import org.openstreetmap.josm.data.osm.DataSet;
+import org.openstreetmap.josm.data.osm.Node;
 import org.openstreetmap.josm.data.osm.OsmPrimitive;
+import org.openstreetmap.josm.data.osm.event.AbstractDatasetChangedEvent;
+import org.openstreetmap.josm.data.osm.event.DataChangedEvent;
+import org.openstreetmap.josm.data.osm.event.DataSetListener;
+import org.openstreetmap.josm.data.osm.event.NodeMovedEvent;
+import org.openstreetmap.josm.data.osm.event.PrimitivesAddedEvent;
+import org.openstreetmap.josm.data.osm.event.PrimitivesRemovedEvent;
+import org.openstreetmap.josm.data.osm.event.RelationMembersChangedEvent;
+import org.openstreetmap.josm.data.osm.event.TagsChangedEvent;
+import org.openstreetmap.josm.data.osm.event.WayNodesChangedEvent;
 import org.openstreetmap.josm.gsoc2015.opengl.geometrycache.GeometryMerger;
 import org.openstreetmap.josm.gsoc2015.opengl.geometrycache.HashGeometryMerger;
 import org.openstreetmap.josm.gsoc2015.opengl.geometrycache.MergeGroup;
@@ -40,6 +50,64 @@ import org.openstreetmap.josm.gsoc2015.opengl.geometrycache.RecordedOsmGeometrie
  *
  */
 public class StyleGeometryCache {
+	/**
+	 * This class listens to changes of the {@link DataSet} and invalidates
+	 * cache entries if their style stays the same but the way they are rendered
+	 * might have changed.
+	 * 
+	 * @author Michael Zangl
+	 *
+	 */
+	private final class GeometryChangeObserver implements DataSetListener {
+		@Override
+		public void wayNodesChanged(WayNodesChangedEvent event) {
+			// All node changes invoke clearCachedStyle().
+		}
+
+		@Override
+		public void tagsChanged(TagsChangedEvent event) {
+			// All tag changes invoke clearCachedStyle().
+		}
+
+		@Override
+		public void relationMembersChanged(RelationMembersChangedEvent event) {
+			// the changed members get a clearCachedStyle(), but not the
+			// relation itself.
+			invalidateGeometry(event.getRelation());
+		}
+
+		@Override
+		public void primitivesRemoved(PrimitivesRemovedEvent event) {
+			for (OsmPrimitive p : event.getPrimitives()) {
+				invalidateGeometry(p);
+				// we ignore child nodes/...
+			}
+		}
+
+		@Override
+		public void primitivesAdded(PrimitivesAddedEvent event) {
+			// no need to handle, get detected automatically.
+		}
+
+		@Override
+		public void otherDatasetChange(AbstractDatasetChangedEvent event) {
+			// we don't know what happened. Just ignore.
+		}
+
+		@Override
+		public void nodeMoved(NodeMovedEvent event) {
+			invalidateGeometry(event.getNode());
+			for (OsmPrimitive ref : event.getNode().getReferrers()) {
+				invalidateGeometry(ref);
+			}
+		}
+
+		@Override
+		public void dataChanged(DataChangedEvent event) {
+			// Ignored for now.
+		}
+	}
+
 	private final class SelectionObserver implements SelectionChangedListener {
 		private DataSet data;
 
@@ -84,6 +152,8 @@ public class StyleGeometryCache {
 	private GeometryMerger collectedForFrameMerger;
 
 	private SelectionChangedListener selectionListener;
+
+	private final GeometryChangeObserver changeObserver = new GeometryChangeObserver();
 
 	public void invalidateAll() {
 		recordedForPrimitive.clear();
@@ -185,9 +255,10 @@ public class StyleGeometryCache {
 				// -- pass on to merger
 				List<RecordedOsmGeometries> geometries = generator
 						.runFor(primitive);
-//				long time = System.currentTimeMillis();
+				// long time = System.currentTimeMillis();
 				collectedForFrameMerger.addMergeables(primitive, geometries);
-//				System.out.println("Merge time: " + (System.currentTimeMillis() - time) + "ms");
+				// System.out.println("Merge time: " +
+				// (System.currentTimeMillis() - time) + "ms");
 			} else {
 				// if not exists and no generator is set
 				// -- schedule for background generation
@@ -224,11 +295,17 @@ public class StyleGeometryCache {
 
 	public void addListeners(DataSet data) {
 		selectionListener = new SelectionObserver(data);
-		data.addSelectionListener(selectionListener);
+		// Note: We cannot register this on a specific data set.
+		DataSet.addSelectionListener(selectionListener);
+		data.addDataSetListener(changeObserver);
 	}
 
 	public void dispose() {
-		// TODO Auto-generated method stub
-		
+		// TODO Call this
+	}
+
+	public void removeListeners(DataSet data) {
+		DataSet.removeSelectionListener(selectionListener);
+		data.removeDataSetListener(changeObserver);
 	}
 }

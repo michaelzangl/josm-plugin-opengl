@@ -197,6 +197,7 @@ public class StyleGenerationManager {
 	 * Stops all threads allocated and deallocates the whole cache.
 	 */
 	public void dispose() {
+		cache.removeListeners(data);
 		drawThreadPool.scheduleTask(new Runnable() {
 			@Override
 			public void run() {
