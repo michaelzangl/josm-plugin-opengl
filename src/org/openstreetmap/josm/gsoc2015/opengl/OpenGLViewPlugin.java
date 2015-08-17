@@ -25,6 +25,10 @@ import org.openstreetmap.josm.tools.GBC;
 public class OpenGLViewPlugin extends Plugin {
 
 	private class OpenGLSwitchPanel extends JPanel implements PaintModeListener {
+		/**
+		 * 
+		 */
+		private static final long serialVersionUID = -5859334937863977150L;
 		private Component java2dPanel;
 		private Component openGLPanel;
 
@@ -68,6 +72,11 @@ public class OpenGLViewPlugin extends Plugin {
 	}
 
 	private class PaintModeMenuButton extends JCheckBoxMenuItem {
+		/**
+		 * 
+		 */
+		private static final long serialVersionUID = 3141819668890426424L;
+
 		public PaintModeMenuButton() {
 			this(ChangePaintModeAction.getInstance());
 		}
@@ -100,7 +109,8 @@ public class OpenGLViewPlugin extends Plugin {
 				.indexOf(mapView);
 		mapViewOuter.remove(mapView);
 
-		JComponent openGLView = new OpenGLMapView(mapView, getPluginInformation());
+		JComponent openGLView = new OpenGLMapView(mapView,
+				getPluginInformation());
 		OpenGLSwitchPanel mapViewContainer = new OpenGLSwitchPanel(mapView,
 				openGLView);
 		mapViewOuter.add(mapViewContainer, GBC.std().fill(), index);

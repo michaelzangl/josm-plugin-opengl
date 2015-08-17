@@ -27,6 +27,10 @@ import org.openstreetmap.josm.tools.Shortcut;
  *
  */
 public class OpenGLMapView extends JPanel {
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = -7197762169283559138L;
 	private MapView mapView;
 
 	public OpenGLMapView(MapView mapView, PluginInformation pluginInformation) {

@@ -24,26 +24,6 @@ public class OsmPrimitiveRecorder implements Recorder, Visitor {
 	private long activeOrderIndex;
 	private ViewPosition viewPosition;
 	
-//			new RecordedPrimitiveReceiver() {
-//		
-//		@Override
-//		public void receiveForWay(RecordedOsmGeometries<Way> geometry) {
-//			System.out.println("Received way: " + geometry.toString());
-//		}
-//		
-//		@Override
-//		public void receiveForRelation(RecordedOsmGeometries<Relation> geometry) {
-//			// TODO Auto-generated method stub
-//			
-//		}
-//		
-//		@Override
-//		public void receiveForNode(RecordedOsmGeometries<Node> geometry) {
-//			// TODO Auto-generated method stub
-//			
-//		}
-//	};
-
 	public interface RecordedPrimitiveReceiver {
 		void receiveForNode(RecordedOsmGeometries geometry);
 		void receiveForWay(RecordedOsmGeometries geometry);

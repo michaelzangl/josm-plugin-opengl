@@ -3,15 +3,35 @@ package org.openstreetmap.josm.gsoc2015.opengl.geometrycache;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Hashtable;
+import java.util.Iterator;
 import java.util.Map.Entry;
 
 import org.openstreetmap.josm.data.osm.OsmPrimitive;
 
-public class HashGeometryMerger extends GeometryMerger  {
+/**
+ * This is a geometry merger that uses the hashes of geometries to find the best
+ * merge group in which a new geometry should be merged.
+ * 
+ * @author Michael Zangl
+ *
+ */
+public class HashGeometryMerger extends GeometryMerger {
 	private static final int ACTIVE_GROUPS = 16;
 	private static final boolean DEBUG = false;
+	/**
+	 * A list of merge groups that are currently open.
+	 */
 	private MergeGroup[] activeMergeGroups = new MergeGroup[ACTIVE_GROUPS];
+	/**
+	 * For each open merge group, this list contains the sum of hashes stored in
+	 * {@link #hashUses}.
+	 */
 	private int[] mergeGroupHashCount = new int[ACTIVE_GROUPS];
+	/**
+	 * This map stores how often an active merge group uses a given hash.
+	 * <p>
+	 * It is a mapping (hashCode, mergeGroupIndex) -> number of used hashes.
+	 */
 	private Hashtable<Integer, byte[]> hashUses = new Hashtable<>();
 
 	private int getBestMergeables(Collection<RecordedOsmGeometries> geos) {
@@ -28,13 +48,16 @@ public class HashGeometryMerger extends GeometryMerger  {
 			}
 		}
 
-		// Now do a fun trick: We place the hash used count in the upper half of
+		// Now do a quick trick: We place the hash used count in the upper half
+		// of
 		// the int, the slot index in the lower half.
 
 		for (int i = 0; i < ACTIVE_GROUPS; i++) {
-			int weightedCount = hashUsedCount[i] * 256 / (mergeGroupHashCount[i] + 1);
+			int weightedCount = hashUsedCount[i] * 256
+					/ (mergeGroupHashCount[i] + 1);
 			if (DEBUG) {
-				System.out.println("Rated for slot " + i + ": " + weightedCount);
+				System.out
+						.println("Rated for slot " + i + ": " + weightedCount);
 			}
 			hashUsedCount[i] = 0x7fffffff & (weightedCount << 8) + i;
 		}
@@ -49,7 +72,7 @@ public class HashGeometryMerger extends GeometryMerger  {
 		}
 		return -1;
 	}
-	
+
 	private int replacementClock = 0;
 
 	@Override
@@ -68,7 +91,7 @@ public class HashGeometryMerger extends GeometryMerger  {
 			}
 			activeMergeGroups[replacementClock] = group;
 			int hashes = 0;
-			for (RecordedOsmGeometries g :geometries) {
+			for (RecordedOsmGeometries g : geometries) {
 				int[] combineHashes = g.getCombineHashes();
 				for (int h : combineHashes) {
 					byte[] uses = hashUses.get(h);
@@ -80,13 +103,13 @@ public class HashGeometryMerger extends GeometryMerger  {
 				}
 				hashes += combineHashes.length;
 			}
-			
+
 			mergeGroupHashCount[replacementClock] = hashes;
 			group.merge(primitive, geometries);
-			
+
 			replacementClock++;
 			if (replacementClock >= ACTIVE_GROUPS) {
-				// TODO: Do a clean of unused hashUses.
+				cleanUnusedHashes();
 				replacementClock = 0;
 			}
 			mergeGroups.add(group);
@@ -98,9 +121,28 @@ public class HashGeometryMerger extends GeometryMerger  {
 				// rates this group really low.
 				mergeGroupHashCount[groupIndex] = Integer.MAX_VALUE - 1;
 			} else {
-				//TODO: Add the new hashes to the old group.
+				// TODO: Add the new hashes for the old group. (?)
 			}
 		}
+	}
+
+	private void cleanUnusedHashes() {
+		for (Iterator<Entry<Integer, byte[]>> iterator = hashUses.entrySet()
+				.iterator(); iterator.hasNext();) {
+			Entry<Integer, byte[]> k = iterator.next();
+			if (isEmpty(k.getValue())) {
+				iterator.remove();
+			}
+		}
+	}
+
+	private boolean isEmpty(byte[] value) {
+		for (byte b : value) {
+			if (b != 0) {
+				return false;
+			}
+		}
+		return true;
 	}
 
 	private void dump() {
@@ -109,11 +151,13 @@ public class HashGeometryMerger extends GeometryMerger  {
 			System.out.print("    Hashes:");
 			for (Entry<Integer, byte[]> h : hashUses.entrySet()) {
 				if (h.getValue()[i] > 0) {
-					System.out.print(" " + Integer.toHexString(h.getKey()) + "x" + h.getValue()[i]);
+					System.out.print(" " + Integer.toHexString(h.getKey())
+							+ "x" + h.getValue()[i]);
 				}
 			}
 			System.out.println();
-			System.out.println("    Total hash count: " + mergeGroupHashCount[i]);
+			System.out.println("    Total hash count: "
+					+ mergeGroupHashCount[i]);
 		}
 	}
 
