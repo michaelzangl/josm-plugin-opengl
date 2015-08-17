@@ -110,9 +110,6 @@ public class StyledGeometryGenerator<T extends OsmPrimitive> {
 	}
 
 	public List<RecordedOsmGeometries> runFor(T primitive) {
-//		if (primitive instanceof Relation) {
-//			return Collections.emptyList(); // XXX Temp bug?
-//		}
 		sgs.incrementDrawCounter();
 		if (primitive.isDrawable()) {
 			if (activeThread != Thread.currentThread()) {

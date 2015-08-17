@@ -98,12 +98,9 @@ public class RecordedOsmGeometries implements Comparable<RecordedOsmGeometries> 
 	 */
 	public int[] getCombineHashes() {
 		if (hashes == null) {
-			hashes = new int[geometries.size()];
-			for (int i = 0; i < hashes.length; i++) {
-				hashes[i] = geometries.get(i).getCombineHash();
-			}
+			hashes = getUsedHashes(geometries);
 			Arrays.sort(hashes);
-			// now remove dupplicates from that array.
+			// now remove duplicates from that array.
 			int newIndex = 1;
 			for (int i = 1; i < hashes.length; i++) {
 				if (hashes[i] != hashes[i-1]) {
@@ -117,8 +114,18 @@ public class RecordedOsmGeometries implements Comparable<RecordedOsmGeometries> 
 		return hashes;
 	}
 
+	private static int[] getUsedHashes(List<RecordedGeometry> geometries) {
+		int[] hashes = new int[geometries.size()];
+		for (int i = 0; i < hashes.length; i++) {
+			hashes[i] = geometries.get(i).getCombineHash();
+		}
+		return hashes;
+	}
+
 	/**
 	 * Merges an other geometry in this geometry.
+	 * <p>
+	 * This method is not thread safe.
 	 * 
 	 * @param other
 	 *            The other geometry to merge.
@@ -128,10 +135,27 @@ public class RecordedOsmGeometries implements Comparable<RecordedOsmGeometries> 
 		if (!isMergeable(other)) {
 			return false;
 		}
-		// TODO: Only null if they really changed.
-		hashes = null;
+		
 		primitives.addAll(other.primitives);
 		geometries = merge(geometries, other.geometries);
+		
+		// Update the hashes.
+		HashSet<Integer> newHashes = new HashSet<>();
+		for (RecordedGeometry geometry : other.geometries) {
+			int hash = geometry.getCombineHash();
+			if (Arrays.binarySearch(hashes, hash) < 0) {
+				newHashes.add(hash);
+			}
+		}
+		
+		if (newHashes.size() > 0) {
+			int length = hashes.length;
+			hashes = Arrays.copyOf(hashes, length + newHashes.size());
+			for (int hash : newHashes) {
+				hashes[length++] = hash;
+			}
+			Arrays.sort(hashes);
+		}
 
 		return true;
 	}
@@ -194,11 +218,6 @@ public class RecordedOsmGeometries implements Comparable<RecordedOsmGeometries> 
 				last = current;
 				ret.add(current);
 			}
-		}
-		
-		//XXX
-		if (DebugUtils.findDuplicates(ret).size() > 0) {
-			throw new IllegalStateException(ret.toString());
 		}
 
 		return ret;

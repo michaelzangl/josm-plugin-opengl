@@ -201,6 +201,7 @@ public class RecordedGeometry {
 		result = prime * result + color;
 		result = prime * result + getBestCombineDrawMode();
 		result = prime * result + ((texture == null) ? 0 : texture.hashCode());
+		result = prime * result + ((lineStripple == null) ? 0 : lineStripple.hashCode());
 		return result;
 	}
 
