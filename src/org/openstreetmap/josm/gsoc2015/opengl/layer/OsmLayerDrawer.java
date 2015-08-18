@@ -38,7 +38,7 @@ public class OsmLayerDrawer extends LayerDrawer {
 				cachedRenderer = new OpenGLStyledMapRenderer(
 						(GLGraphics2D) g2d, mv, inactive);
 				cachedIsInactive = inactive;
-				// TODO: Only invalidate on inactive?
+				// We could also only invalidate on inactive change...
 			}
 			painter = cachedRenderer;
 		} else {
@@ -46,7 +46,7 @@ public class OsmLayerDrawer extends LayerDrawer {
 		}
 		painter.render(osmLayer.data, virtual, box);
 
-		// TODO: Fix this. This should be a temporary layer. Or even a full
+		// This should be a temporary layer. Or even a full
 		// layer. What about sublayers?
 		Main.map.conflictDialog.paintConflicts(g2d, mv);
 	}

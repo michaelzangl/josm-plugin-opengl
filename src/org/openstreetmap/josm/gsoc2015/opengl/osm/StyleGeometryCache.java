@@ -28,7 +28,9 @@ import org.openstreetmap.josm.gsoc2015.opengl.geometrycache.MergeGroup;
 import org.openstreetmap.josm.gsoc2015.opengl.geometrycache.RecordedOsmGeometries;
 import org.openstreetmap.josm.gui.MapView;
 import org.openstreetmap.josm.gui.MapView.RepaintListener;
+import org.openstreetmap.josm.gui.NavigatableComponent;
 import org.openstreetmap.josm.gui.NavigatableComponent.ZoomChangeListener;
+import org.openstreetmap.josm.tools.Pair;
 
 /**
  * This is a cache of style geometries.
@@ -54,6 +56,27 @@ import org.openstreetmap.josm.gui.NavigatableComponent.ZoomChangeListener;
  *
  */
 public class StyleGeometryCache {
+	private final class ZoomListener implements ZoomChangeListener {
+		private static final double MIN_CHANGE = .9;
+		private double currentScale;
+		private MapView mapView;
+
+		public ZoomListener(MapView mapView) {
+			this.mapView = mapView;
+			currentScale = mapView.getScale();
+		}
+
+		@Override
+		public void zoomChanged() {
+			double newScale = mapView.getScale();
+			double change = newScale / currentScale;
+			if (change < MIN_CHANGE || change > 1 / MIN_CHANGE) {
+				invalidateAllLater();
+				currentScale = newScale;
+			}
+		}
+	}
+
 	/**
 	 * This class listens to changes of the {@link DataSet} and invalidates
 	 * cache entries if their style stays the same but the way they are rendered
@@ -131,16 +154,18 @@ public class StyleGeometryCache {
 			if (newSelection == selected) {
 				return;
 			}
-			// TODO: Use sets here.
+			// Note: This was replaced with the clearStyleCache() function.
+			// We should use this to handle those geometries with higher
+			// priority.
 			for (OsmPrimitive s : selected) {
 				if (!newSelection.contains(s)) {
-					// TODO: Give a priority when invalidating.
-					// XXX invalidateGeometry(s);
+					// Give a priority when invalidating.
+					// invalidateGeometry(s);
 				}
 			}
 			for (OsmPrimitive s : newSelection) {
 				if (!selected.contains(s)) {
-					// XXX invalidateGeometry(s);
+					// invalidateGeometry(s);
 				}
 			}
 
@@ -187,6 +212,8 @@ public class StyleGeometryCache {
 
 	private boolean invalidateAll;
 
+	private ZoomListener zoomListener;
+
 	public StyleGeometryCache(FullRepaintListener repaintListener) {
 		super();
 		this.repaintListener = repaintListener;
@@ -222,12 +249,18 @@ public class StyleGeometryCache {
 		collectedForFrame.clear();
 		collectedForFrameMerger = new HashGeometryMerger();
 
-		updateMergeGroups(regenerator.takeNewMergeGroups());
+		Pair<Collection<OsmPrimitive>, Collection<MergeGroup>> groupsAndPrimitives = regenerator
+				.takeNewMergeGroups();
+		for (OsmPrimitive p : groupsAndPrimitives.a) {
+			removeCacheEntry(p);
+		}
+		updateMergeGroups(groupsAndPrimitives.b);
 
 		if (invalidateAll) {
 			for (MergeGroup m : recordedForPrimitive.values()) {
 				invalidateLater(m);
 			}
+			invalidateAll = false;
 		}
 	}
 
@@ -245,7 +278,8 @@ public class StyleGeometryCache {
 	 */
 	protected void invalidateAllLater() {
 		invalidateAll = true;
-		// Note: Geometries are invalidated on next repaint and take one frame before starting to arrive.
+		// Note: Geometries are invalidated on next repaint and take one frame
+		// before starting to arrive.
 		repaintListener.requestRepaint();
 	}
 
@@ -269,7 +303,7 @@ public class StyleGeometryCache {
 	private void updateMergeGroups(Collection<MergeGroup> mergeGroups) {
 		for (MergeGroup mergeGroup : mergeGroups) {
 			for (OsmPrimitive p : mergeGroup.getPrimitives()) {
-				removeCacheEntry(p);
+				invalidateGeometry(p);
 				recordedForPrimitive.put(p, mergeGroup);
 			}
 		}
@@ -354,12 +388,8 @@ public class StyleGeometryCache {
 		// Note: We cannot register this on a specific data set.
 		DataSet.addSelectionListener(selectionListener);
 		data.addDataSetListener(changeObserver);
-		mapView.addZoomChangeListener(new ZoomChangeListener() {
-			@Override
-			public void zoomChanged() {
-				invalidateAllLater();
-			}
-		});
+		zoomListener = new ZoomListener(mapView);
+		NavigatableComponent.addZoomChangeListener(zoomListener);
 	}
 
 	public void dispose() {
@@ -383,6 +413,7 @@ public class StyleGeometryCache {
 	public void removeListeners(DataSet data) {
 		DataSet.removeSelectionListener(selectionListener);
 		data.removeDataSetListener(changeObserver);
+		NavigatableComponent.removeZoomChangeListener(zoomListener);
 	}
 
 	public BackgroundGemometryRegenerator getRegenerator() {

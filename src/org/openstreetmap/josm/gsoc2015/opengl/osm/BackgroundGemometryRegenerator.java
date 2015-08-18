@@ -6,11 +6,11 @@ import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.concurrent.ConcurrentLinkedQueue;
 
 import org.openstreetmap.josm.data.osm.OsmPrimitive;
 import org.openstreetmap.josm.gsoc2015.opengl.geometrycache.HashGeometryMerger;
 import org.openstreetmap.josm.gsoc2015.opengl.geometrycache.MergeGroup;
+import org.openstreetmap.josm.tools.Pair;
 
 /**
  * This generator generates geometries in the background.
@@ -33,6 +33,7 @@ public class BackgroundGemometryRegenerator {
 		private boolean aborted = false;
 
 		private List<MergeGroup> newGroups;
+		private List<OsmPrimitive> removedPrimitives = new ArrayList<>();
 
 		public RegenerationTask(ArrayList<MergeGroup> groupsToUse) {
 			super();
@@ -58,6 +59,7 @@ public class BackgroundGemometryRegenerator {
 		}
 
 		private void generateGeometries(OsmPrimitive p) {
+			removedPrimitives.add(p);
 			// TODO Auto-generated method stub
 
 		}
@@ -155,9 +157,9 @@ public class BackgroundGemometryRegenerator {
 		synchronized (regnenerationMutex) {
 			if (!regenerationTask.isAborted()) {
 				doneRegenerationTasks.add(regenerationTask);
+				repaintListener.requestRepaint();
 			}
 		}
-		repaintListener.requestRepaint();
 	}
 
 	/**
@@ -196,17 +198,24 @@ public class BackgroundGemometryRegenerator {
 	 * Retrieves a list of merge groups that were regenerated. The groups were
 	 * generated so that they replace an exact set of original merge groups.
 	 * 
-	 * @return
+	 * @return The primitives for which the new geometry was generated and the
+	 *         merge groups. Mind that some primitives may have lost all
+	 *         geometries and are in no merge group any more.
 	 */
-	public Collection<MergeGroup> takeNewMergeGroups() {
+	public Pair<Collection<OsmPrimitive>, Collection<MergeGroup>> takeNewMergeGroups() {
 		synchronized (regnenerationMutex) {
 			ArrayList<MergeGroup> groups = new ArrayList<>();
+			ArrayList<OsmPrimitive> primitives = new ArrayList<>();
 			for (RegenerationTask d : doneRegenerationTasks) {
 				groups.addAll(d.newGroups);
+				primitives.addAll(d.removedPrimitives);
 				removeRunning(d);
 			}
 			doneRegenerationTasks.clear();
-			return groups;
+			System.out.println("Regenerated " + groups.size()
+					+ " merge groups for " + primitives.size() + " primitives");
+			return new Pair<Collection<OsmPrimitive>, Collection<MergeGroup>>(
+					primitives, groups);
 		}
 	}
 }

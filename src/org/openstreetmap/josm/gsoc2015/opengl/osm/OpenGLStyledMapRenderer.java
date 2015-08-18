@@ -13,6 +13,7 @@ import org.openstreetmap.josm.gsoc2015.opengl.geometrycache.DrawStats;
 import org.openstreetmap.josm.gsoc2015.opengl.geometrycache.GLState;
 import org.openstreetmap.josm.gsoc2015.opengl.geometrycache.RecordedOsmGeometries;
 import org.openstreetmap.josm.gsoc2015.opengl.osm.StyledGeometryGenerator.ChacheDataSupplier;
+import org.openstreetmap.josm.gsoc2015.opengl.util.DebugUtils;
 import org.openstreetmap.josm.gui.NavigatableComponent;
 
 public class OpenGLStyledMapRenderer extends StyledMapRenderer {
@@ -20,6 +21,23 @@ public class OpenGLStyledMapRenderer extends StyledMapRenderer {
 	public OpenGLStyledMapRenderer(GLGraphics2D g, NavigatableComponent nc,
 			boolean isInactiveMode) {
 		super(g, nc, isInactiveMode);
+	}
+
+	private final class RepaintListener implements FullRepaintListener {
+		private boolean repaintRequested;
+
+		@Override
+		public synchronized void requestRepaint() {
+			if (!repaintRequested) {
+				repaintRequested = true;
+				System.out.println("Repaint: " + DebugUtils.getStackTrace());
+				nc.repaint();
+			}
+		}
+
+		public synchronized void paining() {
+			repaintRequested = false;
+		}
 	}
 
 	/**
@@ -96,21 +114,19 @@ public class OpenGLStyledMapRenderer extends StyledMapRenderer {
 		}
 	}
 
+	private final RepaintListener repaintListener = new RepaintListener();
 	private StyleGenerationManager manager = null;
 
 	@Override
 	public synchronized void render(final DataSet data,
 			boolean renderVirtualNodes, Bounds bounds) {
 		if (manager == null) {
-			manager = new StyleGenerationManager(data, new FullRepaintListener() {
-				@Override
-				public void requestRepaint() {
-					nc.repaint();
-				}
-			});
+			manager = new StyleGenerationManager(data, repaintListener);
 		} else if (!manager.usesDataSet(data)) {
 			throw new IllegalArgumentException("Wrong DataSet provided.");
 		}
+
+		repaintListener.paining();
 
 		BBox bbox = bounds.toBBox();
 		getSettings(renderVirtualNodes);
@@ -139,9 +155,9 @@ public class OpenGLStyledMapRenderer extends StyledMapRenderer {
 
 			drawVirtualNodes(data, bbox);
 			long time5 = System.currentTimeMillis();
-			 System.out.println("Create styles: " + (time2 - time1) +
-			 "ms, draw: "
-			 + (time4 - time2) + "ms, draw virtual: " + (time5 - time4) + "ms; total: " + (time5 - time1) + "ms");
+			System.out.println("Create styles: " + (time2 - time1)
+					+ "ms, draw: " + (time4 - time2) + "ms, draw virtual: "
+					+ (time5 - time4) + "ms; total: " + (time5 - time1) + "ms");
 			DrawStats.printStats();
 
 		} finally {
