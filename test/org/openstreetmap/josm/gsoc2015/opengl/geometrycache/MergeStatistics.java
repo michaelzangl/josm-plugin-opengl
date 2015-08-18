@@ -1,7 +1,6 @@
 package org.openstreetmap.josm.gsoc2015.opengl.geometrycache;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.*;
 
 import java.io.File;
 import java.io.IOException;
@@ -18,6 +17,7 @@ import org.openstreetmap.josm.Main;
 import org.openstreetmap.josm.PerformanceTestUtils;
 import org.openstreetmap.josm.PerformanceTestUtils.PerformanceTestTimer;
 import org.openstreetmap.josm.data.osm.DataSet;
+import org.openstreetmap.josm.gsoc2015.opengl.osm.FullRepaintListener;
 import org.openstreetmap.josm.gsoc2015.opengl.osm.OpenGLStyledMapRenderer.StyleGenerationState;
 import org.openstreetmap.josm.gsoc2015.opengl.osm.StyleGenerationManager;
 import org.openstreetmap.josm.gsoc2015.opengl.osm.ViewPosition;
@@ -28,15 +28,23 @@ import org.openstreetmap.josm.gui.mappaint.ElemStyles;
 import org.openstreetmap.josm.gui.mappaint.MapPaintStyles;
 import org.openstreetmap.josm.gui.mappaint.mapcss.MapCSSStyleSource;
 import org.openstreetmap.josm.gui.preferences.SourceEntry;
+import org.openstreetmap.josm.gui.util.GuiHelper;
 import org.openstreetmap.josm.io.Compression;
 import org.openstreetmap.josm.io.IllegalDataException;
 import org.openstreetmap.josm.io.OsmReader;
 
 public class MergeStatistics {
-	/*
-	 * ------------------------ configuration section
-	 * ----------------------------
-	 */
+	private class ShouldNotGetNotifiedListener implements FullRepaintListener {
+
+		private boolean notified;
+
+		@Override
+		public void requestRepaint() {
+			notified = true;
+		}
+
+	}
+
 	/**
 	 * The path to the style file used for rendering.
 	 */
@@ -53,14 +61,21 @@ public class MergeStatistics {
 			IllegalArgumentException, InvocationTargetException,
 			IllegalDataException, IOException {
 		loadStyle(STYLE_FILE);
-		DataSet ds = loadData("../josm-plugin-opengl/data_nodist/city.osm");
+		final DataSet ds = loadData("../josm-plugin-opengl/data_nodist/city.osm");
+		final MapView mv = Main.map.mapView;
 
-		MapView mv = Main.map.mapView;
-		mv.addLayer(new OsmDataLayer(ds, "test", new File(STYLE_FILE)));
+		GuiHelper.runInEDTAndWait(new Runnable() {
+			@Override
+			public void run() {
+				mv.addLayer(new OsmDataLayer(ds, "test", new File(STYLE_FILE)));
 
-		mv.zoomTo(ds.getDataSourceBoundingBox());
+				mv.zoomTo(ds.getDataSourceBoundingBox());
+			}
+		});
 
-		StyleGenerationManager manager = new StyleGenerationManager(ds);
+		ShouldNotGetNotifiedListener listener = new ShouldNotGetNotifiedListener();
+		StyleGenerationManager manager = new StyleGenerationManager(ds,
+				listener);
 		PerformanceTestTimer timer = PerformanceTestUtils
 				.startTimer("generate geometries");
 
@@ -69,21 +84,17 @@ public class MergeStatistics {
 				new StyleGenerationState(mv.getDist100Pixel(), ViewPosition
 						.from(mv), true, false, mv) {
 					@Override
-					public synchronized boolean hasGeneratedAllGeometries() {
-						return true;
-					}
-
-					@Override
 					public synchronized boolean shouldGenerateGeometry() {
 						return true;
 					}
 				});
 		timer.done();
 
+		assertFalse(listener.notified);
 		System.out.println("We got " + geometries.size() + " geometries.");
 
-		assertEquals("Geometries have dupplicates", 0,
-				DebugUtils.findDuplicates(geometries).size());
+		assertEquals("Geometries have dupplicates", 0, DebugUtils
+				.findDuplicates(geometries).size());
 
 		System.out.println("Of those " + countMergeables(geometries, .99)
 				+ " pairs would be mergeable.");
