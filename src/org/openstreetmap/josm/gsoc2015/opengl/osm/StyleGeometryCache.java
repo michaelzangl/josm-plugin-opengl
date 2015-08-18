@@ -56,6 +56,8 @@ import org.openstreetmap.josm.tools.Pair;
  *
  */
 public class StyleGeometryCache {
+	private static final int BACKGROUND_BULK_SIZE = 30;
+
 	private final class ZoomListener implements ZoomChangeListener {
 		private static final double MIN_CHANGE = .9;
 		private double currentScale;
@@ -180,12 +182,13 @@ public class StyleGeometryCache {
 	 */
 	private Hashtable<OsmPrimitive, MergeGroup> recordedForPrimitive = new Hashtable<>();
 
-//	/**
-//	 * A list of geometries that are colllected to be drawn this frame from the
-//	 * cache.
-//	 */
-//	private Set<RecordedOsmGeometries> collectedForFrame = Collections
-//			.synchronizedSet(new HashSet<RecordedOsmGeometries>());
+	// /**
+	// * A list of geometries that are colllected to be drawn this frame from
+	// the
+	// * cache.
+	// */
+	// private Set<RecordedOsmGeometries> collectedForFrame = Collections
+	// .synchronizedSet(new HashSet<RecordedOsmGeometries>());
 
 	/**
 	 * A list of geometries that were created in this frame and are not yet in
@@ -209,11 +212,39 @@ public class StyleGeometryCache {
 	 */
 	private final BackgroundGemometryRegenerator regenerator;
 
+	/**
+	 * The repaint listener to notify whenever geometries have changed and a repaint is required.
+	 */
 	private final FullRepaintListener repaintListener;
 
+	/**
+	 * When this flag is set, all geometries need to be regenerated.
+	 */
 	private boolean invalidateAll;
 
+	/**
+	 * Our zoom listener.
+	 */
 	private ZoomListener zoomListener;
+
+	/**
+	 * A list of merge groups that should be drawn this frame.
+	 */
+	private final HashSet<MergeGroup> groupsForThisFrame = new HashSet<>();
+
+	/**
+	 * A set of primitives that are/will be in the current merger. This prevents
+	 * us from adding one twice.
+	 */
+	private final HashSet<OsmPrimitive> primitivesRegenerated = new HashSet<>();
+
+	/**
+	 * A fake, empty merge group that is used while the real geometry is
+	 * generated in a background thread.
+	 */
+	private MergeGroup scheduledForBackground = null;
+
+	private final Object scheduledForBackgroundMutex = new Object();
 
 	public StyleGeometryCache(FullRepaintListener repaintListener) {
 		super();
@@ -285,9 +316,14 @@ public class StyleGeometryCache {
 	}
 
 	public ArrayList<RecordedOsmGeometries> endFrame() {
+		synchronized (scheduledForBackgroundMutex) {
+			if (scheduledForBackground != null) {
+				scheduleForBackground();
+			}
+		}
+
 		// get all geometries from merger.
-		ArrayList<RecordedOsmGeometries> list = new ArrayList<>(
-				);
+		ArrayList<RecordedOsmGeometries> list = new ArrayList<>();
 		for (MergeGroup g : groupsForThisFrame) {
 			list.addAll(g.getGeometries());
 		}
@@ -341,12 +377,6 @@ public class StyleGeometryCache {
 		}
 	}
 
-	private HashSet<MergeGroup> groupsForThisFrame = new HashSet<>();
-	/**
-	 * A set of primitives that are/will be in the current merger. This prevents us from adding one twice.
-	 */
-	private HashSet<OsmPrimitive> primitivesRegenerated = new HashSet<>();
-
 	/**
 	 * <p>
 	 * This may only be called for each primitive once in every frame.
@@ -355,8 +385,8 @@ public class StyleGeometryCache {
 	 * @param generator
 	 * @return
 	 */
-	public <T extends OsmPrimitive> void requestOrCreateGeometry(OsmPrimitive primitive,
-			StyledGeometryGenerator generator) {
+	public <T extends OsmPrimitive> void requestOrCreateGeometry(
+			OsmPrimitive primitive, StyledGeometryGenerator generator) {
 		Collection<OsmPrimitive> regenerate = null;
 		synchronized (this) {
 			MergeGroup group = recordedForPrimitive.get(primitive);
@@ -400,11 +430,26 @@ public class StyleGeometryCache {
 					.runFor(primitive);
 			collectedForFrameMerger.addMergeables(primitive, geometries);
 		} else {
-			// TODO: Schedule for background rendering.
-			
-			// redraw to collect them.
-			repaintListener.requestRepaint();
+			// Schedule for background rendering.
+			synchronized (scheduledForBackgroundMutex) {
+				if (scheduledForBackground == null) {
+					scheduledForBackground = new MergeGroup();
+				}
+				scheduledForBackground.merge(primitive,
+						Collections.<RecordedOsmGeometries> emptyList());
+				synchronized (this) {
+					recordedForPrimitive.put(primitive, scheduledForBackground);
+				}
+				if (scheduledForBackground.getPrimitives().size() >= BACKGROUND_BULK_SIZE) {
+					scheduleForBackground();
+				}
+			}
 		}
+	}
+
+	private void scheduleForBackground() {
+		regenerator.schedule(scheduledForBackground);
+		scheduledForBackground = null;
 	}
 
 	/**
