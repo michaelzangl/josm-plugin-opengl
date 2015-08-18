@@ -53,11 +53,15 @@ public class OpenGLStyledMapRenderer extends StyledMapRenderer {
 	 * @author Michael Zangl
 	 */
 	public static class StyleGenerationState implements ChacheDataSupplier {
+		private static final long MAX_TIME = 50;
 		public static int MAX_GEOMETRIES_GENERATED = 5000;
 		private final double circum;
 		private final ViewPosition viewPosition;
 
-		int geometriesGenerated = 0;
+		private int geometriesGenerated = 0;
+		
+		private long startTime = 0;
+		
 		private boolean enoughGometriesGenerated;
 
 		private final boolean renderVirtualNodes, isInactiveMode;
@@ -73,6 +77,7 @@ public class OpenGLStyledMapRenderer extends StyledMapRenderer {
 			this.renderVirtualNodes = renderVirtualNodes;
 			this.isInactiveMode = isInactiveMode;
 			this.cacheKey = cacheKey;
+			startTime = System.currentTimeMillis();
 		}
 
 		@Override
@@ -108,6 +113,12 @@ public class OpenGLStyledMapRenderer extends StyledMapRenderer {
 
 		public synchronized void incrementDrawCounter() {
 			geometriesGenerated++;
+			if (geometriesGenerated % 5 == 0) {
+				if (startTime + MAX_TIME < System.currentTimeMillis()) {
+					enoughGometriesGenerated = true;
+				}
+			}
+			
 			if (geometriesGenerated > MAX_GEOMETRIES_GENERATED) {
 				enoughGometriesGenerated = true;
 			}

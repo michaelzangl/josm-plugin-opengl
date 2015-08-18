@@ -401,6 +401,9 @@ public class StyleGeometryCache {
 			collectedForFrameMerger.addMergeables(primitive, geometries);
 		} else {
 			// TODO: Schedule for background rendering.
+			
+			// redraw to collect them.
+			repaintListener.requestRepaint();
 		}
 	}
 
