@@ -121,8 +121,14 @@ public abstract class StyledGeometryGenerator<T extends OsmPrimitive> {
 
 	private RecordingStyledMapRenderer recordingRenderer;
 
+	/**
+	 * This field stores the active thread for debugging/state-checking.
+	 */
 	private Thread activeThread;
 
+	/**
+	 * A list of geometries that were generated.
+	 */
 	private ArrayList<RecordedOsmGeometries> recorded = new ArrayList<>();
 
 	protected final boolean drawArea;
@@ -158,7 +164,7 @@ public abstract class StyledGeometryGenerator<T extends OsmPrimitive> {
 	}
 
 	/**
-	 * Call
+	 * Releases all locks held and frees resources that are not needed any more.
 	 */
 	public void endRunning() {
 		if (activeThread != Thread.currentThread()) {
@@ -170,6 +176,13 @@ public abstract class StyledGeometryGenerator<T extends OsmPrimitive> {
 		activeThread = null;
 	}
 
+	/**
+	 * Generates the geometries for a single primitive.
+	 * 
+	 * @param primitive
+	 *            The primitive to run for.
+	 * @return The list of geometries for that primitive.
+	 */
 	public List<RecordedOsmGeometries> runFor(T primitive) {
 		sgs.incrementDrawCounter();
 		if (primitive.isDrawable()) {
@@ -183,39 +196,6 @@ public abstract class StyledGeometryGenerator<T extends OsmPrimitive> {
 			long state = getState(primitive);
 
 			runForStyles(primitive, sl, state);
-
-			// public void add(Node osm, int flags) {
-			// StyleList sl = styles.get(osm, circum, nc);
-			// for (ElemStyle s : sl) {
-			// output.add(new StyleRecord(s, osm, flags));
-			// }
-			// }
-			//
-			// public void add(Relation osm, int flags) {
-			// StyleList sl = styles.get(osm, circum, nc);
-			// for (ElemStyle s : sl) {
-			// if (drawMultipolygon && drawArea && s instanceof AreaElemStyle &&
-			// (flags & FLAG_DISABLED) == 0) {
-			// output.add(new StyleRecord(s, osm, flags));
-			// } else if (drawRestriction && s instanceof NodeElemStyle) {
-			// output.add(new StyleRecord(s, osm, flags));
-			// }
-			// }
-			// }
-			//
-			// public void add(Way osm, int flags) {
-			// StyleList sl = styles.get(osm, circum, nc);
-			// for (ElemStyle s : sl) {
-			// if (!(drawArea && (flags & FLAG_DISABLED) == 0) && s instanceof
-			// AreaElemStyle) {
-			// continue;
-			// }
-			// output.add(new StyleRecord(s, osm, flags));
-			// }
-			// }
-			for (ElemStyle s : sl) {
-				runForStyle(primitive, s, state);
-			}
 		}
 		ArrayList<RecordedOsmGeometries> received = new ArrayList<>(recorded);
 		for (RecordedOsmGeometries r : received) {
@@ -245,7 +225,8 @@ public abstract class StyledGeometryGenerator<T extends OsmPrimitive> {
 	}
 
 	/**
-	 * Compute the order index.
+	 * Compute the order index. Pre-computing this and then only sorting by a
+	 * long value increases speed.
 	 * <ul>
 	 * <li>Bit 63: always 0 (sign bit).
 	 * <li>Bit 62: FLAG_DISABLED.
@@ -255,7 +236,8 @@ public abstract class StyledGeometryGenerator<T extends OsmPrimitive> {
 	 * <li>Bit 0: SIMPLE_NODE_ELEMSTYLE
 	 * </ul>
 	 * 
-	 * @return
+	 * @return A long that has the same order as if the style was sorted by the
+	 *         Java2D implementation.
 	 */
 	private static long getOrderIndex(OsmPrimitive primitive, ElemStyle s,
 			long state) {

@@ -5,6 +5,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Hashtable;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -25,6 +26,9 @@ import org.openstreetmap.josm.gsoc2015.opengl.geometrycache.GeometryMerger;
 import org.openstreetmap.josm.gsoc2015.opengl.geometrycache.HashGeometryMerger;
 import org.openstreetmap.josm.gsoc2015.opengl.geometrycache.MergeGroup;
 import org.openstreetmap.josm.gsoc2015.opengl.geometrycache.RecordedOsmGeometries;
+import org.openstreetmap.josm.gui.MapView;
+import org.openstreetmap.josm.gui.MapView.RepaintListener;
+import org.openstreetmap.josm.gui.NavigatableComponent.ZoomChangeListener;
 
 /**
  * This is a cache of style geometries.
@@ -144,21 +148,57 @@ public class StyleGeometryCache {
 		}
 	}
 
+	/**
+	 * Stores the merge group in which that primitive is. We always draw the
+	 * whole merge group whenever that primitive is drawn.
+	 */
 	private Hashtable<OsmPrimitive, MergeGroup> recordedForPrimitive = new Hashtable<>();
 
+	/**
+	 * A list of geometries that are colllected to be drawn this frame from the
+	 * cache.
+	 */
 	private Set<RecordedOsmGeometries> collectedForFrame = Collections
 			.synchronizedSet(new HashSet<RecordedOsmGeometries>());
 
+	/**
+	 * A list of geometries that were created in this frame and are not yet in
+	 * the cache.
+	 */
 	private GeometryMerger collectedForFrameMerger;
 
+	/**
+	 * This listener watches for selection changes and forwards them to us.
+	 */
 	private SelectionChangedListener selectionListener;
 
+	/**
+	 * This listeners watches for changes to the dataset and forwards them to
+	 * us.
+	 */
 	private final GeometryChangeObserver changeObserver = new GeometryChangeObserver();
 
-	public void invalidateAll() {
-		recordedForPrimitive.clear();
+	/**
+	 * A regenerator that (re)generates geometries in background if needed.
+	 */
+	private final BackgroundGemometryRegenerator regenerator;
+
+	private final FullRepaintListener repaintListener;
+
+	private boolean invalidateAll;
+
+	public StyleGeometryCache(FullRepaintListener repaintListener) {
+		super();
+		this.repaintListener = repaintListener;
+		regenerator = new BackgroundGemometryRegenerator(repaintListener);
 	}
 
+	/**
+	 * Invalidates the geometry for a given primitive.
+	 * 
+	 * @param s
+	 *            The primitive.
+	 */
 	public synchronized void invalidateGeometry(OsmPrimitive s) {
 		MergeGroup recorded = recordedForPrimitive.get(s);
 		if (recorded != null) {
@@ -166,15 +206,47 @@ public class StyleGeometryCache {
 		}
 	}
 
+	/**
+	 * Invalidates a given merge group. This is called whenever drawing that
+	 * merge group would give wrong results (e.g. the geometry changed, objects
+	 * in the group are deleted, ...
+	 * 
+	 * @param mergeGroup
+	 *            The merge group to regenerate.
+	 */
 	private void invalidate(MergeGroup mergeGroup) {
-		// TODO Only schedule deletion, dispose, regenerate the other geometries
-		// affected.
 		removeCacheEntries(mergeGroup);
 	}
 
 	public void startFrame() {
 		collectedForFrame.clear();
 		collectedForFrameMerger = new HashGeometryMerger();
+
+		updateMergeGroups(regenerator.takeNewMergeGroups());
+
+		if (invalidateAll) {
+			for (MergeGroup m : recordedForPrimitive.values()) {
+				invalidateLater(m);
+			}
+		}
+	}
+
+	/**
+	 * Invalidates a merge group for later invalidation.
+	 * 
+	 * @param mergeGroup
+	 */
+	private void invalidateLater(MergeGroup mergeGroup) {
+		regenerator.schedule(mergeGroup);
+	}
+
+	/**
+	 * Mark all entries for invalidation.
+	 */
+	protected void invalidateAllLater() {
+		invalidateAll = true;
+		// Note: Geometries are invalidated on next repaint and take one frame before starting to arrive.
+		repaintListener.requestRepaint();
 	}
 
 	public ArrayList<RecordedOsmGeometries> endFrame() {
@@ -194,7 +266,7 @@ public class StyleGeometryCache {
 		return list;
 	}
 
-	private void updateMergeGroups(ArrayList<MergeGroup> mergeGroups) {
+	private void updateMergeGroups(Collection<MergeGroup> mergeGroups) {
 		for (MergeGroup mergeGroup : mergeGroups) {
 			for (OsmPrimitive p : mergeGroup.getPrimitives()) {
 				removeCacheEntry(p);
@@ -270,42 +342,50 @@ public class StyleGeometryCache {
 
 	}
 
-	// private void putGeometries(Collection<RecordedOsmGeometries> geometries)
-	// {
-	// System.out.println("There are " + recordedForPrimitive.size() +
-	// " geos in cache");
-	// for (RecordedOsmGeometries g : geometries) {
-	// putGeometry(g);
-	// }
-	// System.out.println("There are " + recordedForPrimitive.size() +
-	// " geos in cache");
-	// }
-	//
-	// private synchronized void putGeometry(RecordedOsmGeometries geometry) {
-	// for (OsmPrimitive primitive : geometry.getPrimitives()) {
-	// List<RecordedOsmGeometries> list = recordedForPrimitive
-	// .get(primitive);
-	// if (list == null) {
-	// list = new ArrayList<>();
-	// recordedForPrimitive.put(primitive, list);
-	// }
-	// list.add(geometry);
-	// }
-	// }
-
-	public void addListeners(DataSet data) {
+	/**
+	 * Adds invalidation listeners to the dataset so that the cache gets
+	 * invalidated when the data changes.
+	 * 
+	 * @param data
+	 *            The {@link DataSet}
+	 */
+	public void addListeners(DataSet data, MapView mapView) {
 		selectionListener = new SelectionObserver(data);
 		// Note: We cannot register this on a specific data set.
 		DataSet.addSelectionListener(selectionListener);
 		data.addDataSetListener(changeObserver);
+		mapView.addZoomChangeListener(new ZoomChangeListener() {
+			@Override
+			public void zoomChanged() {
+				invalidateAllLater();
+			}
+		});
 	}
 
 	public void dispose() {
-		// TODO Call this
+		invalidateAll();
 	}
 
+	public void invalidateAll() {
+		while (!recordedForPrimitive.isEmpty()) {
+			MergeGroup first = recordedForPrimitive.values().iterator().next();
+			// this might also remove some other primitives form the cache.
+			invalidate(first);
+		}
+	}
+
+	/**
+	 * Removes the listeners added by {@link #addListeners(DataSet)}
+	 * 
+	 * @param data
+	 *            The {@link DataSet}
+	 */
 	public void removeListeners(DataSet data) {
 		DataSet.removeSelectionListener(selectionListener);
 		data.removeDataSetListener(changeObserver);
+	}
+
+	public BackgroundGemometryRegenerator getRegenerator() {
+		return regenerator;
 	}
 }

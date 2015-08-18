@@ -8,6 +8,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
+import org.openstreetmap.josm.Main;
 import org.openstreetmap.josm.data.osm.BBox;
 import org.openstreetmap.josm.data.osm.DataSet;
 import org.openstreetmap.josm.data.osm.Node;
@@ -88,16 +89,19 @@ import org.openstreetmap.josm.gsoc2015.opengl.osm.search.WaySearcher;
 public class StyleGenerationManager {
 	private final DataSet data;
 
-	private ExecutorService geometryGenerationThreads = Executors
-			.newFixedThreadPool(4);
+	private final StyleGeometryCache cache;
+
+	private BackgroundThreadPool geometryGenerationThreads;
 
 	private DrawThreadPool drawThreadPool = new DrawThreadPool();
 
-	private final StyleGeometryCache cache = new StyleGeometryCache();
-	
-	public StyleGenerationManager(DataSet data) {
+	public StyleGenerationManager(DataSet data,
+			FullRepaintListener repaintListener) {
 		this.data = data;
-		cache.addListeners(data);
+		cache = new StyleGeometryCache(repaintListener);
+		cache.addListeners(data, Main.map.mapView);
+		geometryGenerationThreads = new BackgroundThreadPool(
+				cache.getRegenerator());
 	}
 
 	/**
@@ -108,8 +112,10 @@ public class StyleGenerationManager {
 	 *
 	 */
 	private static class DrawThreadPool {
-		private final ExecutorService drawThreads = Executors.newFixedThreadPool(4);
-		// private final ExecutorService drawThreads = Executors.newFixedThreadPool(1);
+		private final ExecutorService drawThreads = Executors
+				.newFixedThreadPool(4);
+		// private final ExecutorService drawThreads =
+		// Executors.newFixedThreadPool(1);
 		private final LinkedList<Future<?>> futuresToAwait = new LinkedList<>();
 
 		public void scheduleTask(Runnable r) {
@@ -139,9 +145,61 @@ public class StyleGenerationManager {
 		}
 	}
 
+	private static class BackgroundRegeneationRunner extends Thread {
+		private boolean shutdown;
+		private BackgroundGemometryRegenerator regenerator;
+
+		public BackgroundRegeneationRunner(
+				BackgroundGemometryRegenerator regenerator, int index) {
+			super("geometry-regeneration-" + index);
+			this.regenerator = regenerator;
+		}
+
+		@Override
+		public void run() {
+			while (!shutdown) {
+				regenerator.waitForNewWork();
+				if (shutdown) {
+					break;
+				}
+				Runnable nextTasks = regenerator.generateRegenerationTask();
+				if (nextTasks != null) {
+					nextTasks.run();
+				}
+			}
+		}
+
+		public void shutdown() {
+			shutdown = true;
+		}
+	}
+
+	public static class BackgroundThreadPool {
+		private final BackgroundRegeneationRunner[] bgThreads = new BackgroundRegeneationRunner[4];
+		private BackgroundGemometryRegenerator regenerator;
+
+		public BackgroundThreadPool(BackgroundGemometryRegenerator regenerator) {
+			this.regenerator = regenerator;
+			for (int i = 0; i < bgThreads.length; i++) {
+				bgThreads[i] = new BackgroundRegeneationRunner(regenerator, i);
+				bgThreads[i].start();
+			}
+		}
+
+		/**
+		 * Stops this thread pool.
+		 */
+		public void stop() {
+			for (int i = 0; i < bgThreads.length; i++) {
+				bgThreads[i].shutdown();
+			}
+			regenerator.resumeAllWaiting();
+		}
+	}
+
 	private class PrimitiveForDrawSearcher<T extends OsmPrimitive> implements
 			OsmPrimitiveHandler<T> {
-		//TODO: Adaptive for nodes/rest
+		// TODO: Adaptive for nodes/rest
 		private static final int BULK_SIZE = 5000;
 		private final StyleGenerationState sgs;
 		private final StyleGeometryCache cache;
@@ -158,8 +216,8 @@ public class StyleGenerationManager {
 		public void receivePrimitives(List<T> primitives) {
 			for (int i = 0; i < primitives.size(); i += BULK_SIZE) {
 				drawThreadPool.scheduleTask(new QueryCachePrimitive<T>(
-						primitives, i, Math.min(primitives.size(), i + BULK_SIZE), sgs,
-						cache, type));
+						primitives, i, Math.min(primitives.size(), i
+								+ BULK_SIZE), sgs, cache, type));
 			}
 		}
 	}
@@ -176,18 +234,22 @@ public class StyleGenerationManager {
 		long time1 = System.currentTimeMillis();
 		cache.startFrame();
 		drawThreadPool.scheduleTask(new NodeSearcher(
-				new PrimitiveForDrawSearcher<Node>(sgs, cache, Node.class), data, bbox));
+				new PrimitiveForDrawSearcher<Node>(sgs, cache, Node.class),
+				data, bbox));
 		drawThreadPool.scheduleTask(new WaySearcher(
-				new PrimitiveForDrawSearcher<Way>(sgs, cache, Way.class), data, bbox));
-		drawThreadPool.scheduleTask(new RelationSearcher(
-				new PrimitiveForDrawSearcher<Relation>(sgs, cache, Relation.class), data,
+				new PrimitiveForDrawSearcher<Way>(sgs, cache, Way.class), data,
 				bbox));
+		drawThreadPool.scheduleTask(new RelationSearcher(
+				new PrimitiveForDrawSearcher<Relation>(sgs, cache,
+						Relation.class), data, bbox));
 		drawThreadPool.finish();
 		List<RecordedOsmGeometries> recorded = cache.endFrame();
 		long time2 = System.currentTimeMillis();
 		Collections.sort(recorded);
-		System.out.println("STYLE GEN in getDrawGeometries()" + (time2 - time1));
-		System.out.println("SORTING in getDrawGeometries(): " + (System.currentTimeMillis() - time2));
+		System.out
+				.println("STYLE GEN in getDrawGeometries()" + (time2 - time1));
+		System.out.println("SORTING in getDrawGeometries(): "
+				+ (System.currentTimeMillis() - time2));
 		return recorded;
 	}
 
@@ -207,5 +269,6 @@ public class StyleGenerationManager {
 			}
 		});
 		drawThreadPool.stop();
+		geometryGenerationThreads.stop();
 	}
 }

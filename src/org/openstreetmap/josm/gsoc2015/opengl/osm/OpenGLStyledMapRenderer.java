@@ -88,11 +88,6 @@ public class OpenGLStyledMapRenderer extends StyledMapRenderer {
 			return !enoughGometriesGenerated;
 		}
 
-		public synchronized boolean hasGeneratedAllGeometries() {
-			// Note: Inaccurate by 1 geometry.
-			return !enoughGometriesGenerated;
-		}
-
 		public synchronized void incrementDrawCounter() {
 			geometriesGenerated++;
 			if (geometriesGenerated > MAX_GEOMETRIES_GENERATED) {
@@ -107,7 +102,12 @@ public class OpenGLStyledMapRenderer extends StyledMapRenderer {
 	public synchronized void render(final DataSet data,
 			boolean renderVirtualNodes, Bounds bounds) {
 		if (manager == null) {
-			manager = new StyleGenerationManager(data);
+			manager = new StyleGenerationManager(data, new FullRepaintListener() {
+				@Override
+				public void requestRepaint() {
+					nc.repaint();
+				}
+			});
 		} else if (!manager.usesDataSet(data)) {
 			throw new IllegalArgumentException("Wrong DataSet provided.");
 		}
@@ -144,10 +144,6 @@ public class OpenGLStyledMapRenderer extends StyledMapRenderer {
 			 + (time4 - time2) + "ms, draw virtual: " + (time5 - time4) + "ms; total: " + (time5 - time1) + "ms");
 			DrawStats.printStats();
 
-			if (!sgs.hasGeneratedAllGeometries()) {
-				// Repaint again to collect the rest of the geometries.
-				nc.repaint();
-			}
 		} finally {
 			data.getReadLock().unlock();
 		}

@@ -14,26 +14,29 @@ import org.openstreetmap.josm.gsoc2015.opengl.osm.ViewPosition;
 
 /**
  * A recorder that records the geometry for one OSM primitive.
+ * 
  * @author michael
  */
 public class OsmPrimitiveRecorder implements Recorder, Visitor {
-	
+
 	private List<RecordedGeometry> geometries = new ArrayList<>();
 	private OsmPrimitive activePrimitive;
-	private RecordedPrimitiveReceiver receiver ;
+	private RecordedPrimitiveReceiver receiver;
 	private long activeOrderIndex;
 	private ViewPosition viewPosition;
-	
+
 	public interface RecordedPrimitiveReceiver {
 		void receiveForNode(RecordedOsmGeometries geometry);
+
 		void receiveForWay(RecordedOsmGeometries geometry);
+
 		void receiveForRelation(RecordedOsmGeometries geometry);
 	}
-	
+
 	public OsmPrimitiveRecorder(RecordedPrimitiveReceiver receiver) {
 		this.receiver = receiver;
 	}
-	
+
 	@Override
 	public void recordGeometry(RecordedGeometry cachedGeometry) {
 		if (!cachedGeometry.isNop()) {
@@ -43,11 +46,22 @@ public class OsmPrimitiveRecorder implements Recorder, Visitor {
 			cachedGeometry.dispose();
 		}
 	}
-	
+
 	private void reset() {
 		geometries.clear();
 	}
-	
+
+	/**
+	 * Starts recording geometries for the given primitive. All draw calls until
+	 * the next end() are recorded.
+	 * 
+	 * @param p
+	 *            The primitive to record for.
+	 * @param viewPosition
+	 *            The current view position on screen.
+	 * @param orderIndex
+	 *            The order index to support z-index.
+	 */
 	public void start(OsmPrimitive p, ViewPosition viewPosition, long orderIndex) {
 		if (activePrimitive != null) {
 			throw new IllegalStateException("start() called without a end().");
@@ -57,7 +71,10 @@ public class OsmPrimitiveRecorder implements Recorder, Visitor {
 		this.viewPosition = viewPosition;
 		activePrimitive = p;
 	}
-	
+
+	/**
+	 * Ends recording for the current primitive.
+	 */
 	public void end() {
 		if (activePrimitive == null) {
 			throw new IllegalStateException("end() called without a start().");
@@ -68,17 +85,20 @@ public class OsmPrimitiveRecorder implements Recorder, Visitor {
 
 	@Override
 	public void visit(Node n) {
-		receiver.receiveForNode(new RecordedOsmGeometries(geometries, n, activeOrderIndex, viewPosition));
+		receiver.receiveForNode(new RecordedOsmGeometries(geometries, n,
+				activeOrderIndex, viewPosition));
 	}
 
 	@Override
 	public void visit(Way w) {
-		receiver.receiveForWay(new RecordedOsmGeometries(geometries, w, activeOrderIndex, viewPosition));
+		receiver.receiveForWay(new RecordedOsmGeometries(geometries, w,
+				activeOrderIndex, viewPosition));
 	}
 
 	@Override
 	public void visit(Relation r) {
-		receiver.receiveForRelation(new RecordedOsmGeometries(geometries, r, activeOrderIndex, viewPosition));
+		receiver.receiveForRelation(new RecordedOsmGeometries(geometries, r,
+				activeOrderIndex, viewPosition));
 	}
 
 	@Override

@@ -14,26 +14,21 @@ import javax.media.opengl.GL2;
 
 import org.openstreetmap.josm.data.osm.OsmPrimitive;
 import org.openstreetmap.josm.gsoc2015.opengl.osm.ViewPosition;
-import org.openstreetmap.josm.gsoc2015.opengl.util.DebugUtils;
 import org.openstreetmap.josm.tools.Pair;
 
 /**
- * This is a list of geometries that are recorded to draw the given geometries.
+ * This is a list of geometries that are recorded to draw the given osm
+ * primitive.
+ * <p>
+ * This list may contain draw information for multiple geometries and there may
+ * be multiple lists per OSM primitive - but always one per style.
+ * <p>
+ * There is a Z-index stored for this geometry to quickly sort them.
  * 
- * @author michael
+ * @author Michael Zangl
  *
  */
 public class RecordedOsmGeometries implements Comparable<RecordedOsmGeometries> {
-	private static final GeometryComperator COMPERATOR = new GeometryComperator();
-
-	private static final class GeometryComperator implements
-			Comparator<RecordedGeometry> {
-		@Override
-		public int compare(RecordedGeometry o1, RecordedGeometry o2) {
-			return Integer.compare(o1.getCombineHash(), o2.getCombineHash());
-		}
-	}
-
 	/**
 	 * The geometries in the order in which they need to be drawn.
 	 */
@@ -48,12 +43,20 @@ public class RecordedOsmGeometries implements Comparable<RecordedOsmGeometries> 
 	 */
 	private final ViewPosition viewPosition;
 
+	/**
+	 * A number indicating the z-index of this geometry.
+	 */
 	private long orderIndex;
+	/**
+	 * The cached array of hashes for this geometry.
+	 */
 	private int[] hashes;
 
-	//XXX TEMP
+	/**
+	 * A flag indicating the merge group. This is useful for debugging.
+	 */
 	public MergeGroup mergeGroup;
-	
+
 	/**
 	 * 
 	 * @param geometries
@@ -103,7 +106,7 @@ public class RecordedOsmGeometries implements Comparable<RecordedOsmGeometries> 
 			// now remove duplicates from that array.
 			int newIndex = 1;
 			for (int i = 1; i < hashes.length; i++) {
-				if (hashes[i] != hashes[i-1]) {
+				if (hashes[i] != hashes[i - 1]) {
 					hashes[newIndex++] = hashes[i];
 				}
 			}
@@ -135,10 +138,10 @@ public class RecordedOsmGeometries implements Comparable<RecordedOsmGeometries> 
 		if (!isMergeable(other)) {
 			return false;
 		}
-		
+
 		primitives.addAll(other.primitives);
 		geometries = merge(geometries, other.geometries);
-		
+
 		// Update the hashes.
 		HashSet<Integer> newHashes = new HashSet<>();
 		for (RecordedGeometry geometry : other.geometries) {
@@ -147,7 +150,7 @@ public class RecordedOsmGeometries implements Comparable<RecordedOsmGeometries> 
 				newHashes.add(hash);
 			}
 		}
-		
+
 		if (newHashes.size() > 0) {
 			int length = hashes.length;
 			hashes = Arrays.copyOf(hashes, length + newHashes.size());
@@ -161,7 +164,8 @@ public class RecordedOsmGeometries implements Comparable<RecordedOsmGeometries> 
 	}
 
 	private boolean isMergeable(RecordedOsmGeometries other) {
-		return other.orderIndex == this.orderIndex && viewPosition.equals(other.viewPosition);
+		return other.orderIndex == this.orderIndex
+				&& viewPosition.equals(other.viewPosition);
 	}
 
 	/**
@@ -264,20 +268,6 @@ public class RecordedOsmGeometries implements Comparable<RecordedOsmGeometries> 
 		return mergePairs;
 	}
 
-	private RecordedGeometry[] combineLists(List<RecordedGeometry> geometries1,
-			List<RecordedGeometry> geometries2) {
-		RecordedGeometry[] toMerge = new RecordedGeometry[geometries1.size()
-				+ geometries2.size()];
-		int i = 0;
-		for (RecordedGeometry g : geometries1) {
-			toMerge[i++] = g;
-		}
-		for (RecordedGeometry g : geometries2) {
-			toMerge[i++] = g;
-		}
-		return toMerge;
-	}
-
 	@Override
 	public String toString() {
 		return "RecordedOsmGeometries [geometries=" + geometries
@@ -310,20 +300,21 @@ public class RecordedOsmGeometries implements Comparable<RecordedOsmGeometries> 
 			}
 		}
 		int totalHashes = otherHashes.length + myHashes.length - commonHashes;
-		
+
 		return (float) commonHashes / totalHashes;
 	}
 
 	/**
-	 * Attempts to merge all stored {@link RecordedGeometry}s
+	 * Attempts to merge all stored {@link RecordedGeometry}s. This optimizes draw performance.
 	 */
 	public void mergeChildren() {
-		ArrayList<RecordedGeometry> storedGeometries = new ArrayList<>(geometries);
+		ArrayList<RecordedGeometry> storedGeometries = new ArrayList<>(
+				geometries);
 		geometries.clear();
 		RecordedGeometry last = null;
 		for (RecordedGeometry r : storedGeometries) {
 			if (last != null && last.attemptCombineWith(r)) {
-				//pass
+				// pass
 			} else {
 				geometries.add(r);
 				last = r;
