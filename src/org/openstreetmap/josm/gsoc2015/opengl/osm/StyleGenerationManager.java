@@ -145,11 +145,13 @@ public class StyleGenerationManager {
 		private static final int BULK_SIZE = 5000;
 		private final StyleGenerationState sgs;
 		private final StyleGeometryCache cache;
+		private final Class<T> type;
 
 		public PrimitiveForDrawSearcher(StyleGenerationState sgs,
-				StyleGeometryCache cache) {
+				StyleGeometryCache cache, Class<T> type) {
 			this.sgs = sgs;
 			this.cache = cache;
+			this.type = type;
 		}
 
 		@Override
@@ -157,7 +159,7 @@ public class StyleGenerationManager {
 			for (int i = 0; i < primitives.size(); i += BULK_SIZE) {
 				drawThreadPool.scheduleTask(new QueryCachePrimitive<T>(
 						primitives, i, Math.min(primitives.size(), i + BULK_SIZE), sgs,
-						cache));
+						cache, type));
 			}
 		}
 	}
@@ -174,11 +176,11 @@ public class StyleGenerationManager {
 		long time1 = System.currentTimeMillis();
 		cache.startFrame();
 		drawThreadPool.scheduleTask(new NodeSearcher(
-				new PrimitiveForDrawSearcher<Node>(sgs, cache), data, bbox));
+				new PrimitiveForDrawSearcher<Node>(sgs, cache, Node.class), data, bbox));
 		drawThreadPool.scheduleTask(new WaySearcher(
-				new PrimitiveForDrawSearcher<Way>(sgs, cache), data, bbox));
+				new PrimitiveForDrawSearcher<Way>(sgs, cache, Way.class), data, bbox));
 		drawThreadPool.scheduleTask(new RelationSearcher(
-				new PrimitiveForDrawSearcher<Relation>(sgs, cache), data,
+				new PrimitiveForDrawSearcher<Relation>(sgs, cache, Relation.class), data,
 				bbox));
 		drawThreadPool.finish();
 		List<RecordedOsmGeometries> recorded = cache.endFrame();

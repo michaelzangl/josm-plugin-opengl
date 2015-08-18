@@ -40,8 +40,8 @@ public class OpenGLViewPlugin extends Plugin {
 			add(openGLPanel, PaintMode.OPENGL.toString());
 			MapViewPaintModeState state = MapViewPaintModeState.getInstance();
 			state.addPaintModeListener(this, true);
-			java2dPanel.setBorder(BorderFactory.createLineBorder(Color.red));
-			openGLPanel.setBorder(BorderFactory.createLineBorder(Color.blue));
+			//java2dPanel.setBorder(BorderFactory.createLineBorder(Color.red));
+			//openGLPanel.setBorder(BorderFactory.createLineBorder(Color.blue));
 		}
 
 		@Override

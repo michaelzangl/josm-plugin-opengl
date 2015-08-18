@@ -12,20 +12,22 @@ public class QueryCachePrimitive<T extends OsmPrimitive> implements Runnable {
 	private final int max;
 	private final StyleGenerationState sgs;
 	private final StyleGeometryCache cache;
+	private final Class<T> primitiveType;
 
 	public QueryCachePrimitive(List<T> primitives, int min, int max,
-			StyleGenerationState sgs, StyleGeometryCache cache) {
+			StyleGenerationState sgs, StyleGeometryCache cache, Class<T> type) {
 		this.primitives = primitives;
 		this.min = min;
 		this.max = max;
 		this.sgs = sgs;
 		this.cache = cache;
+		this.primitiveType = type;
 	}
 
 	@Override
 	public void run() {
 		long start = System.currentTimeMillis();
-		StyledGeometryGenerator<OsmPrimitive> gen = new StyledGeometryGenerator<>(sgs);
+		StyledGeometryGenerator<T> gen = StyledGeometryGenerator.forType(sgs, primitiveType);
 		gen.startRunning();
 		try {
 			for (int i = min; i < max; i++) {

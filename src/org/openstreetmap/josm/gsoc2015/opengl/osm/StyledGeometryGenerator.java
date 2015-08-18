@@ -5,14 +5,18 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import org.openstreetmap.josm.Main;
 import org.openstreetmap.josm.data.osm.Node;
 import org.openstreetmap.josm.data.osm.OsmPrimitive;
 import org.openstreetmap.josm.data.osm.Relation;
+import org.openstreetmap.josm.data.osm.Way;
 import org.openstreetmap.josm.data.osm.visitor.paint.MapPaintSettings;
+import org.openstreetmap.josm.data.osm.visitor.paint.StyledMapRenderer;
 import org.openstreetmap.josm.gsoc2015.opengl.geometrycache.OsmPrimitiveRecorder;
 import org.openstreetmap.josm.gsoc2015.opengl.geometrycache.RecordedOsmGeometries;
 import org.openstreetmap.josm.gsoc2015.opengl.osm.OpenGLStyledMapRenderer.StyleGenerationState;
 import org.openstreetmap.josm.gui.NavigatableComponent;
+import org.openstreetmap.josm.gui.mappaint.AreaElemStyle;
 import org.openstreetmap.josm.gui.mappaint.ElemStyle;
 import org.openstreetmap.josm.gui.mappaint.ElemStyles;
 import org.openstreetmap.josm.gui.mappaint.MapPaintStyles;
@@ -28,7 +32,54 @@ import org.openstreetmap.josm.gui.mappaint.mapcss.MapCSSStyleSource;
  *
  * @param <T>
  */
-public class StyledGeometryGenerator<T extends OsmPrimitive> {
+public abstract class StyledGeometryGenerator<T extends OsmPrimitive> {
+	public static class NodeStyledGeometryGenerator extends
+			StyledGeometryGenerator<Node> {
+		protected NodeStyledGeometryGenerator(StyleGenerationState sgs) {
+			super(sgs);
+		}
+
+		protected void runForStyles(Node primitive, StyleList sl, long state) {
+			for (ElemStyle s : sl) {
+				runForStyle(primitive, s, state);
+			}
+		}
+	}
+
+	public static class WayStyledGeometryGenerator extends
+			StyledGeometryGenerator<Way> {
+		protected WayStyledGeometryGenerator(StyleGenerationState sgs) {
+			super(sgs);
+		}
+
+		protected void runForStyles(Way primitive, StyleList sl, long state) {
+			for (ElemStyle s : sl) {
+				if (!(drawArea && !primitive.isDisabled())
+						&& s instanceof AreaElemStyle) {
+					continue;
+				}
+				runForStyle(primitive, s, state);
+			}
+		}
+	}
+
+	public static class RelationStyledGeometryGenerator extends
+			StyledGeometryGenerator<Relation> {
+		protected RelationStyledGeometryGenerator(StyleGenerationState sgs) {
+			super(sgs);
+		}
+
+		protected void runForStyles(Relation primitive, StyleList sl, long state) {
+			for (ElemStyle s : sl) {
+				if (drawMultipolygon && drawArea && s instanceof AreaElemStyle
+						&& !primitive.isDisabled()) {
+					runForStyle(primitive, s, state);
+				} else if (drawRestriction && s instanceof NodeElemStyle) {
+					runForStyle(primitive, s, state);
+				}
+			}
+		}
+	}
 
 	/**
 	 * A primitive with {@link OsmPrimitive#isDisabled()}
@@ -74,10 +125,19 @@ public class StyledGeometryGenerator<T extends OsmPrimitive> {
 
 	private ArrayList<RecordedOsmGeometries> recorded = new ArrayList<>();
 
-	public StyledGeometryGenerator(StyleGenerationState sgs) {
+	protected final boolean drawArea;
+	protected final boolean drawMultipolygon;
+	protected final boolean drawRestriction = Main.pref.getBoolean(
+			"mappaint.restriction", true);
+
+	protected StyledGeometryGenerator(StyleGenerationState sgs) {
 		this.sgs = sgs;
 		recorder = new OsmPrimitiveRecorder(
 				new SimpleRecodingReceiver(recorded));
+		drawArea = sgs.getCircum() <= Main.pref.getInteger(
+				"mappaint.fillareas", 10000000);
+		drawMultipolygon = drawArea
+				&& Main.pref.getBoolean("mappaint.multipolygon", true);
 	}
 
 	/**
@@ -91,7 +151,8 @@ public class StyledGeometryGenerator<T extends OsmPrimitive> {
 				sgs.getCacheKey(), sgs.isInactiveMode());
 		recordingRenderer.getSettings(sgs.renderVirtualNodes());
 		// We don't really clip since we need the whole geometry for our cache.
-		recordingRenderer.setClipBounds(new Rectangle(-1000000, -1000000, 2000000, 2000000));
+		recordingRenderer.setClipBounds(new Rectangle(-1000000, -1000000,
+				2000000, 2000000));
 		MapCSSStyleSource.STYLE_SOURCE_LOCK.readLock().lock();
 		activeThread = Thread.currentThread();
 	}
@@ -119,9 +180,40 @@ public class StyledGeometryGenerator<T extends OsmPrimitive> {
 
 			StyleList sl = styles.get(primitive, sgs.getCircum(),
 					sgs.getCacheKey());
+			long state = getState(primitive);
 
+			runForStyles(primitive, sl, state);
+
+			// public void add(Node osm, int flags) {
+			// StyleList sl = styles.get(osm, circum, nc);
+			// for (ElemStyle s : sl) {
+			// output.add(new StyleRecord(s, osm, flags));
+			// }
+			// }
+			//
+			// public void add(Relation osm, int flags) {
+			// StyleList sl = styles.get(osm, circum, nc);
+			// for (ElemStyle s : sl) {
+			// if (drawMultipolygon && drawArea && s instanceof AreaElemStyle &&
+			// (flags & FLAG_DISABLED) == 0) {
+			// output.add(new StyleRecord(s, osm, flags));
+			// } else if (drawRestriction && s instanceof NodeElemStyle) {
+			// output.add(new StyleRecord(s, osm, flags));
+			// }
+			// }
+			// }
+			//
+			// public void add(Way osm, int flags) {
+			// StyleList sl = styles.get(osm, circum, nc);
+			// for (ElemStyle s : sl) {
+			// if (!(drawArea && (flags & FLAG_DISABLED) == 0) && s instanceof
+			// AreaElemStyle) {
+			// continue;
+			// }
+			// output.add(new StyleRecord(s, osm, flags));
+			// }
+			// }
 			for (ElemStyle s : sl) {
-				long state = getState(primitive);
 				runForStyle(primitive, s, state);
 			}
 		}
@@ -133,7 +225,16 @@ public class StyledGeometryGenerator<T extends OsmPrimitive> {
 		return received;
 	}
 
-	private void runForStyle(T primitive, ElemStyle s, long state) {
+	/**
+	 * 
+	 * @param primitive
+	 * @param sl
+	 * @param state
+	 * @see StyledMapRenderer.ComputeStyleListWorker#add()
+	 */
+	protected abstract void runForStyles(T primitive, StyleList sl, long state);
+
+	protected void runForStyle(T primitive, ElemStyle s, long state) {
 		recorder.start(primitive, sgs.getViewPosition(),
 				getOrderIndex(primitive, s, state));
 		s.paintPrimitive(primitive, MapPaintSettings.INSTANCE,
@@ -206,4 +307,21 @@ public class StyledGeometryGenerator<T extends OsmPrimitive> {
 		return signBit | (value & valueMask);
 	}
 
+	@SuppressWarnings("unchecked")
+	public static <T extends OsmPrimitive> StyledGeometryGenerator<T> forType(
+			StyleGenerationState sgs, Class<T> type) {
+		if (type.isAssignableFrom(Node.class)) {
+			return (StyledGeometryGenerator<T>) new NodeStyledGeometryGenerator(
+					sgs);
+		} else if (type.isAssignableFrom(Way.class)) {
+			return (StyledGeometryGenerator<T>) new WayStyledGeometryGenerator(
+					sgs);
+		} else if (type.isAssignableFrom(Relation.class)) {
+			return (StyledGeometryGenerator<T>) new RelationStyledGeometryGenerator(
+					sgs);
+		} else {
+			throw new IllegalArgumentException("Cannot generate goemtries for "
+					+ type);
+		}
+	}
 }

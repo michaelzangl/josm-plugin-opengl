@@ -73,6 +73,7 @@ final class GLDrawer implements GLEventListener {
 
 	private void drawAllLayers(GLAutoDrawable drawable) {
 		GL2 gl = drawable.getGL().getGL2();
+		//gl.glTranslatef(-.5f, -.5f, 0);
 		g2d.prePaint(drawable.getContext());
 
 		// Draw the window background

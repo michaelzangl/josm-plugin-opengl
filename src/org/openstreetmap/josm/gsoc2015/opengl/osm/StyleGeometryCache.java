@@ -222,7 +222,7 @@ public class StyleGeometryCache {
 			recordedForPrimitive.remove(inGroup);
 		}
 		for (RecordedOsmGeometries geo : g.getGeometries()) {
-			// TODO: geo.dispose(gl);
+			geo.dispose();
 		}
 	}
 
@@ -234,8 +234,8 @@ public class StyleGeometryCache {
 	 * @param generator
 	 * @return
 	 */
-	public void requestOrCreateGeometry(OsmPrimitive primitive,
-			StyledGeometryGenerator<OsmPrimitive> generator) {
+	public <T extends OsmPrimitive> void requestOrCreateGeometry(T primitive,
+			StyledGeometryGenerator<T> generator) {
 		// query primitive
 		MergeGroup list = recordedForPrimitive.get(primitive);
 		// style change. TODO: Handle zoom changes.
