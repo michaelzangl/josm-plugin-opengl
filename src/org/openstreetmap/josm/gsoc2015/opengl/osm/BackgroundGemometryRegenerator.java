@@ -10,6 +10,7 @@ import java.util.List;
 import org.openstreetmap.josm.data.osm.OsmPrimitive;
 import org.openstreetmap.josm.gsoc2015.opengl.geometrycache.HashGeometryMerger;
 import org.openstreetmap.josm.gsoc2015.opengl.geometrycache.MergeGroup;
+import org.openstreetmap.josm.gsoc2015.opengl.geometrycache.RecordedOsmGeometries;
 import org.openstreetmap.josm.tools.Pair;
 
 /**
@@ -26,7 +27,7 @@ import org.openstreetmap.josm.tools.Pair;
  */
 public class BackgroundGemometryRegenerator {
 
-	private final class RegenerationTask implements Runnable {
+	public final class RegenerationTask {
 		private ArrayList<MergeGroup> groupsToUse;
 
 		private HashGeometryMerger merger = new HashGeometryMerger();
@@ -40,28 +41,32 @@ public class BackgroundGemometryRegenerator {
 			this.groupsToUse = groupsToUse;
 		}
 
-		@Override
-		public void run() {
-			for (MergeGroup g : groupsToUse) {
-				for (OsmPrimitive p : g.getPrimitives()) {
-					if (aborted) {
-						return;
+		public void runWithGenerator(StyledGeometryGenerator generator) {
+			generator.startRunning();
+			try {
+				for (MergeGroup g : groupsToUse) {
+					for (OsmPrimitive p : g.getPrimitives()) {
+						if (aborted) {
+							return;
+						}
+						generateGeometries(p, generator);
 					}
-					generateGeometries(p);
 				}
+				if (aborted) {
+					return;
+				}
+				newGroups = merger.getMergeGroups();
+				merger = null;
+				doneWithRegenerationTask(this);
+			} finally {
+				generator.endRunning();
 			}
-			if (aborted) {
-				return;
-			}
-			newGroups = merger.getMergeGroups();
-			merger = null;
-			doneWithRegenerationTask(this);
 		}
 
-		private void generateGeometries(OsmPrimitive p) {
+		private void generateGeometries(OsmPrimitive p, StyledGeometryGenerator generator) {
 			removedPrimitives.add(p);
-			// TODO Auto-generated method stub
-
+			List<RecordedOsmGeometries> geometries = generator.runFor(p);
+			merger.addMergeables(p, geometries);
 		}
 
 		/**
@@ -114,7 +119,7 @@ public class BackgroundGemometryRegenerator {
 		}
 	}
 
-	protected RegenerationTask generateRegenerationTask() {
+	public RegenerationTask generateRegenerationTask() {
 		synchronized (regnenerationMutex) {
 			if (invalidatedMergeGroups.isEmpty()) {
 				return null;

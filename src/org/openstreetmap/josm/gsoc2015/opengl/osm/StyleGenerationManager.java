@@ -16,6 +16,7 @@ import org.openstreetmap.josm.data.osm.OsmPrimitive;
 import org.openstreetmap.josm.data.osm.Relation;
 import org.openstreetmap.josm.data.osm.Way;
 import org.openstreetmap.josm.gsoc2015.opengl.geometrycache.RecordedOsmGeometries;
+import org.openstreetmap.josm.gsoc2015.opengl.osm.BackgroundGemometryRegenerator.RegenerationTask;
 import org.openstreetmap.josm.gsoc2015.opengl.osm.OpenGLStyledMapRenderer.StyleGenerationState;
 import org.openstreetmap.josm.gsoc2015.opengl.osm.search.NodeSearcher;
 import org.openstreetmap.josm.gsoc2015.opengl.osm.search.OsmPrimitiveHandler;
@@ -148,6 +149,8 @@ public class StyleGenerationManager {
 	private static class BackgroundRegeneationRunner extends Thread {
 		private boolean shutdown;
 		private BackgroundGemometryRegenerator regenerator;
+		private StyleGenerationState state;
+		private final Object stateMutex = new Object();
 
 		public BackgroundRegeneationRunner(
 				BackgroundGemometryRegenerator regenerator, int index) {
@@ -157,15 +160,38 @@ public class StyleGenerationManager {
 
 		@Override
 		public void run() {
+			StyleGenerationState usedState = null;
+			StyledGeometryGenerator generator = null;
+			
 			while (!shutdown) {
 				regenerator.waitForNewWork();
 				if (shutdown) {
 					break;
 				}
-				Runnable nextTasks = regenerator.generateRegenerationTask();
-				if (nextTasks != null) {
-					nextTasks.run();
+				synchronized (stateMutex) {
+					if (usedState != state) {
+						if (state == null) {
+							// wait for a state to be set.
+							continue;
+						}
+						usedState = state;
+						generator = null;
+					}
 				}
+				if (generator == null) {
+					generator = new StyledGeometryGenerator(usedState);
+				}
+				
+				RegenerationTask nextTasks = regenerator.generateRegenerationTask();
+				if (nextTasks != null) {
+					nextTasks.runWithGenerator(generator);
+				}
+			}
+		}
+		
+		public void setState(StyleGenerationState state) {
+			synchronized (stateMutex) {
+				this.state = state;
 			}
 		}
 
@@ -190,10 +216,16 @@ public class StyleGenerationManager {
 		 * Stops this thread pool.
 		 */
 		public void stop() {
-			for (int i = 0; i < bgThreads.length; i++) {
-				bgThreads[i].shutdown();
+			for (BackgroundRegeneationRunner bgThread : bgThreads) {
+				bgThread.shutdown();
 			}
 			regenerator.resumeAllWaiting();
+		}
+
+		public void setState(StyleGenerationState sgs) {
+			for (BackgroundRegeneationRunner bgThread : bgThreads) {
+				bgThread.setState(sgs);
+			}
 		}
 	}
 
@@ -203,13 +235,11 @@ public class StyleGenerationManager {
 		private static final int BULK_SIZE = 5000;
 		private final StyleGenerationState sgs;
 		private final StyleGeometryCache cache;
-		private final Class<T> type;
 
 		public PrimitiveForDrawSearcher(StyleGenerationState sgs,
-				StyleGeometryCache cache, Class<T> type) {
+				StyleGeometryCache cache) {
 			this.sgs = sgs;
 			this.cache = cache;
-			this.type = type;
 		}
 
 		@Override
@@ -217,7 +247,7 @@ public class StyleGenerationManager {
 			for (int i = 0; i < primitives.size(); i += BULK_SIZE) {
 				drawThreadPool.scheduleTask(new QueryCachePrimitive<T>(
 						primitives, i, Math.min(primitives.size(), i
-								+ BULK_SIZE), sgs, cache, type));
+								+ BULK_SIZE), sgs, cache));
 			}
 		}
 	}
@@ -232,16 +262,16 @@ public class StyleGenerationManager {
 	public List<RecordedOsmGeometries> getDrawGeometries(BBox bbox,
 			StyleGenerationState sgs) {
 		long time1 = System.currentTimeMillis();
+		geometryGenerationThreads.setState(sgs);
 		cache.startFrame();
 		drawThreadPool.scheduleTask(new NodeSearcher(
-				new PrimitiveForDrawSearcher<Node>(sgs, cache, Node.class),
+				new PrimitiveForDrawSearcher<Node>(sgs, cache),
 				data, bbox));
 		drawThreadPool.scheduleTask(new WaySearcher(
-				new PrimitiveForDrawSearcher<Way>(sgs, cache, Way.class), data,
+				new PrimitiveForDrawSearcher<Way>(sgs, cache), data,
 				bbox));
 		drawThreadPool.scheduleTask(new RelationSearcher(
-				new PrimitiveForDrawSearcher<Relation>(sgs, cache,
-						Relation.class), data, bbox));
+				new PrimitiveForDrawSearcher<Relation>(sgs, cache), data, bbox));
 		drawThreadPool.finish();
 		List<RecordedOsmGeometries> recorded = cache.endFrame();
 		long time2 = System.currentTimeMillis();

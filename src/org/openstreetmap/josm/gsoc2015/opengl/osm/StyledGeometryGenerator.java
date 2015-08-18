@@ -6,10 +6,12 @@ import java.util.Collections;
 import java.util.List;
 
 import org.openstreetmap.josm.Main;
+import org.openstreetmap.josm.data.osm.Changeset;
 import org.openstreetmap.josm.data.osm.Node;
 import org.openstreetmap.josm.data.osm.OsmPrimitive;
 import org.openstreetmap.josm.data.osm.Relation;
 import org.openstreetmap.josm.data.osm.Way;
+import org.openstreetmap.josm.data.osm.visitor.Visitor;
 import org.openstreetmap.josm.data.osm.visitor.paint.MapPaintSettings;
 import org.openstreetmap.josm.data.osm.visitor.paint.StyledMapRenderer;
 import org.openstreetmap.josm.gsoc2015.opengl.geometrycache.OsmPrimitiveRecorder;
@@ -32,55 +34,7 @@ import org.openstreetmap.josm.gui.mappaint.mapcss.MapCSSStyleSource;
  *
  * @param <T>
  */
-public abstract class StyledGeometryGenerator<T extends OsmPrimitive> {
-	public static class NodeStyledGeometryGenerator extends
-			StyledGeometryGenerator<Node> {
-		protected NodeStyledGeometryGenerator(StyleGenerationState sgs) {
-			super(sgs);
-		}
-
-		protected void runForStyles(Node primitive, StyleList sl, long state) {
-			for (ElemStyle s : sl) {
-				runForStyle(primitive, s, state);
-			}
-		}
-	}
-
-	public static class WayStyledGeometryGenerator extends
-			StyledGeometryGenerator<Way> {
-		protected WayStyledGeometryGenerator(StyleGenerationState sgs) {
-			super(sgs);
-		}
-
-		protected void runForStyles(Way primitive, StyleList sl, long state) {
-			for (ElemStyle s : sl) {
-				if (!(drawArea && !primitive.isDisabled())
-						&& s instanceof AreaElemStyle) {
-					continue;
-				}
-				runForStyle(primitive, s, state);
-			}
-		}
-	}
-
-	public static class RelationStyledGeometryGenerator extends
-			StyledGeometryGenerator<Relation> {
-		protected RelationStyledGeometryGenerator(StyleGenerationState sgs) {
-			super(sgs);
-		}
-
-		protected void runForStyles(Relation primitive, StyleList sl, long state) {
-			for (ElemStyle s : sl) {
-				if (drawMultipolygon && drawArea && s instanceof AreaElemStyle
-						&& !primitive.isDisabled()) {
-					runForStyle(primitive, s, state);
-				} else if (drawRestriction && s instanceof NodeElemStyle) {
-					runForStyle(primitive, s, state);
-				}
-			}
-		}
-	}
-
+public class StyledGeometryGenerator implements Visitor {
 	/**
 	 * A primitive with {@link OsmPrimitive#isDisabled()}
 	 * <p>
@@ -183,7 +137,7 @@ public abstract class StyledGeometryGenerator<T extends OsmPrimitive> {
 	 *            The primitive to run for.
 	 * @return The list of geometries for that primitive.
 	 */
-	public List<RecordedOsmGeometries> runFor(T primitive) {
+	public List<RecordedOsmGeometries> runFor(OsmPrimitive primitive) {
 		sgs.incrementDrawCounter();
 		if (primitive.isDrawable()) {
 			if (activeThread != Thread.currentThread()) {
@@ -191,11 +145,7 @@ public abstract class StyledGeometryGenerator<T extends OsmPrimitive> {
 						"endRunning() called in the wrong thread.");
 			}
 
-			StyleList sl = styles.get(primitive, sgs.getCircum(),
-					sgs.getCacheKey());
-			long state = getState(primitive);
-
-			runForStyles(primitive, sl, state);
+			runForStyles(primitive);
 		}
 		ArrayList<RecordedOsmGeometries> received = new ArrayList<>(recorded);
 		for (RecordedOsmGeometries r : received) {
@@ -206,15 +156,63 @@ public abstract class StyledGeometryGenerator<T extends OsmPrimitive> {
 	}
 
 	/**
+	 * Generates the styles for a single primitive.
+	 * <p>
+	 * Since the style cache is not synchronized, we need to ensure that we do
+	 * not generate a primitive in background and in foreground on the same
+	 * time.
 	 * 
 	 * @param primitive
-	 * @param sl
-	 * @param state
+	 *            The primitive.
 	 * @see StyledMapRenderer.ComputeStyleListWorker#add()
 	 */
-	protected abstract void runForStyles(T primitive, StyleList sl, long state);
+	protected void runForStyles(OsmPrimitive primitive) {
+		synchronized (primitive) {
+			primitive.accept(this);
+		}
+	}
 
-	protected void runForStyle(T primitive, ElemStyle s, long state) {
+	@Override
+	public void visit(Node n) {
+		StyleList sl = styles.get(n, sgs.getCircum(), sgs.getCacheKey());
+		long state = getState(n);
+		for (ElemStyle s : sl) {
+			runForStyle(n, s, state);
+		}
+	}
+
+	@Override
+	public void visit(Way w) {
+		StyleList sl = styles.get(w, sgs.getCircum(), sgs.getCacheKey());
+		long state = getState(w);
+		for (ElemStyle s : sl) {
+			if (!(drawArea && !w.isDisabled()) && s instanceof AreaElemStyle) {
+				continue;
+			}
+			runForStyle(w, s, state);
+		}
+	}
+
+	@Override
+	public void visit(Relation r) {
+		StyleList sl = styles.get(r, sgs.getCircum(), sgs.getCacheKey());
+		long state = getState(r);
+		for (ElemStyle s : sl) {
+			if (drawMultipolygon && drawArea && s instanceof AreaElemStyle
+					&& !r.isDisabled()) {
+				runForStyle(r, s, state);
+			} else if (drawRestriction && s instanceof NodeElemStyle) {
+				runForStyle(r, s, state);
+			}
+		}
+	}
+
+	@Override
+	public void visit(Changeset cs) {
+		throw new UnsupportedOperationException();
+	}
+
+	protected void runForStyle(OsmPrimitive primitive, ElemStyle s, long state) {
 		recorder.start(primitive, sgs.getViewPosition(),
 				getOrderIndex(primitive, s, state));
 		s.paintPrimitive(primitive, MapPaintSettings.INSTANCE,
@@ -287,23 +285,5 @@ public abstract class StyledGeometryGenerator<T extends OsmPrimitive> {
 		long valueMask = (highestBitMask - 1);
 		long signBit = number < 0 ? 0 : highestBitMask;
 		return signBit | (value & valueMask);
-	}
-
-	@SuppressWarnings("unchecked")
-	public static <T extends OsmPrimitive> StyledGeometryGenerator<T> forType(
-			StyleGenerationState sgs, Class<T> type) {
-		if (type.isAssignableFrom(Node.class)) {
-			return (StyledGeometryGenerator<T>) new NodeStyledGeometryGenerator(
-					sgs);
-		} else if (type.isAssignableFrom(Way.class)) {
-			return (StyledGeometryGenerator<T>) new WayStyledGeometryGenerator(
-					sgs);
-		} else if (type.isAssignableFrom(Relation.class)) {
-			return (StyledGeometryGenerator<T>) new RelationStyledGeometryGenerator(
-					sgs);
-		} else {
-			throw new IllegalArgumentException("Cannot generate goemtries for "
-					+ type);
-		}
 	}
 }

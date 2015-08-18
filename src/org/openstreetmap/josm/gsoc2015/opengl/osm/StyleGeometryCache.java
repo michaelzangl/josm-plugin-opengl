@@ -165,7 +165,8 @@ public class StyleGeometryCache {
 			}
 			for (OsmPrimitive s : newSelection) {
 				if (!selected.contains(s)) {
-					// invalidateGeometry(s);
+					// De-selected geometries seem not to get a notification.
+					invalidateGeometry(s);
 				}
 			}
 
@@ -179,12 +180,12 @@ public class StyleGeometryCache {
 	 */
 	private Hashtable<OsmPrimitive, MergeGroup> recordedForPrimitive = new Hashtable<>();
 
-	/**
-	 * A list of geometries that are colllected to be drawn this frame from the
-	 * cache.
-	 */
-	private Set<RecordedOsmGeometries> collectedForFrame = Collections
-			.synchronizedSet(new HashSet<RecordedOsmGeometries>());
+//	/**
+//	 * A list of geometries that are colllected to be drawn this frame from the
+//	 * cache.
+//	 */
+//	private Set<RecordedOsmGeometries> collectedForFrame = Collections
+//			.synchronizedSet(new HashSet<RecordedOsmGeometries>());
 
 	/**
 	 * A list of geometries that were created in this frame and are not yet in
@@ -246,7 +247,7 @@ public class StyleGeometryCache {
 	}
 
 	public void startFrame() {
-		collectedForFrame.clear();
+		reset();
 		collectedForFrameMerger = new HashGeometryMerger();
 
 		Pair<Collection<OsmPrimitive>, Collection<MergeGroup>> groupsAndPrimitives = regenerator
@@ -286,7 +287,10 @@ public class StyleGeometryCache {
 	public ArrayList<RecordedOsmGeometries> endFrame() {
 		// get all geometries from merger.
 		ArrayList<RecordedOsmGeometries> list = new ArrayList<>(
-				collectedForFrame);
+				);
+		for (MergeGroup g : groupsForThisFrame) {
+			list.addAll(g.getGeometries());
+		}
 		ArrayList<RecordedOsmGeometries> fromMerger = collectedForFrameMerger
 				.getGeometries();
 		System.out.println("Received " + list.size()
@@ -296,8 +300,13 @@ public class StyleGeometryCache {
 		updateMergeGroups(collectedForFrameMerger.getMergeGroups());
 		list.addAll(fromMerger);
 		collectedForFrameMerger = null;
-		collectedForFrame.clear();
+		reset();
 		return list;
+	}
+
+	private void reset() {
+		groupsForThisFrame.clear();
+		primitivesRegenerated.clear();
 	}
 
 	private void updateMergeGroups(Collection<MergeGroup> mergeGroups) {
@@ -332,6 +341,12 @@ public class StyleGeometryCache {
 		}
 	}
 
+	private HashSet<MergeGroup> groupsForThisFrame = new HashSet<>();
+	/**
+	 * A set of primitives that are/will be in the current merger. This prevents us from adding one twice.
+	 */
+	private HashSet<OsmPrimitive> primitivesRegenerated = new HashSet<>();
+
 	/**
 	 * <p>
 	 * This may only be called for each primitive once in every frame.
@@ -340,40 +355,53 @@ public class StyleGeometryCache {
 	 * @param generator
 	 * @return
 	 */
-	public <T extends OsmPrimitive> void requestOrCreateGeometry(T primitive,
-			StyledGeometryGenerator<T> generator) {
-		// query primitive
-		MergeGroup list = recordedForPrimitive.get(primitive);
-		// style change. TODO: Handle zoom changes.
-		// TODO: Listen to cache invalidation events.
-		if (primitive.mappaintStyle == null
-				|| (list != null && (primitive.mappaintStyle != list
-						.getStyleCacheUsed(primitive) || primitive
-						.isHighlighted() != list
-						.getStyleCacheUsedHighlighted(primitive)))) {
-			invalidateGeometry(primitive);
-			list = recordedForPrimitive.get(primitive);
-		}
-		// if not exists and generator is set
-		if (list == null) {
-			if (generator != null) {
-				// -- call generator. Generator returns list of geometries
-				// -- pass on to merger
-				List<RecordedOsmGeometries> geometries = generator
-						.runFor(primitive);
-				// long time = System.currentTimeMillis();
-				collectedForFrameMerger.addMergeables(primitive, geometries);
-				// System.out.println("Merge time: " +
-				// (System.currentTimeMillis() - time) + "ms");
+	public <T extends OsmPrimitive> void requestOrCreateGeometry(OsmPrimitive primitive,
+			StyledGeometryGenerator generator) {
+		Collection<OsmPrimitive> regenerate = null;
+		synchronized (this) {
+			MergeGroup group = recordedForPrimitive.get(primitive);
+			// TODO: Listen to cache invalidation events.
+			if (group != null
+					&& (primitive.mappaintStyle == null || (primitive.mappaintStyle != group
+							.getStyleCacheUsed(primitive) || primitive
+							.isHighlighted() != group
+							.getStyleCacheUsedHighlighted(primitive)))) {
+				groupsForThisFrame.remove(group);
+				invalidate(group);
+				regenerate = new ArrayList<>();
+				for (OsmPrimitive p : group.getPrimitives()) {
+					if (primitivesRegenerated.add(p)) {
+						regenerate.add(p);
+					}
+				}
+			} else if (group == null) {
+				if (primitivesRegenerated.add(primitive)) {
+					regenerate = Collections.singleton(primitive);
+				}
+
 			} else {
-				// if not exists and no generator is set
-				// -- schedule for background generation
+				// -- add the geometries to collectedForFrame
+				groupsForThisFrame.add(group);
 			}
-		} else {
-			// -- add the geometries to collectedForFrame
-			collectedForFrame.addAll(list.getGeometries());
 		}
 
+		// Now regenerate those geometries outside of lock.
+		if (regenerate != null) {
+			for (OsmPrimitive p : regenerate) {
+				regenerateGeometryFor(p, generator);
+			}
+		}
+	}
+
+	private void regenerateGeometryFor(OsmPrimitive primitive,
+			StyledGeometryGenerator generator) {
+		if (generator != null) {
+			List<RecordedOsmGeometries> geometries = generator
+					.runFor(primitive);
+			collectedForFrameMerger.addMergeables(primitive, geometries);
+		} else {
+			// TODO: Schedule for background rendering.
+		}
 	}
 
 	/**
