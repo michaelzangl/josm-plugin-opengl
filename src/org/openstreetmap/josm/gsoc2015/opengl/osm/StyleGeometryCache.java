@@ -98,14 +98,15 @@ public class StyleGeometryCache {
 		public void relationMembersChanged(RelationMembersChangedEvent event) {
 			// the changed members get a clearCachedStyle(), but not the
 			// relation itself.
-			invalidateGeometry(event.getRelation());
+			deepInvalidate(event.getRelation(), new HashSet<OsmPrimitive>());
 		}
 
 		@Override
 		public void primitivesRemoved(PrimitivesRemovedEvent event) {
+			HashSet<OsmPrimitive> hashSet = new HashSet<OsmPrimitive>();
 			for (final OsmPrimitive p : event.getPrimitives()) {
-				invalidateGeometry(p);
-				// we ignore child nodes/...
+				// we ignore child nodes but respect relations referencing this.
+				deepInvalidate(p, hashSet);
 			}
 		}
 
@@ -121,9 +122,17 @@ public class StyleGeometryCache {
 
 		@Override
 		public void nodeMoved(NodeMovedEvent event) {
-			invalidateGeometry(event.getNode());
-			for (final OsmPrimitive ref : event.getNode().getReferrers()) {
-				invalidateGeometry(ref);
+			deepInvalidate(event.getNode(), new HashSet<OsmPrimitive>());
+		}
+
+		private void deepInvalidate(OsmPrimitive p,
+				HashSet<OsmPrimitive> invalidated) {
+			if (!invalidated.add(p)) {
+				return;
+			}
+			invalidateGeometry(p);
+			for (final OsmPrimitive ref : p.getReferrers()) {
+				deepInvalidate(ref, invalidated);
 			}
 		}
 
@@ -402,10 +411,11 @@ public class StyleGeometryCache {
 			final MergeGroup group = recordedForPrimitive.get(primitive);
 			// TODO: Listen to cache invalidation events.
 			if (group != null
-					&& (primitive.mappaintStyle == null || primitive.mappaintStyle != group
-					.getStyleCacheUsed(primitive) || primitive
-					.isHighlighted() != group
-					.getStyleCacheUsedHighlighted(primitive))) {
+					&& (primitive.mappaintStyle == null
+							|| primitive.mappaintStyle != group
+									.getStyleCacheUsed(primitive) || primitive
+							.isHighlighted() != group
+							.getStyleCacheUsedHighlighted(primitive))) {
 				groupsForThisFrame.remove(group);
 				invalidate(group);
 				regenerate = new ArrayList<>();
@@ -493,7 +503,8 @@ public class StyleGeometryCache {
 	 */
 	public void invalidateAll() {
 		while (!recordedForPrimitive.isEmpty()) {
-			final MergeGroup first = recordedForPrimitive.values().iterator().next();
+			final MergeGroup first = recordedForPrimitive.values().iterator()
+					.next();
 			// this might also remove some other primitives form the cache.
 			invalidate(first);
 		}

@@ -66,9 +66,8 @@ import org.openstreetmap.josm.gsoc2015.opengl.osm.search.WaySearcher;
  * </ol>
  *
  * All entries marked for drawing are then displayed. As soon as new geometries
- * are generated, a redraw is scheduled (TODO: delayed).
+ * are generated, a redraw is scheduled.
  * <p>
- * TODO: Wait a bit here.
  *
  *
  * <h2>Cache cleaning</h2>
@@ -82,6 +81,7 @@ import org.openstreetmap.josm.gsoc2015.opengl.osm.search.WaySearcher;
  * We should clean:
  * <ul>
  * <li>Primitives with tag changes
+ * <li>Primitives with style changes.
  * </ul>
  *
  * @author Michael Zangl
