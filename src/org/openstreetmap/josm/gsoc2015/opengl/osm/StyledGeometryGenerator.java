@@ -2,7 +2,6 @@ package org.openstreetmap.josm.gsoc2015.opengl.osm;
 
 import java.awt.Rectangle;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 import org.openstreetmap.josm.Main;
@@ -29,7 +28,7 @@ import org.openstreetmap.josm.gui.mappaint.mapcss.MapCSSStyleSource;
 /**
  * This class computes the styles for a given array of elements. This class only
  * allows one thread to send requests.
- * 
+ *
  * @author michael
  *
  * @param <T>
@@ -40,26 +39,26 @@ public class StyledGeometryGenerator implements Visitor {
 	 * <p>
 	 * This is the sign bit. So primitives with this set appear on the bottom.
 	 */
-	private static final long FLAG_DISABLED = (1 << 63);
+	private static final long FLAG_DISABLED = 1 << 63;
 
 	private static final long STATE_NORMAL = 0;
 	/**
 	 * A primitive with {@link OsmPrimitive#isMemberOfSelected()}
 	 */
-	private static final long STATE_MEMBER_OF_SELECTED = (1 << 25);
+	private static final long STATE_MEMBER_OF_SELECTED = 1 << 25;
 	/**
 	 * A primitive with {@link OsmPrimitive#isSelected()}
 	 */
-	private static final long STATE_SELECTED = (2 << 25);
+	private static final long STATE_SELECTED = 2 << 25;
 	/**
 	 * A primitive with {@link OsmPrimitive#isOuterMemberOfSelected()}
 	 */
-	private static final long STATE_OUTERMEMBER_OF_SELECTED = (3 << 25);
+	private static final long STATE_OUTERMEMBER_OF_SELECTED = 3 << 25;
 
 	/**
 	 * A class implementing this interface provides all state data to access the
 	 * MapCSS style cache.
-	 * 
+	 *
 	 * @author Michael Zangl
 	 */
 	interface ChacheDataSupplier {
@@ -83,7 +82,7 @@ public class StyledGeometryGenerator implements Visitor {
 	/**
 	 * A list of geometries that were generated.
 	 */
-	private ArrayList<RecordedOsmGeometries> recorded = new ArrayList<>();
+	private final ArrayList<RecordedOsmGeometries> recorded = new ArrayList<>();
 
 	protected final boolean drawArea;
 	protected final boolean drawMultipolygon;
@@ -132,13 +131,13 @@ public class StyledGeometryGenerator implements Visitor {
 
 	/**
 	 * Generates the geometries for a single primitive.
-	 * 
+	 *
 	 * @param primitive
 	 *            The primitive to run for.
 	 * @return The list of geometries for that primitive.
 	 */
 	public List<RecordedOsmGeometries> runFor(OsmPrimitive primitive) {
-		sgs.incrementDrawCounter();
+		sgs.incrementGenerationCounter();
 		if (primitive.isDrawable()) {
 			if (activeThread != Thread.currentThread()) {
 				throw new IllegalStateException(
@@ -147,8 +146,8 @@ public class StyledGeometryGenerator implements Visitor {
 
 			runForStyles(primitive);
 		}
-		ArrayList<RecordedOsmGeometries> received = new ArrayList<>(recorded);
-		for (RecordedOsmGeometries r : received) {
+		final ArrayList<RecordedOsmGeometries> received = new ArrayList<>(recorded);
+		for (final RecordedOsmGeometries r : received) {
 			r.mergeChildren();
 		}
 		recorded.clear();
@@ -161,7 +160,7 @@ public class StyledGeometryGenerator implements Visitor {
 	 * Since the style cache is not synchronized, we need to ensure that we do
 	 * not generate a primitive in background and in foreground on the same
 	 * time.
-	 * 
+	 *
 	 * @param primitive
 	 *            The primitive.
 	 * @see StyledMapRenderer.ComputeStyleListWorker#add()
@@ -174,18 +173,18 @@ public class StyledGeometryGenerator implements Visitor {
 
 	@Override
 	public void visit(Node n) {
-		StyleList sl = styles.get(n, sgs.getCircum(), sgs.getCacheKey());
-		long state = getState(n);
-		for (ElemStyle s : sl) {
+		final StyleList sl = styles.get(n, sgs.getCircum(), sgs.getCacheKey());
+		final long state = getState(n);
+		for (final ElemStyle s : sl) {
 			runForStyle(n, s, state);
 		}
 	}
 
 	@Override
 	public void visit(Way w) {
-		StyleList sl = styles.get(w, sgs.getCircum(), sgs.getCacheKey());
-		long state = getState(w);
-		for (ElemStyle s : sl) {
+		final StyleList sl = styles.get(w, sgs.getCircum(), sgs.getCacheKey());
+		final long state = getState(w);
+		for (final ElemStyle s : sl) {
 			if (!(drawArea && !w.isDisabled()) && s instanceof AreaElemStyle) {
 				continue;
 			}
@@ -195,9 +194,9 @@ public class StyledGeometryGenerator implements Visitor {
 
 	@Override
 	public void visit(Relation r) {
-		StyleList sl = styles.get(r, sgs.getCircum(), sgs.getCacheKey());
-		long state = getState(r);
-		for (ElemStyle s : sl) {
+		final StyleList sl = styles.get(r, sgs.getCircum(), sgs.getCacheKey());
+		final long state = getState(r);
+		for (final ElemStyle s : sl) {
 			if (drawMultipolygon && drawArea && s instanceof AreaElemStyle
 					&& !r.isDisabled()) {
 				runForStyle(r, s, state);
@@ -233,14 +232,14 @@ public class StyledGeometryGenerator implements Visitor {
 	 * <li>Bit 1 - 24: minor Z index
 	 * <li>Bit 0: SIMPLE_NODE_ELEMSTYLE
 	 * </ul>
-	 * 
+	 *
 	 * @return A long that has the same order as if the style was sorted by the
 	 *         Java2D implementation.
 	 */
 	private static long getOrderIndex(OsmPrimitive primitive, ElemStyle s,
 			long state) {
-		int MAJOR_SHIFT = 32;
-		int MINOR_SHIFT = 1;
+		final int MAJOR_SHIFT = 32;
+		final int MINOR_SHIFT = 1;
 		long orderIndex = 0;
 		if (primitive.isDisabled()) {
 			orderIndex |= FLAG_DISABLED;
@@ -269,7 +268,7 @@ public class StyledGeometryGenerator implements Visitor {
 
 	/**
 	 * Converts a float to a normal integer so that the order stays the same.
-	 * 
+	 *
 	 * @param number
 	 * @param totalBits
 	 *            Total number of bits. 1 sign bit, then the bits before the
@@ -280,10 +279,10 @@ public class StyledGeometryGenerator implements Visitor {
 	 */
 	private static long floatToFixed(double number, int totalBits,
 			int afterSignBits) {
-		long value = (long) (number * (1l << afterSignBits));
-		long highestBitMask = 1l << (totalBits - 1);
-		long valueMask = (highestBitMask - 1);
-		long signBit = number < 0 ? 0 : highestBitMask;
-		return signBit | (value & valueMask);
+		final long value = (long) (number * (1l << afterSignBits));
+		final long highestBitMask = 1l << totalBits - 1;
+		final long valueMask = highestBitMask - 1;
+		final long signBit = number < 0 ? 0 : highestBitMask;
+		return signBit | value & valueMask;
 	}
 }

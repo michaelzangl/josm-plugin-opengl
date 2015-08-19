@@ -13,11 +13,28 @@ import org.openstreetmap.josm.gsoc2015.opengl.geometrycache.DrawStats;
 import org.openstreetmap.josm.gsoc2015.opengl.geometrycache.GLState;
 import org.openstreetmap.josm.gsoc2015.opengl.geometrycache.RecordedOsmGeometries;
 import org.openstreetmap.josm.gsoc2015.opengl.osm.StyledGeometryGenerator.ChacheDataSupplier;
-import org.openstreetmap.josm.gsoc2015.opengl.util.DebugUtils;
+import org.openstreetmap.josm.gui.MapView;
 import org.openstreetmap.josm.gui.NavigatableComponent;
 
+/**
+ * This is our implementaion of the map renderer. It renders a MapCSS styled map
+ * using OpenGL and a geometry cache.
+ *
+ * @author Michael Zangl
+ *
+ */
 public class OpenGLStyledMapRenderer extends StyledMapRenderer {
 
+	/**
+	 * Create a new renderer.
+	 *
+	 * @param g
+	 *            The graphics.
+	 * @param nc
+	 *            The map view
+	 * @param isInactiveMode
+	 *            If we are in inactive mode.
+	 */
 	public OpenGLStyledMapRenderer(GLGraphics2D g, NavigatableComponent nc,
 			boolean isInactiveMode) {
 		super(g, nc, isInactiveMode);
@@ -28,13 +45,16 @@ public class OpenGLStyledMapRenderer extends StyledMapRenderer {
 
 		@Override
 		public synchronized void requestRepaint() {
+			// only call nc.repaint() once.
 			if (!repaintRequested) {
 				repaintRequested = true;
-				System.out.println("Repaint: " + DebugUtils.getStackTrace());
 				nc.repaint();
 			}
 		}
 
+		/**
+		 * Called on every paint call to clear the repaint request flag.
+		 */
 		public synchronized void paining() {
 			repaintRequested = false;
 		}
@@ -49,19 +69,34 @@ public class OpenGLStyledMapRenderer extends StyledMapRenderer {
 	 * <p>
 	 * The style generation / point computation does not use this state. Changes
 	 * to JOSM are required to allow this.
-	 * 
+	 *
 	 * @author Michael Zangl
 	 */
 	public static class StyleGenerationState implements ChacheDataSupplier {
-		private static final long MAX_TIME = 50;
+		/**
+		 * Maximum time to run in Milliseconds. After this time, no new
+		 * geometries are generated in this frame and we just collect old ones.
+		 */
+		public static int MAX_TIME = 50;
+		/**
+		 * MAximum number of geometries to immediately generate on each frame.
+		 */
 		public static int MAX_GEOMETRIES_GENERATED = 5000;
+		/**
+		 * The current circum.
+		 *
+		 * @see MapView#getDist100Pixel()
+		 */
 		private final double circum;
+		/**
+		 * The current view position.
+		 */
 		private final ViewPosition viewPosition;
 
 		private int geometriesGenerated = 0;
-		
+
 		private long startTime = 0;
-		
+
 		private boolean enoughGometriesGenerated;
 
 		private final boolean renderVirtualNodes, isInactiveMode;
@@ -98,27 +133,36 @@ public class OpenGLStyledMapRenderer extends StyledMapRenderer {
 			return circum;
 		}
 
+		/**
+		 * Get the current view position used for rendering.
+		 *
+		 * @return The {@link ViewPosition}
+		 */
 		public ViewPosition getViewPosition() {
 			return viewPosition;
 		}
 
 		/**
 		 * Tests if we should generate one more geometry.
-		 * 
-		 * @return
+		 *
+		 * @return <code>true</code> if the new geometry should be generated
+		 *         now.
 		 */
 		public synchronized boolean shouldGenerateGeometry() {
 			return !enoughGometriesGenerated;
 		}
 
-		public synchronized void incrementDrawCounter() {
+		/**
+		 * This should be called on every generation of a new geometry.
+		 */
+		public synchronized void incrementGenerationCounter() {
 			geometriesGenerated++;
 			if (geometriesGenerated % 5 == 0) {
 				if (startTime + MAX_TIME < System.currentTimeMillis()) {
 					enoughGometriesGenerated = true;
 				}
 			}
-			
+
 			if (geometriesGenerated > MAX_GEOMETRIES_GENERATED) {
 				enoughGometriesGenerated = true;
 			}
@@ -126,6 +170,11 @@ public class OpenGLStyledMapRenderer extends StyledMapRenderer {
 	}
 
 	private final RepaintListener repaintListener = new RepaintListener();
+
+	/**
+	 * The style manager that does the management of the cache and all styles to
+	 * draw.
+	 */
 	private StyleGenerationManager manager = null;
 
 	@Override
@@ -139,33 +188,33 @@ public class OpenGLStyledMapRenderer extends StyledMapRenderer {
 
 		repaintListener.paining();
 
-		BBox bbox = bounds.toBBox();
+		final BBox bbox = bounds.toBBox();
 		getSettings(renderVirtualNodes);
 		data.getReadLock().lock();
 		try {
-			long time1 = System.currentTimeMillis();
+			final long time1 = System.currentTimeMillis();
 			// StyleWorkQueue styleWorkQueue = new StyleWorkQueue(data);
 			// styleWorkQueue.setArea(bbox);
-			StyleGenerationState sgs = new StyleGenerationState(getCircum(),
+			final StyleGenerationState sgs = new StyleGenerationState(getCircum(),
 					ViewPosition.from(nc), renderVirtualNodes, isInactiveMode,
 					nc);
-			List<RecordedOsmGeometries> geometries = manager.getDrawGeometries(
+			final List<RecordedOsmGeometries> geometries = manager.getDrawGeometries(
 					bbox, sgs);
-			long time2 = System.currentTimeMillis();
+			final long time2 = System.currentTimeMillis();
 
 			DrawStats.reset();
 
-			GL2 gl = ((GLGraphics2D) g).getGLContext().getGL().getGL2();
-			GLState state = new GLState(gl);
+			final GL2 gl = ((GLGraphics2D) g).getGLContext().getGL().getGL2();
+			final GLState state = new GLState(gl);
 			state.initialize(ViewPosition.from(nc));
-			for (RecordedOsmGeometries s : geometries) {
+			for (final RecordedOsmGeometries s : geometries) {
 				s.draw(gl, state);
 			}
 			state.done();
-			long time4 = System.currentTimeMillis();
+			final long time4 = System.currentTimeMillis();
 
 			drawVirtualNodes(data, bbox);
-			long time5 = System.currentTimeMillis();
+			final long time5 = System.currentTimeMillis();
 			System.out.println("Create styles: " + (time2 - time1)
 					+ "ms, draw: " + (time4 - time2) + "ms, draw virtual: "
 					+ (time5 - time4) + "ms; total: " + (time5 - time1) + "ms");
@@ -176,6 +225,9 @@ public class OpenGLStyledMapRenderer extends StyledMapRenderer {
 		}
 	}
 
+	/**
+	 * Frees all resources used by this renderer.
+	 */
 	public void dispose() {
 		manager.dispose();
 	}

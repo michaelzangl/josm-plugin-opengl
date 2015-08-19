@@ -11,13 +11,13 @@ import org.openstreetmap.josm.gui.MapView;
 
 /**
  * We should use events for this.
- * 
+ *
  * @author michael
  *
  */
 public class MapViewportObserver {
-	private MapView mapView;
-	private List<MapViewportListener> mapViewportListeners = new CopyOnWriteArrayList<>();
+	private final MapView mapView;
+	private final List<MapViewportListener> mapViewportListeners = new CopyOnWriteArrayList<>();
 
 	public interface MapViewportListener {
 
@@ -41,36 +41,44 @@ public class MapViewportObserver {
 			final int prime = 31;
 			int result = 1;
 			result = prime * result
-					+ ((center == null) ? 0 : center.hashCode());
+					+ (center == null ? 0 : center.hashCode());
 			long temp;
 			temp = Double.doubleToLongBits(scale);
-			result = prime * result + (int) (temp ^ (temp >>> 32));
-			result = prime * result + ((size == null) ? 0 : size.hashCode());
+			result = prime * result + (int) (temp ^ temp >>> 32);
+			result = prime * result + (size == null ? 0 : size.hashCode());
 			return result;
 		}
 
 		@Override
 		public boolean equals(Object obj) {
-			if (this == obj)
+			if (this == obj) {
 				return true;
-			if (obj == null)
+			}
+			if (obj == null) {
 				return false;
-			if (getClass() != obj.getClass())
+			}
+			if (getClass() != obj.getClass()) {
 				return false;
-			MapViewportPosition other = (MapViewportPosition) obj;
+			}
+			final MapViewportPosition other = (MapViewportPosition) obj;
 			if (center == null) {
-				if (other.center != null)
+				if (other.center != null) {
 					return false;
-			} else if (!center.equals(other.center))
+				}
+			} else if (!center.equals(other.center)) {
 				return false;
+			}
 			if (Double.doubleToLongBits(scale) != Double
-					.doubleToLongBits(other.scale))
+					.doubleToLongBits(other.scale)) {
 				return false;
+			}
 			if (size == null) {
-				if (other.size != null)
+				if (other.size != null) {
 					return false;
-			} else if (!size.equals(other.size))
+				}
+			} else if (!size.equals(other.size)) {
 				return false;
+			}
 			return true;
 		}
 	}
@@ -88,7 +96,7 @@ public class MapViewportObserver {
 		new Timer("MapViewportObserver").schedule(new TimerTask() {
 			@Override
 			public void run() {
-				MapViewportPosition currentPos = new MapViewportPosition(
+				final MapViewportPosition currentPos = new MapViewportPosition(
 						mapView);
 				if (!currentPos.equals(lastPos)) {
 					fireMapViewportChanged();
@@ -108,7 +116,7 @@ public class MapViewportObserver {
 	}
 
 	protected void fireMapViewportChanged() {
-		for (MapViewportListener l : mapViewportListeners) {
+		for (final MapViewportListener l : mapViewportListeners) {
 			l.mapViewportChanged();
 		}
 	}

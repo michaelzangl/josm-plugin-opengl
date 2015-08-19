@@ -9,8 +9,17 @@ import org.openstreetmap.josm.gsoc2015.opengl.util.DebugUtils;
 
 import com.jogamp.common.nio.Buffers;
 
+/**
+ * This is a more complex vertex buffer pool implementation. It did not yield
+ * the expected results, so it is not used.
+ *
+ * @see SimpleBufferPool
+ *
+ * @author Michael Zangl
+ *
+ */
 public class VertexBufferPool extends VertexBufferProvider {
-	public class PooledVertexBuffer extends ReleaseableVertexBuffer {
+	public class PooledVertexBuffer extends ReleasableVertexBuffer {
 		protected PooledVertexBuffer(int capacity) {
 			super(capacity);
 		}
@@ -35,7 +44,7 @@ public class VertexBufferPool extends VertexBufferProvider {
 		}
 	}
 
-	protected class PooledFloatBuffer implements Releaseable {
+	protected class PooledFloatBuffer implements Releasable {
 		private FloatBuffer buffer;
 
 		public PooledFloatBuffer(FloatBuffer buffer) {
@@ -79,30 +88,32 @@ public class VertexBufferPool extends VertexBufferProvider {
 	public int buffersForReuse = 0;
 	public int buffersReplaced = 0;
 
-	private IdentityHashMap<FloatBuffer, String> addedBy = new IdentityHashMap<>();
-	private IdentityHashMap<FloatBuffer, String> receivedBy = new IdentityHashMap<>();
+	private final IdentityHashMap<FloatBuffer, String> addedBy = new IdentityHashMap<>();
+	private final IdentityHashMap<FloatBuffer, String> receivedBy = new IdentityHashMap<>();
 
-	private ArrayList<FloatBuffer> available = new ArrayList<>();
+	private final ArrayList<FloatBuffer> available = new ArrayList<>();
 
-	private Object availableMutex = new Object();
+	private final Object availableMutex = new Object();
 
 	private int clockCounter = 0;
 
-	private int maxKeep;
+	private final int maxKeep;
 
 	public VertexBufferPool(int maxKeep) {
 		this.maxKeep = maxKeep;
 	}
 
+	@Override
 	public PooledVertexBuffer getVertexBuffer(int minimumSize) {
 		return new PooledVertexBuffer(getBufferImpl(minimumSize * 2));
 	}
 
-	public Releaseable getBuffer(int numFloats) {
+	@Override
+	public Releasable getBuffer(int numFloats) {
 		if (numFloats <= MAX_TAKEBACK_SIZE) {
 			return new PooledFloatBuffer(getBufferImpl(numFloats));
 		} else {
-			return ReleaseableFloatBuffer.allocateDirect(numFloats);
+			return ReleasableFloatBuffer.allocateDirect(numFloats);
 		}
 	}
 
@@ -141,19 +152,19 @@ public class VertexBufferPool extends VertexBufferProvider {
 
 	private FloatBuffer getBufferImpl(int numFloats) {
 		synchronized (availableMutex) {
-			int size = available.size();
+			final int size = available.size();
 			int bestSizeDiff = (int) (numFloats / MIN_LOAD_FACTOR);
 			int bestSizeAt = -1;
 			for (int i = 0; i < size; i++) {
-				FloatBuffer candidate = available.get(i);
-				int sizeDiff = candidate.capacity() - numFloats;
+				final FloatBuffer candidate = available.get(i);
+				final int sizeDiff = candidate.capacity() - numFloats;
 				if (sizeDiff >= 0 && sizeDiff < bestSizeDiff) {
 					bestSizeDiff = sizeDiff;
 					bestSizeAt = i;
 				}
 			}
 			if (bestSizeAt >= 0) {
-				FloatBuffer best = available.get(bestSizeAt);
+				final FloatBuffer best = available.get(bestSizeAt);
 				if (bestSizeAt < size - 1) {
 					available.set(bestSizeAt, available.remove(size - 1));
 				}

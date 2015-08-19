@@ -5,13 +5,10 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Hashtable;
-import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Set;
 
 import org.openstreetmap.josm.data.SelectionChangedListener;
 import org.openstreetmap.josm.data.osm.DataSet;
-import org.openstreetmap.josm.data.osm.Node;
 import org.openstreetmap.josm.data.osm.OsmPrimitive;
 import org.openstreetmap.josm.data.osm.event.AbstractDatasetChangedEvent;
 import org.openstreetmap.josm.data.osm.event.DataChangedEvent;
@@ -27,7 +24,6 @@ import org.openstreetmap.josm.gsoc2015.opengl.geometrycache.HashGeometryMerger;
 import org.openstreetmap.josm.gsoc2015.opengl.geometrycache.MergeGroup;
 import org.openstreetmap.josm.gsoc2015.opengl.geometrycache.RecordedOsmGeometries;
 import org.openstreetmap.josm.gui.MapView;
-import org.openstreetmap.josm.gui.MapView.RepaintListener;
 import org.openstreetmap.josm.gui.NavigatableComponent;
 import org.openstreetmap.josm.gui.NavigatableComponent.ZoomChangeListener;
 import org.openstreetmap.josm.tools.Pair;
@@ -50,8 +46,8 @@ import org.openstreetmap.josm.tools.Pair;
  * <p>
  * When the frame has ended, {@link #endFrame()} returns a list of all received
  * geometries.
- * 
- * 
+ *
+ *
  * @author Michael Zangl
  *
  */
@@ -61,7 +57,7 @@ public class StyleGeometryCache {
 	private final class ZoomListener implements ZoomChangeListener {
 		private static final double MIN_CHANGE = .9;
 		private double currentScale;
-		private MapView mapView;
+		private final MapView mapView;
 
 		public ZoomListener(MapView mapView) {
 			this.mapView = mapView;
@@ -70,8 +66,8 @@ public class StyleGeometryCache {
 
 		@Override
 		public void zoomChanged() {
-			double newScale = mapView.getScale();
-			double change = newScale / currentScale;
+			final double newScale = mapView.getScale();
+			final double change = newScale / currentScale;
 			if (change < MIN_CHANGE || change > 1 / MIN_CHANGE) {
 				invalidateAllLater();
 				currentScale = newScale;
@@ -83,7 +79,7 @@ public class StyleGeometryCache {
 	 * This class listens to changes of the {@link DataSet} and invalidates
 	 * cache entries if their style stays the same but the way they are rendered
 	 * might have changed.
-	 * 
+	 *
 	 * @author Michael Zangl
 	 *
 	 */
@@ -107,7 +103,7 @@ public class StyleGeometryCache {
 
 		@Override
 		public void primitivesRemoved(PrimitivesRemovedEvent event) {
-			for (OsmPrimitive p : event.getPrimitives()) {
+			for (final OsmPrimitive p : event.getPrimitives()) {
 				invalidateGeometry(p);
 				// we ignore child nodes/...
 			}
@@ -126,7 +122,7 @@ public class StyleGeometryCache {
 		@Override
 		public void nodeMoved(NodeMovedEvent event) {
 			invalidateGeometry(event.getNode());
-			for (OsmPrimitive ref : event.getNode().getReferrers()) {
+			for (final OsmPrimitive ref : event.getNode().getReferrers()) {
 				invalidateGeometry(ref);
 			}
 		}
@@ -138,7 +134,7 @@ public class StyleGeometryCache {
 	}
 
 	private final class SelectionObserver implements SelectionChangedListener {
-		private DataSet data;
+		private final DataSet data;
 
 		private Collection<OsmPrimitive> selected;
 
@@ -152,20 +148,20 @@ public class StyleGeometryCache {
 		public void selectionChanged(
 				Collection<? extends OsmPrimitive> newSelectionInAnyDataSet) {
 			// JOSM fires for all data sets. I cannot filter this.
-			Collection<OsmPrimitive> newSelection = data.getAllSelected();
+			final Collection<OsmPrimitive> newSelection = data.getAllSelected();
 			if (newSelection == selected) {
 				return;
 			}
 			// Note: This was replaced with the clearStyleCache() function.
 			// We should use this to handle those geometries with higher
 			// priority.
-			for (OsmPrimitive s : selected) {
+			for (final OsmPrimitive s : selected) {
 				if (!newSelection.contains(s)) {
 					// Give a priority when invalidating.
 					// invalidateGeometry(s);
 				}
 			}
-			for (OsmPrimitive s : newSelection) {
+			for (final OsmPrimitive s : newSelection) {
 				if (!selected.contains(s)) {
 					// De-selected geometries seem not to get a notification.
 					invalidateGeometry(s);
@@ -180,15 +176,7 @@ public class StyleGeometryCache {
 	 * Stores the merge group in which that primitive is. We always draw the
 	 * whole merge group whenever that primitive is drawn.
 	 */
-	private Hashtable<OsmPrimitive, MergeGroup> recordedForPrimitive = new Hashtable<>();
-
-	// /**
-	// * A list of geometries that are colllected to be drawn this frame from
-	// the
-	// * cache.
-	// */
-	// private Set<RecordedOsmGeometries> collectedForFrame = Collections
-	// .synchronizedSet(new HashSet<RecordedOsmGeometries>());
+	private final Hashtable<OsmPrimitive, MergeGroup> recordedForPrimitive = new Hashtable<>();
 
 	/**
 	 * A list of geometries that were created in this frame and are not yet in
@@ -213,7 +201,8 @@ public class StyleGeometryCache {
 	private final BackgroundGemometryRegenerator regenerator;
 
 	/**
-	 * The repaint listener to notify whenever geometries have changed and a repaint is required.
+	 * The repaint listener to notify whenever geometries have changed and a
+	 * repaint is required.
 	 */
 	private final FullRepaintListener repaintListener;
 
@@ -244,6 +233,9 @@ public class StyleGeometryCache {
 	 */
 	private MergeGroup scheduledForBackground = null;
 
+	/**
+	 * Locks access to {@link #scheduledForBackground}
+	 */
 	private final Object scheduledForBackgroundMutex = new Object();
 
 	public StyleGeometryCache(FullRepaintListener repaintListener) {
@@ -254,12 +246,12 @@ public class StyleGeometryCache {
 
 	/**
 	 * Invalidates the geometry for a given primitive.
-	 * 
+	 *
 	 * @param s
 	 *            The primitive.
 	 */
 	public synchronized void invalidateGeometry(OsmPrimitive s) {
-		MergeGroup recorded = recordedForPrimitive.get(s);
+		final MergeGroup recorded = recordedForPrimitive.get(s);
 		if (recorded != null) {
 			invalidate(recorded);
 		}
@@ -269,7 +261,7 @@ public class StyleGeometryCache {
 	 * Invalidates a given merge group. This is called whenever drawing that
 	 * merge group would give wrong results (e.g. the geometry changed, objects
 	 * in the group are deleted, ...
-	 * 
+	 *
 	 * @param mergeGroup
 	 *            The merge group to regenerate.
 	 */
@@ -277,19 +269,22 @@ public class StyleGeometryCache {
 		removeCacheEntries(mergeGroup);
 	}
 
+	/**
+	 * Prepares the cache for collecting geometries for the next frame.
+	 */
 	public void startFrame() {
 		reset();
 		collectedForFrameMerger = new HashGeometryMerger();
 
-		Pair<Collection<OsmPrimitive>, Collection<MergeGroup>> groupsAndPrimitives = regenerator
+		final Pair<Collection<OsmPrimitive>, Collection<MergeGroup>> groupsAndPrimitives = regenerator
 				.takeNewMergeGroups();
-		for (OsmPrimitive p : groupsAndPrimitives.a) {
+		for (final OsmPrimitive p : groupsAndPrimitives.a) {
 			removeCacheEntry(p);
 		}
 		updateMergeGroups(groupsAndPrimitives.b);
 
 		if (invalidateAll) {
-			for (MergeGroup m : recordedForPrimitive.values()) {
+			for (final MergeGroup m : recordedForPrimitive.values()) {
 				invalidateLater(m);
 			}
 			invalidateAll = false;
@@ -298,7 +293,7 @@ public class StyleGeometryCache {
 
 	/**
 	 * Invalidates a merge group for later invalidation.
-	 * 
+	 *
 	 * @param mergeGroup
 	 */
 	private void invalidateLater(MergeGroup mergeGroup) {
@@ -306,7 +301,8 @@ public class StyleGeometryCache {
 	}
 
 	/**
-	 * Mark all entries for invalidation.
+	 * Mark all entries for invalidation. The current entries are still in use
+	 * until the new ones are generated.
 	 */
 	protected void invalidateAllLater() {
 		invalidateAll = true;
@@ -315,6 +311,13 @@ public class StyleGeometryCache {
 		repaintListener.requestRepaint();
 	}
 
+	/**
+	 * Ends recording for the current frame and returns an unordered list of
+	 * geometries to draw the current frame.
+	 *
+	 * @return An unordered list of geometries.
+	 * @see #startFrame()
+	 */
 	public ArrayList<RecordedOsmGeometries> endFrame() {
 		synchronized (scheduledForBackgroundMutex) {
 			if (scheduledForBackground != null) {
@@ -323,11 +326,11 @@ public class StyleGeometryCache {
 		}
 
 		// get all geometries from merger.
-		ArrayList<RecordedOsmGeometries> list = new ArrayList<>();
-		for (MergeGroup g : groupsForThisFrame) {
+		final ArrayList<RecordedOsmGeometries> list = new ArrayList<>();
+		for (final MergeGroup g : groupsForThisFrame) {
 			list.addAll(g.getGeometries());
 		}
-		ArrayList<RecordedOsmGeometries> fromMerger = collectedForFrameMerger
+		final ArrayList<RecordedOsmGeometries> fromMerger = collectedForFrameMerger
 				.getGeometries();
 		System.out.println("Received " + list.size()
 				+ " geometries from cache and " + fromMerger.size()
@@ -340,14 +343,17 @@ public class StyleGeometryCache {
 		return list;
 	}
 
+	/**
+	 * Resets part of our frame state.
+	 */
 	private void reset() {
 		groupsForThisFrame.clear();
 		primitivesRegenerated.clear();
 	}
 
 	private void updateMergeGroups(Collection<MergeGroup> mergeGroups) {
-		for (MergeGroup mergeGroup : mergeGroups) {
-			for (OsmPrimitive p : mergeGroup.getPrimitives()) {
+		for (final MergeGroup mergeGroup : mergeGroups) {
+			for (final OsmPrimitive p : mergeGroup.getPrimitives()) {
 				invalidateGeometry(p);
 				recordedForPrimitive.put(p, mergeGroup);
 			}
@@ -358,48 +364,52 @@ public class StyleGeometryCache {
 	/**
 	 * Removes the cached entry for the primitive p and all related primitives
 	 * immediately.
-	 * 
+	 *
 	 * @param p
 	 */
 	private void removeCacheEntry(OsmPrimitive p) {
-		MergeGroup g = recordedForPrimitive.get(p);
+		final MergeGroup g = recordedForPrimitive.get(p);
 		if (g != null) {
 			removeCacheEntries(g);
 		}
 	}
 
 	private void removeCacheEntries(MergeGroup g) {
-		for (OsmPrimitive inGroup : g.getPrimitives()) {
+		for (final OsmPrimitive inGroup : g.getPrimitives()) {
 			recordedForPrimitive.remove(inGroup);
 		}
-		for (RecordedOsmGeometries geo : g.getGeometries()) {
+		for (final RecordedOsmGeometries geo : g.getGeometries()) {
 			geo.dispose();
 		}
 	}
 
 	/**
+	 * Adds a new primitive to be drawn. This is called by the draw collection
+	 * threads for every primitive in view.
 	 * <p>
 	 * This may only be called for each primitive once in every frame.
-	 * 
+	 *
 	 * @param primitive
+	 *            The primitive
 	 * @param generator
-	 * @return
+	 *            The generator that can be used to generate a new geometry if
+	 *            the current one was invalidated.
 	 */
 	public <T extends OsmPrimitive> void requestOrCreateGeometry(
 			OsmPrimitive primitive, StyledGeometryGenerator generator) {
 		Collection<OsmPrimitive> regenerate = null;
 		synchronized (this) {
-			MergeGroup group = recordedForPrimitive.get(primitive);
+			final MergeGroup group = recordedForPrimitive.get(primitive);
 			// TODO: Listen to cache invalidation events.
 			if (group != null
-					&& (primitive.mappaintStyle == null || (primitive.mappaintStyle != group
-							.getStyleCacheUsed(primitive) || primitive
-							.isHighlighted() != group
-							.getStyleCacheUsedHighlighted(primitive)))) {
+					&& (primitive.mappaintStyle == null || primitive.mappaintStyle != group
+					.getStyleCacheUsed(primitive) || primitive
+					.isHighlighted() != group
+					.getStyleCacheUsedHighlighted(primitive))) {
 				groupsForThisFrame.remove(group);
 				invalidate(group);
 				regenerate = new ArrayList<>();
-				for (OsmPrimitive p : group.getPrimitives()) {
+				for (final OsmPrimitive p : group.getPrimitives()) {
 					if (primitivesRegenerated.add(p)) {
 						regenerate.add(p);
 					}
@@ -417,7 +427,7 @@ public class StyleGeometryCache {
 
 		// Now regenerate those geometries outside of lock.
 		if (regenerate != null) {
-			for (OsmPrimitive p : regenerate) {
+			for (final OsmPrimitive p : regenerate) {
 				regenerateGeometryFor(p, generator);
 			}
 		}
@@ -426,7 +436,7 @@ public class StyleGeometryCache {
 	private void regenerateGeometryFor(OsmPrimitive primitive,
 			StyledGeometryGenerator generator) {
 		if (generator != null) {
-			List<RecordedOsmGeometries> geometries = generator
+			final List<RecordedOsmGeometries> geometries = generator
 					.runFor(primitive);
 			collectedForFrameMerger.addMergeables(primitive, geometries);
 		} else {
@@ -455,7 +465,7 @@ public class StyleGeometryCache {
 	/**
 	 * Adds invalidation listeners to the dataset so that the cache gets
 	 * invalidated when the data changes.
-	 * 
+	 *
 	 * @param data
 	 *            The {@link DataSet}
 	 */
@@ -468,13 +478,22 @@ public class StyleGeometryCache {
 		NavigatableComponent.addZoomChangeListener(zoomListener);
 	}
 
+	/**
+	 * Deallocates all resources used for this cache.
+	 */
 	public void dispose() {
 		invalidateAll();
 	}
 
+	/**
+	 * Invalidates all entries of this cache immediately so that they need to be
+	 * re-created on the next draw call.
+	 *
+	 * @see #invalidateAllLater()
+	 */
 	public void invalidateAll() {
 		while (!recordedForPrimitive.isEmpty()) {
-			MergeGroup first = recordedForPrimitive.values().iterator().next();
+			final MergeGroup first = recordedForPrimitive.values().iterator().next();
 			// this might also remove some other primitives form the cache.
 			invalidate(first);
 		}
@@ -482,7 +501,7 @@ public class StyleGeometryCache {
 
 	/**
 	 * Removes the listeners added by {@link #addListeners(DataSet)}
-	 * 
+	 *
 	 * @param data
 	 *            The {@link DataSet}
 	 */

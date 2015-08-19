@@ -2,7 +2,7 @@ package org.openstreetmap.josm.gsoc2015.opengl.geometrycache;
 
 /**
  * A recorder that passes record-calls on to an other recorder.
- * 
+ *
  * @author michael
  *
  */

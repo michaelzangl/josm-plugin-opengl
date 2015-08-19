@@ -5,6 +5,7 @@ import static org.jogamp.glg2d.impl.AbstractShapeHelper.visitShape;
 import java.awt.Shape;
 import java.awt.font.GlyphVector;
 import java.text.AttributedCharacterIterator;
+import java.text.CharacterIterator;
 
 import org.jogamp.glg2d.G2DDrawingHelper;
 import org.jogamp.glg2d.GLG2DColorHelper;
@@ -22,13 +23,13 @@ import org.jogamp.glg2d.impl.shader.text.CollectingTesselator.Triangles;
 /**
  * This is a graphics2D implementation that sends all OpenGL calls to a given
  * recorder.
- * 
+ *
  * @author michael
  *
  */
 public class RecordingGraphics2D extends GLGraphics2D {
 	private final class RecordingStringHelper extends AbstractTextDrawer {
-		private RecordingTesselatorVisitor fillVisitor;
+		private final RecordingTesselatorVisitor fillVisitor;
 
 		public RecordingStringHelper(RecordingColorHelper colorHelper,
 				Recorder recorder) {
@@ -47,22 +48,22 @@ public class RecordingGraphics2D extends GLGraphics2D {
 
 		@Override
 		public void drawString(String string, float x, float y) {
-			GlyphVector glyphs = getFont().createGlyphVector(
+			final GlyphVector glyphs = getFont().createGlyphVector(
 					getFontRenderContext(), string);
 			for (int i = 0; i < string.length(); i++) {
-				Shape outline = glyphs.getGlyphOutline(i, x, y);
+				final Shape outline = glyphs.getGlyphOutline(i, x, y);
 				AbstractShapeHelper.visitShape(outline, fillVisitor);
 			}
 		}
 
 		protected Triangles getTesselatedGlyph(char c) {
-			GlyphVector glyphVect = getFont().createGlyphVector(
+			final GlyphVector glyphVect = getFont().createGlyphVector(
 					getFontRenderContext(), new char[] { c });
-			Shape s = glyphVect.getGlyphOutline(0);
+			final Shape s = glyphVect.getGlyphOutline(0);
 
-			CollectingTesselator tess = new CollectingTesselator();
+			final CollectingTesselator tess = new CollectingTesselator();
 			visitShape(s, tess);
-			Triangles triangles = tess.getTesselated();
+			final Triangles triangles = tess.getTesselated();
 
 			return triangles;
 		}
@@ -70,9 +71,9 @@ public class RecordingGraphics2D extends GLGraphics2D {
 		@Override
 		public void drawString(AttributedCharacterIterator iterator, float x,
 				float y) {
-			StringBuilder builder = new StringBuilder(iterator.getEndIndex()
+			final StringBuilder builder = new StringBuilder(iterator.getEndIndex()
 					- iterator.getBeginIndex());
-			while (iterator.next() != AttributedCharacterIterator.DONE) {
+			while (iterator.next() != CharacterIterator.DONE) {
 				builder.append(iterator.current());
 			}
 
@@ -86,9 +87,15 @@ public class RecordingGraphics2D extends GLGraphics2D {
 		}
 	}
 
-	private Recorder recorder;
+	private final Recorder recorder;
 	private RecordingColorHelper createdColorHelper;
 
+	/**
+	 * Creates a new {@link RecordingGraphics2D} instance
+	 *
+	 * @param recorder
+	 *            The recorder to send recorded calls to.
+	 */
 	public RecordingGraphics2D(Recorder recorder) {
 		super();
 		this.recorder = recorder;
@@ -96,7 +103,7 @@ public class RecordingGraphics2D extends GLGraphics2D {
 		realCreateDrawingHelpers();
 		// We don't have a context, so we need to initialize the heplers
 		// ourselves.
-		for (G2DDrawingHelper helper : helpers) {
+		for (final G2DDrawingHelper helper : helpers) {
 			helper.setG2D(this);
 		}
 	}
@@ -123,8 +130,7 @@ public class RecordingGraphics2D extends GLGraphics2D {
 	@Override
 	protected GLG2DTextHelper createTextHelper() {
 		// colorHelper is not created here.
-		return new RecordingStringHelper(getOrCreateColorHelper(),
-				recorder);
+		return new RecordingStringHelper(getOrCreateColorHelper(), recorder);
 	}
 
 	@Override
@@ -133,13 +139,14 @@ public class RecordingGraphics2D extends GLGraphics2D {
 	}
 
 	private RecordingColorHelper getOrCreateColorHelper() {
-		// Used in super constructor, so we cannot use field initialization here.
+		// Used in super constructor, so we cannot use field initialization
+		// here.
 		if (createdColorHelper == null) {
 			createdColorHelper = new RecordingColorHelper();
 		}
 		return createdColorHelper;
 	}
-	
+
 	@Override
 	protected GLG2DColorHelper createColorHelper() {
 		return getOrCreateColorHelper();
@@ -147,13 +154,12 @@ public class RecordingGraphics2D extends GLGraphics2D {
 
 	@Override
 	protected GLG2DShapeHelper createShapeHelper() {
-		return new RecordingShapeHelper(getOrCreateColorHelper(),
-				recorder);
+		return new RecordingShapeHelper(getOrCreateColorHelper(), recorder);
 	}
-	
+
 	@Override
 	public void dispose() {
-		for (G2DDrawingHelper h : helpers) {
+		for (final G2DDrawingHelper h : helpers) {
 			// GLG2D does not do this on default.
 			h.dispose();
 		}

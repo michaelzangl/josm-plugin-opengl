@@ -12,6 +12,17 @@ import org.openstreetmap.josm.data.osm.Way;
  */
 public class WaySearcher extends PrimitiveSearcher<Way> {
 
+	/**
+	 * Creates a new way searcher
+	 *
+	 * @param handler
+	 *            The handler to send the found primitives to. It may be invoked
+	 *            multiple times in the future.
+	 * @param data
+	 *            The data to search in.
+	 * @param bbox
+	 *            The bounding box to search.
+	 */
 	public WaySearcher(OsmPrimitiveHandler<Way> handler,
 			DataSet data, BBox bbox) {
 		super(handler, data, bbox);

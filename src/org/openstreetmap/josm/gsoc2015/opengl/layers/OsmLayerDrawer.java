@@ -1,4 +1,4 @@
-package org.openstreetmap.josm.gsoc2015.opengl.layer;
+package org.openstreetmap.josm.gsoc2015.opengl.layers;
 
 import java.awt.Graphics2D;
 
@@ -8,16 +8,37 @@ import org.openstreetmap.josm.data.Bounds;
 import org.openstreetmap.josm.data.osm.visitor.paint.MapRendererFactory;
 import org.openstreetmap.josm.data.osm.visitor.paint.Rendering;
 import org.openstreetmap.josm.data.osm.visitor.paint.StyledMapRenderer;
-import org.openstreetmap.josm.gsoc2015.opengl.layers.LayerDrawer;
 import org.openstreetmap.josm.gsoc2015.opengl.osm.OpenGLStyledMapRenderer;
 import org.openstreetmap.josm.gui.MapView;
 import org.openstreetmap.josm.gui.layer.OsmDataLayer;
 
+/**
+ * This class handles the drawing of a OSM data layer.
+ *
+ * @author Michael Zangl
+ */
 public class OsmLayerDrawer extends LayerDrawer {
+	/**
+	 * The layer we draw.
+	 */
 	private final OsmDataLayer osmLayer;
+	/**
+	 * A flag to clear the cache when the inactive flag changed.
+	 */
 	private boolean cachedIsInactive;
+
+	/**
+	 * The renderer to draw the map. It is preserved between frames to allow it
+	 * to cache geometries.
+	 */
 	private OpenGLStyledMapRenderer cachedRenderer;
 
+	/**
+	 * Create a new {@link OsmLayerDrawer}
+	 *
+	 * @param osmLayer
+	 *            The layer we draw.
+	 */
 	public OsmLayerDrawer(OsmDataLayer osmLayer) {
 		super(osmLayer);
 		this.osmLayer = osmLayer;
@@ -25,10 +46,10 @@ public class OsmLayerDrawer extends LayerDrawer {
 
 	@Override
 	public void drawLayer(Graphics2D g2d, MapView mv, Bounds box) {
-		boolean active = mv.getActiveLayer() == osmLayer;
-		boolean inactive = !active
+		final boolean active = mv.getActiveLayer() == osmLayer;
+		final boolean inactive = !active
 				&& Main.pref.getBoolean("draw.data.inactive_color", true);
-		boolean virtual = !inactive && mv.isVirtualNodesEnabled();
+		final boolean virtual = !inactive && mv.isVirtualNodesEnabled();
 
 		Rendering painter = MapRendererFactory.getInstance()
 				.createActiveRenderer(g2d, mv, inactive);

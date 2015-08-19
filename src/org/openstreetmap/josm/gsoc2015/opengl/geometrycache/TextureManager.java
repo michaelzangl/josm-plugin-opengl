@@ -15,7 +15,7 @@ import com.jogamp.opengl.util.texture.awt.AWTTextureIO;
 
 /**
  * This is the texture manager.
- * 
+ *
  * @author michael
  *
  */
@@ -38,13 +38,13 @@ public class TextureManager {
 				return ((VolatileImage) image).getSnapshot();
 			}
 
-			int width = image.getWidth(null);
-			int height = image.getHeight(null);
+			final int width = image.getWidth(null);
+			final int height = image.getHeight(null);
 			if (width < 0 || height < 0) {
 				return null;
 			}
 
-			BufferedImage bufferedImage = new BufferedImage(width, height,
+			final BufferedImage bufferedImage = new BufferedImage(width, height,
 					BufferedImage.TYPE_4BYTE_ABGR);
 			bufferedImage.createGraphics().drawImage(image, null, null);
 			return bufferedImage;
@@ -52,9 +52,9 @@ public class TextureManager {
 
 		/**
 		 * Only call this in the GL thread.
-		 * 
+		 *
 		 * @param gl
-		 * @return 
+		 * @return
 		 */
 		public Texture getTexture(GL2 gl) {
 			if (imageToLoad != null) {
@@ -68,11 +68,11 @@ public class TextureManager {
 		}
 	}
 
-	private HashMap<WeakIdentityKey<Image>, TextureEntry> textures = new HashMap<>();
+	private final HashMap<WeakIdentityKey<Image>, TextureEntry> textures = new HashMap<>();
 
 	public synchronized TextureEntry getTexture(Image image, ImageObserver observer) {
 		// TODO: Use a queue to garbage collect old entries.
-		WeakIdentityKey<Image> key = new WeakIdentityKey<Image>(image, null);
+		final WeakIdentityKey<Image> key = new WeakIdentityKey<Image>(image, null);
 		TextureEntry texture = textures.get(key);
 		if (texture == null) {
 			texture = new TextureEntry(image);
@@ -103,7 +103,7 @@ public class TextureManager {
 			if (this == obj) {
 				return true;
 			} else if (obj instanceof WeakIdentityKey) {
-				WeakIdentityKey<?> other = (WeakIdentityKey<?>) obj;
+				final WeakIdentityKey<?> other = (WeakIdentityKey<?>) obj;
 				return other.hash == hash && get() == other.get();
 			} else {
 				return false;

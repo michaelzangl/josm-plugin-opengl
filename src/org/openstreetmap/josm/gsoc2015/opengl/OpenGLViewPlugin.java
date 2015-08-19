@@ -1,12 +1,9 @@
 package org.openstreetmap.josm.gsoc2015.opengl;
 
 import java.awt.CardLayout;
-import java.awt.Color;
-import java.awt.Component;
 import java.awt.Container;
 import java.util.Arrays;
 
-import javax.swing.BorderFactory;
 import javax.swing.JCheckBoxMenuItem;
 import javax.swing.JComponent;
 import javax.swing.JMenu;
@@ -22,31 +19,31 @@ import org.openstreetmap.josm.plugins.Plugin;
 import org.openstreetmap.josm.plugins.PluginInformation;
 import org.openstreetmap.josm.tools.GBC;
 
+/**
+ * This is the OpenGL plugin entry class.
+ *
+ * @author Michael Zangl
+ *
+ */
 public class OpenGLViewPlugin extends Plugin {
 
 	private class OpenGLSwitchPanel extends JPanel implements PaintModeListener {
 		/**
-		 * 
+		 *
 		 */
 		private static final long serialVersionUID = -5859334937863977150L;
-		private Component java2dPanel;
-		private Component openGLPanel;
 
 		public OpenGLSwitchPanel(JComponent java2dPanel, JComponent openGLPanel) {
 			super(new CardLayout());
-			this.java2dPanel = java2dPanel;
-			this.openGLPanel = openGLPanel;
 			add(java2dPanel, PaintMode.JAVA2D.toString());
 			add(openGLPanel, PaintMode.OPENGL.toString());
-			MapViewPaintModeState state = MapViewPaintModeState.getInstance();
+			final MapViewPaintModeState state = MapViewPaintModeState.getInstance();
 			state.addPaintModeListener(this, true);
-			//java2dPanel.setBorder(BorderFactory.createLineBorder(Color.red));
-			//openGLPanel.setBorder(BorderFactory.createLineBorder(Color.blue));
 		}
 
 		@Override
 		public void paintModeChanged(PaintMode newMode) {
-			CardLayout cl = (CardLayout) (getLayout());
+			final CardLayout cl = (CardLayout) getLayout();
 			cl.show(this, newMode.toString());
 		}
 	}
@@ -65,15 +62,14 @@ public class OpenGLViewPlugin extends Plugin {
 		System.out.println("mapFrameInitialized(" + oldFrame + ", " + newFrame
 				+ ")");
 		if (newFrame != null) {
-			MapView mapView = newFrame.mapView;
-			OpenGLSwitchPanel openGlContainer = addOpenglView(mapView);
-
+			final MapView mapView = newFrame.mapView;
+			addOpenglView(mapView);
 		}
 	}
 
 	private class PaintModeMenuButton extends JCheckBoxMenuItem {
 		/**
-		 * 
+		 *
 		 */
 		private static final long serialVersionUID = 3141819668890426424L;
 
@@ -89,14 +85,14 @@ public class OpenGLViewPlugin extends Plugin {
 	}
 
 	private void addMenuButton() {
-		JMenu menu = Main.main.menu.viewMenu;
+		final JMenu menu = Main.main.menu.viewMenu;
 		menu.add(new PaintModeMenuButton(), 1);
 	}
 
 	private void addToolbarButton() {
-		ToolbarPreferences.ActionParser actionParser = new ToolbarPreferences.ActionParser(
+		final ToolbarPreferences.ActionParser actionParser = new ToolbarPreferences.ActionParser(
 				null);
-		String action = actionParser
+		final String action = actionParser
 				.saveAction(new ToolbarPreferences.ActionDefinition(
 						ChangePaintModeAction.getInstance()));
 		System.out.println("Action: " + action);
@@ -104,14 +100,14 @@ public class OpenGLViewPlugin extends Plugin {
 	}
 
 	private OpenGLSwitchPanel addOpenglView(MapView mapView) {
-		Container mapViewOuter = mapView.getParent();
-		int index = Arrays.asList(mapViewOuter.getComponents())
+		final Container mapViewOuter = mapView.getParent();
+		final int index = Arrays.asList(mapViewOuter.getComponents())
 				.indexOf(mapView);
 		mapViewOuter.remove(mapView);
 
-		JComponent openGLView = new OpenGLMapView(mapView,
+		final JComponent openGLView = new OpenGLMapView(mapView,
 				getPluginInformation());
-		OpenGLSwitchPanel mapViewContainer = new OpenGLSwitchPanel(mapView,
+		final OpenGLSwitchPanel mapViewContainer = new OpenGLSwitchPanel(mapView,
 				openGLView);
 		mapViewOuter.add(mapViewContainer, GBC.std().fill(), index);
 		mapViewOuter.revalidate();

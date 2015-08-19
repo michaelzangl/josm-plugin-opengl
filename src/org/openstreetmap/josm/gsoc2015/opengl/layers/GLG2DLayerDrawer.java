@@ -9,7 +9,7 @@ import org.openstreetmap.josm.gui.layer.MapViewPaintable;
 /**
  * This is a layer drawer that uses GLG2D to paint the layer. This is not
  * optimized for OpenGL but should render all normal layers just fine.
- * 
+ *
  * @author Michael Zangl
  *
  */

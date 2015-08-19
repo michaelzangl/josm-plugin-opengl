@@ -8,8 +8,8 @@ import org.openstreetmap.josm.gsoc2015.opengl.geometrycache.RecordingGraphics2D;
 import org.openstreetmap.josm.gui.NavigatableComponent;
 
 /**
- * This is a map renderer that caches the resoults fo the render call instead of displaying them.
- * @author michael
+ * This is a map renderer that caches the results for the render call instead of displaying them.
+ * @author Michael Zangl
  *
  */
 public class RecordingStyledMapRenderer extends StyledMapRenderer {

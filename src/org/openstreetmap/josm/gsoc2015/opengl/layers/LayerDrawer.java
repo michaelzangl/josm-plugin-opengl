@@ -8,7 +8,7 @@ import org.openstreetmap.josm.gui.layer.MapViewPaintable;
 
 /**
  * This class handles drawing of a single layer.
- * 
+ *
  * @author Michael Zangl
  */
 public abstract class LayerDrawer {

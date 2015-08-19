@@ -12,9 +12,9 @@ public class ErrorCheckingVertexBufferPool extends VertexBufferProvider {
 	public static final ErrorCheckingVertexBufferPool INSTANCE = new ErrorCheckingVertexBufferPool();
 
 	@Override
-	public ReleaseableVertexBuffer getVertexBuffer(int minimumSize) {
+	public ReleasableVertexBuffer getVertexBuffer(int minimumSize) {
 		final String creationPoint = DebugUtils.getStackTrace();
-		return new ReleaseableVertexBuffer(minimumSize) {
+		return new ReleasableVertexBuffer(minimumSize) {
 			@Override
 			protected FloatBuffer allocateBuffer(int capacity) {
 				FloatBuffer buffer = Buffers.newDirectFloatBuffer(capacity);
@@ -55,7 +55,7 @@ public class ErrorCheckingVertexBufferPool extends VertexBufferProvider {
 	}
 
 	@Override
-	public Releaseable getBuffer(int numFloats) {
+	public Releasable getBuffer(int numFloats) {
 		return getVertexBuffer(numFloats / 2);
 	}
 }

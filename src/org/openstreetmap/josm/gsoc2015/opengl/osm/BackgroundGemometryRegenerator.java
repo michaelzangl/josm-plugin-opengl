@@ -22,30 +22,54 @@ import org.openstreetmap.josm.tools.Pair;
  * During the round, you can call {@link #schedule(MergeGroup)} and
  * {@link #abortSchedule(MergeGroup)} to add/remove merge groups to be
  * regenerated.
- * 
+ * <p>
+ * There need to be worker threads allocated that execute the
+ * {@link RegenerationTask}s provided by {@link #generateRegenerationTask()}.
+ * They can wait for new tasks to be ready using {@link #waitForNewWork()}
+ *
  * @author Michael Zangl
  */
 public class BackgroundGemometryRegenerator {
 
+	/**
+	 * This is a single regeneration bulk task.
+	 * <p>
+	 * It re-generates the geometry for a list of merge groups.
+	 *
+	 * @author Michael Zangl
+	 *
+	 */
 	public final class RegenerationTask {
-		private ArrayList<MergeGroup> groupsToUse;
+		private final ArrayList<MergeGroup> groupsToUse;
 
 		private HashGeometryMerger merger = new HashGeometryMerger();
 		private boolean aborted = false;
 
 		private List<MergeGroup> newGroups;
-		private List<OsmPrimitive> removedPrimitives = new ArrayList<>();
+		private final List<OsmPrimitive> removedPrimitives = new ArrayList<>();
 
+		/**
+		 * Creates a new {@link RegenerationTask}
+		 *
+		 * @param groupsToUse
+		 *            The groups that should be regenerated.
+		 */
 		public RegenerationTask(ArrayList<MergeGroup> groupsToUse) {
 			super();
 			this.groupsToUse = groupsToUse;
 		}
 
+		/**
+		 * Runs the regeneration of the merge groups.
+		 *
+		 * @param generator
+		 *            The generator to use.
+		 */
 		public void runWithGenerator(StyledGeometryGenerator generator) {
 			generator.startRunning();
 			try {
-				for (MergeGroup g : groupsToUse) {
-					for (OsmPrimitive p : g.getPrimitives()) {
+				for (final MergeGroup g : groupsToUse) {
+					for (final OsmPrimitive p : g.getPrimitives()) {
 						if (aborted) {
 							return;
 						}
@@ -63,9 +87,10 @@ public class BackgroundGemometryRegenerator {
 			}
 		}
 
-		private void generateGeometries(OsmPrimitive p, StyledGeometryGenerator generator) {
+		private void generateGeometries(OsmPrimitive p,
+				StyledGeometryGenerator generator) {
 			removedPrimitives.add(p);
-			List<RecordedOsmGeometries> geometries = generator.runFor(p);
+			final List<RecordedOsmGeometries> geometries = generator.runFor(p);
 			merger.addMergeables(p, geometries);
 		}
 
@@ -77,6 +102,11 @@ public class BackgroundGemometryRegenerator {
 			aborted = true;
 		}
 
+		/**
+		 * Tests if the abort flag was set
+		 *
+		 * @return The abort flag.
+		 */
 		public boolean isAborted() {
 			return aborted;
 		}
@@ -104,12 +134,28 @@ public class BackgroundGemometryRegenerator {
 
 	private final Object regnenerationMutex = new Object();
 
-	private FullRepaintListener repaintListener;
+	/**
+	 * The repaint listener to notify when new geometries are computed.
+	 */
+	private final FullRepaintListener repaintListener;
 
+	/**
+	 * Creates a new background repainter.
+	 *
+	 * @param repaintListener
+	 *            The repaint listener to notify when new geometries are
+	 *            computed.
+	 */
 	public BackgroundGemometryRegenerator(FullRepaintListener repaintListener) {
 		this.repaintListener = repaintListener;
 	}
 
+	/**
+	 * Schedule a new group to be regenerated.
+	 *
+	 * @param mergeGroup
+	 *            The group to regenerate the geometry for.
+	 */
 	public void schedule(MergeGroup mergeGroup) {
 		synchronized (regnenerationMutex) {
 			abortSchedule(mergeGroup); // <- might be improved.
@@ -119,13 +165,19 @@ public class BackgroundGemometryRegenerator {
 		}
 	}
 
+	/**
+	 * Creates a new {@link RegenerationTask} that regenerates some geometries
+	 * when run.
+	 *
+	 * @return The task or <code>null</code> if we do not have more work.
+	 */
 	public RegenerationTask generateRegenerationTask() {
 		synchronized (regnenerationMutex) {
 			if (invalidatedMergeGroups.isEmpty()) {
 				return null;
 			}
-			ArrayList<MergeGroup> groups = new ArrayList<>();
-			for (MergeGroup g : invalidatedMergeGroups) {
+			final ArrayList<MergeGroup> groups = new ArrayList<>();
+			for (final MergeGroup g : invalidatedMergeGroups) {
 				groups.add(g);
 				if (groups.size() > 5) {
 					break;
@@ -136,17 +188,23 @@ public class BackgroundGemometryRegenerator {
 		}
 	}
 
+	/**
+	 * Blocks until new work appears.
+	 */
 	protected void waitForNewWork() {
 		synchronized (regnenerationMutex) {
 			if (invalidatedMergeGroups.isEmpty()) {
 				try {
 					regnenerationMutex.wait();
-				} catch (InterruptedException e) {
+				} catch (final InterruptedException e) {
 				}
 			}
 		}
 	}
 
+	/**
+	 * Resumes all threads that are blocked and waiting for new work.
+	 */
 	public void resumeAllWaiting() {
 		synchronized (regnenerationMutex) {
 			regnenerationMutex.notifyAll();
@@ -155,7 +213,7 @@ public class BackgroundGemometryRegenerator {
 
 	/**
 	 * Called when geometries have been regenerated.
-	 * 
+	 *
 	 * @param regenerationTask
 	 */
 	protected void doneWithRegenerationTask(RegenerationTask regenerationTask) {
@@ -172,19 +230,19 @@ public class BackgroundGemometryRegenerator {
 	 * <p>
 	 * The merge group will not be in the result of the next
 	 * {@link #takeNewMergeGroups()} call.
-	 * 
+	 *
 	 * @param mergeGroup
 	 */
 	public void abortSchedule(MergeGroup mergeGroup) {
 		synchronized (regnenerationMutex) {
 			invalidatedMergeGroups.remove(mergeGroup);
-			RegenerationTask running = runningMergeGroups.get(mergeGroup);
+			final RegenerationTask running = runningMergeGroups.get(mergeGroup);
 			if (running != null) {
 				running.abort();
 				doneRegenerationTasks.remove(running);
 				removeRunning(running);
 				// now re-schedule all other merge groups
-				for (MergeGroup m : running.groupsToUse) {
+				for (final MergeGroup m : running.groupsToUse) {
 					if (!m.equals(mergeGroup)) {
 						invalidatedMergeGroups.add(m);
 					}
@@ -194,7 +252,7 @@ public class BackgroundGemometryRegenerator {
 	}
 
 	private void removeRunning(RegenerationTask running) {
-		for (MergeGroup m : running.groupsToUse) {
+		for (final MergeGroup m : running.groupsToUse) {
 			runningMergeGroups.remove(m);
 		}
 	}
@@ -202,16 +260,16 @@ public class BackgroundGemometryRegenerator {
 	/**
 	 * Retrieves a list of merge groups that were regenerated. The groups were
 	 * generated so that they replace an exact set of original merge groups.
-	 * 
+	 *
 	 * @return The primitives for which the new geometry was generated and the
 	 *         merge groups. Mind that some primitives may have lost all
 	 *         geometries and are in no merge group any more.
 	 */
 	public Pair<Collection<OsmPrimitive>, Collection<MergeGroup>> takeNewMergeGroups() {
 		synchronized (regnenerationMutex) {
-			ArrayList<MergeGroup> groups = new ArrayList<>();
-			ArrayList<OsmPrimitive> primitives = new ArrayList<>();
-			for (RegenerationTask d : doneRegenerationTasks) {
+			final ArrayList<MergeGroup> groups = new ArrayList<>();
+			final ArrayList<OsmPrimitive> primitives = new ArrayList<>();
+			for (final RegenerationTask d : doneRegenerationTasks) {
 				groups.addAll(d.newGroups);
 				primitives.addAll(d.removedPrimitives);
 				removeRunning(d);

@@ -9,22 +9,21 @@ import com.jogamp.common.nio.Buffers;
 /**
  * This is a fast and simple implementation of a vertex buffer pool.
  * @author Michael Zangl
- *
  */
 public class SimpleBufferPool extends VertexBufferProvider {
 
 	private final ConcurrentLinkedQueue<FloatBuffer> shortBuffers = new ConcurrentLinkedQueue<>();
 	private final ConcurrentLinkedQueue<FloatBuffer> mediumBuffers = new ConcurrentLinkedQueue<>();
 	private final ConcurrentLinkedQueue<FloatBuffer> longBuffers = new ConcurrentLinkedQueue<>();
-	
+
 	public static final AtomicInteger miss = new AtomicInteger();
 	public static final AtomicInteger hit = new AtomicInteger();
-	
+
 	@Override
-	public ReleaseableVertexBuffer getVertexBuffer(int minimumSize) {
+	public ReleasableVertexBuffer getVertexBuffer(int minimumSize) {
 		return get(minimumSize * 2);
 	}
-	
+
 	private ConcurrentLinkedQueue<FloatBuffer> getBuffers(int size) {
 		if (size <= 128) {
 			return shortBuffers;
@@ -35,21 +34,21 @@ public class SimpleBufferPool extends VertexBufferProvider {
 		}
 	}
 
-	private ReleaseableVertexBuffer get(int numFloats) {
-		return new ReleaseableVertexBuffer(numFloats) {
+	private ReleasableVertexBuffer get(int numFloats) {
+		return new ReleasableVertexBuffer(numFloats) {
 			@Override
 			protected void releaseBuffer(FloatBuffer buffer) {
-				ConcurrentLinkedQueue<FloatBuffer> buffers = getBuffers(buffer.capacity());
+				final ConcurrentLinkedQueue<FloatBuffer> buffers = getBuffers(buffer.capacity());
 				if (buffers.size() < 30) {
 					// concurrency does not matter here.
 					buffers.add(buffer);
 				}
 			}
-			
+
 			@Override
 			protected FloatBuffer allocateBuffer(int capacity) {
-				ConcurrentLinkedQueue<FloatBuffer> buffers = getBuffers(capacity);
-				FloatBuffer candidate = buffers.poll();
+				final ConcurrentLinkedQueue<FloatBuffer> buffers = getBuffers(capacity);
+				final FloatBuffer candidate = buffers.poll();
 				if (candidate != null && candidate.capacity() >= capacity) {
 					candidate.limit(candidate.capacity());
 					candidate.rewind();
@@ -64,7 +63,7 @@ public class SimpleBufferPool extends VertexBufferProvider {
 	}
 
 	@Override
-	public Releaseable getBuffer(int numFloats) {
+	public Releasable getBuffer(int numFloats) {
 		return get(numFloats);
 	}
 

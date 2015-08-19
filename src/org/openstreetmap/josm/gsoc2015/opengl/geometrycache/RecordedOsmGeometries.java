@@ -24,7 +24,7 @@ import org.openstreetmap.josm.tools.Pair;
  * be multiple lists per OSM primitive - but always one per style.
  * <p>
  * There is a Z-index stored for this geometry to quickly sort them.
- * 
+ *
  * @author Michael Zangl
  *
  */
@@ -46,7 +46,7 @@ public class RecordedOsmGeometries implements Comparable<RecordedOsmGeometries> 
 	/**
 	 * A number indicating the z-index of this geometry.
 	 */
-	private long orderIndex;
+	private final long orderIndex;
 	/**
 	 * The cached array of hashes for this geometry.
 	 */
@@ -58,7 +58,7 @@ public class RecordedOsmGeometries implements Comparable<RecordedOsmGeometries> 
 	public MergeGroup mergeGroup;
 
 	/**
-	 * 
+	 *
 	 * @param geometries
 	 *            The geometries. A copy is created.
 	 * @param primitive
@@ -69,7 +69,7 @@ public class RecordedOsmGeometries implements Comparable<RecordedOsmGeometries> 
 		this.orderIndex = orderIndex;
 		this.viewPosition = viewPosition;
 		this.geometries = new ArrayList<>(geometries);
-		this.primitives.add(primitive);
+		primitives.add(primitive);
 	}
 
 	/**
@@ -77,14 +77,14 @@ public class RecordedOsmGeometries implements Comparable<RecordedOsmGeometries> 
 	 * object may not be used afterwards.
 	 */
 	public void dispose() {
-		for (RecordedGeometry g : geometries) {
+		for (final RecordedGeometry g : geometries) {
 			g.dispose();
 		}
 	}
 
 	public void draw(GL2 gl, GLState state) {
 		state.toViewPosition(viewPosition);
-		for (RecordedGeometry g : geometries) {
+		for (final RecordedGeometry g : geometries) {
 			g.draw(gl, state);
 		}
 	}
@@ -96,7 +96,7 @@ public class RecordedOsmGeometries implements Comparable<RecordedOsmGeometries> 
 	/**
 	 * Gets a list of hashes that suggest the combination of two geometries if
 	 * most of their hashes are the same.
-	 * 
+	 *
 	 * @return The combine hashes.
 	 */
 	public int[] getCombineHashes() {
@@ -118,7 +118,7 @@ public class RecordedOsmGeometries implements Comparable<RecordedOsmGeometries> 
 	}
 
 	private static int[] getUsedHashes(List<RecordedGeometry> geometries) {
-		int[] hashes = new int[geometries.size()];
+		final int[] hashes = new int[geometries.size()];
 		for (int i = 0; i < hashes.length; i++) {
 			hashes[i] = geometries.get(i).getCombineHash();
 		}
@@ -129,7 +129,7 @@ public class RecordedOsmGeometries implements Comparable<RecordedOsmGeometries> 
 	 * Merges an other geometry in this geometry.
 	 * <p>
 	 * This method is not thread safe.
-	 * 
+	 *
 	 * @param other
 	 *            The other geometry to merge.
 	 * @return <code>true</code> if the merge was successful.
@@ -143,9 +143,9 @@ public class RecordedOsmGeometries implements Comparable<RecordedOsmGeometries> 
 		geometries = merge(geometries, other.geometries);
 
 		// Update the hashes.
-		HashSet<Integer> newHashes = new HashSet<>();
-		for (RecordedGeometry geometry : other.geometries) {
-			int hash = geometry.getCombineHash();
+		final HashSet<Integer> newHashes = new HashSet<>();
+		for (final RecordedGeometry geometry : other.geometries) {
+			final int hash = geometry.getCombineHash();
 			if (Arrays.binarySearch(hashes, hash) < 0) {
 				newHashes.add(hash);
 			}
@@ -154,7 +154,7 @@ public class RecordedOsmGeometries implements Comparable<RecordedOsmGeometries> 
 		if (newHashes.size() > 0) {
 			int length = hashes.length;
 			hashes = Arrays.copyOf(hashes, length + newHashes.size());
-			for (int hash : newHashes) {
+			for (final int hash : newHashes) {
 				hashes[length++] = hash;
 			}
 			Arrays.sort(hashes);
@@ -164,26 +164,26 @@ public class RecordedOsmGeometries implements Comparable<RecordedOsmGeometries> 
 	}
 
 	private boolean isMergeable(RecordedOsmGeometries other) {
-		return other.orderIndex == this.orderIndex
+		return other.orderIndex == orderIndex
 				&& viewPosition.equals(other.viewPosition);
 	}
 
 	/**
 	 * Merges two list of geometries. The order of geomtries is respected and
 	 * stays the same after each merge.
-	 * 
+	 *
 	 * @param geometries1
 	 * @param geometries2
 	 * @return A new, merged list of geometries.
 	 */
 	private List<RecordedGeometry> merge(List<RecordedGeometry> geometries1,
 			List<RecordedGeometry> geometries2) {
-		List<RecordedGeometry> ordered = new ArrayList<>();
-		List<RecordedGeometry> ret = new ArrayList<>();
+		final List<RecordedGeometry> ordered = new ArrayList<>();
+		final List<RecordedGeometry> ret = new ArrayList<>();
 
-		LinkedList<Pair<Integer, Integer>> pairs = firstMergePairs(geometries1,
+		final LinkedList<Pair<Integer, Integer>> pairs = firstMergePairs(geometries1,
 				geometries2);
-		ArrayList<Pair<Integer, Integer>> filtered = removeCrossingPairs(pairs);
+		final ArrayList<Pair<Integer, Integer>> filtered = removeCrossingPairs(pairs);
 
 		// Sort pairs by a
 		Collections.sort(filtered, new Comparator<Pair<Integer, Integer>>() {
@@ -197,7 +197,7 @@ public class RecordedOsmGeometries implements Comparable<RecordedOsmGeometries> 
 		// ordered by a and by b.
 
 		int geometry1Index = 0, geometry2Index = 0;
-		for (Pair<Integer, Integer> p : filtered) {
+		for (final Pair<Integer, Integer> p : filtered) {
 			for (; geometry1Index < p.a; geometry1Index++) {
 				ordered.add(geometries1.get(geometry1Index));
 			}
@@ -213,9 +213,9 @@ public class RecordedOsmGeometries implements Comparable<RecordedOsmGeometries> 
 		}
 
 		RecordedGeometry last = null;
-		Iterator<RecordedGeometry> iterator = ordered.iterator();
+		final Iterator<RecordedGeometry> iterator = ordered.iterator();
 		while (iterator.hasNext()) {
-			RecordedGeometry current = iterator.next();
+			final RecordedGeometry current = iterator.next();
 			if (last != null && last.attemptCombineWith(current)) {
 				// all good, we combined this one.
 			} else {
@@ -230,9 +230,9 @@ public class RecordedOsmGeometries implements Comparable<RecordedOsmGeometries> 
 	private ArrayList<Pair<Integer, Integer>> removeCrossingPairs(
 			LinkedList<Pair<Integer, Integer>> pairs) {
 		// TODO: Test if sorting by |pair.a - pair.b| helps.
-		ArrayList<Pair<Integer, Integer>> filtered = new ArrayList<>();
+		final ArrayList<Pair<Integer, Integer>> filtered = new ArrayList<>();
 		while (!pairs.isEmpty()) {
-			Pair<Integer, Integer> p = pairs.pollFirst();
+			final Pair<Integer, Integer> p = pairs.pollFirst();
 			removeAllCrossingPairs(pairs, p);
 			filtered.add(p);
 		}
@@ -242,9 +242,9 @@ public class RecordedOsmGeometries implements Comparable<RecordedOsmGeometries> 
 	private void removeAllCrossingPairs(
 			LinkedList<Pair<Integer, Integer>> pairs,
 			Pair<Integer, Integer> crossingWith) {
-		Iterator<Pair<Integer, Integer>> iterator = pairs.iterator();
+		final Iterator<Pair<Integer, Integer>> iterator = pairs.iterator();
 		while (iterator.hasNext()) {
-			Pair<Integer, Integer> pair = iterator.next();
+			final Pair<Integer, Integer> pair = iterator.next();
 			if (pair.a <= crossingWith.a && pair.b >= crossingWith.b
 					|| pair.a >= crossingWith.a && pair.b <= crossingWith.b) {
 				iterator.remove();
@@ -255,11 +255,11 @@ public class RecordedOsmGeometries implements Comparable<RecordedOsmGeometries> 
 	private LinkedList<Pair<Integer, Integer>> firstMergePairs(
 			List<RecordedGeometry> geometries1,
 			List<RecordedGeometry> geometries2) {
-		LinkedList<Pair<Integer, Integer>> mergePairs = new LinkedList<>();
+		final LinkedList<Pair<Integer, Integer>> mergePairs = new LinkedList<>();
 		for (int i = 0; i < geometries1.size(); i++) {
-			RecordedGeometry g1 = geometries1.get(i);
+			final RecordedGeometry g1 = geometries1.get(i);
 			for (int j = 0; j < geometries2.size(); j++) {
-				RecordedGeometry g2 = geometries1.get(i);
+				final RecordedGeometry g2 = geometries1.get(i);
 				if (g1.couldCombineWith(g2)) {
 					mergePairs.add(new Pair<>(i, j));
 				}
@@ -282,7 +282,7 @@ public class RecordedOsmGeometries implements Comparable<RecordedOsmGeometries> 
 	/**
 	 * A rating how useful it would be to combine those two geometries. Range
 	 * 0..1
-	 * 
+	 *
 	 * @param geometry
 	 * @return
 	 */
@@ -291,15 +291,15 @@ public class RecordedOsmGeometries implements Comparable<RecordedOsmGeometries> 
 			return 0;
 		}
 		int commonHashes = 0;
-		int[] otherHashes = geometry.getCombineHashes();
-		int[] myHashes = getCombineHashes();
-		for (int h : myHashes) {
-			int inOtherHashes = Arrays.binarySearch(otherHashes, h);
+		final int[] otherHashes = geometry.getCombineHashes();
+		final int[] myHashes = getCombineHashes();
+		for (final int h : myHashes) {
+			final int inOtherHashes = Arrays.binarySearch(otherHashes, h);
 			if (inOtherHashes >= 0) {
 				commonHashes++;
 			}
 		}
-		int totalHashes = otherHashes.length + myHashes.length - commonHashes;
+		final int totalHashes = otherHashes.length + myHashes.length - commonHashes;
 
 		return (float) commonHashes / totalHashes;
 	}
@@ -308,11 +308,11 @@ public class RecordedOsmGeometries implements Comparable<RecordedOsmGeometries> 
 	 * Attempts to merge all stored {@link RecordedGeometry}s. This optimizes draw performance.
 	 */
 	public void mergeChildren() {
-		ArrayList<RecordedGeometry> storedGeometries = new ArrayList<>(
+		final ArrayList<RecordedGeometry> storedGeometries = new ArrayList<>(
 				geometries);
 		geometries.clear();
 		RecordedGeometry last = null;
-		for (RecordedGeometry r : storedGeometries) {
+		for (final RecordedGeometry r : storedGeometries) {
 			if (last != null && last.attemptCombineWith(r)) {
 				// pass
 			} else {

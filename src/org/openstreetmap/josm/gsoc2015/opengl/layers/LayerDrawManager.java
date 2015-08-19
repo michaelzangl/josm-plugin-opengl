@@ -4,11 +4,9 @@ import java.awt.Graphics2D;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.Hashtable;
 import java.util.List;
 
 import org.openstreetmap.josm.data.Bounds;
-import org.openstreetmap.josm.gsoc2015.opengl.layer.OsmLayerDrawer;
 import org.openstreetmap.josm.gui.MapView;
 import org.openstreetmap.josm.gui.layer.MapViewPaintable;
 import org.openstreetmap.josm.gui.layer.OsmDataLayer;
@@ -18,7 +16,7 @@ import org.openstreetmap.josm.gui.layer.OsmDataLayer;
  * <p>
  * To use it, you need to call {@link #setLayersToDraw(List)}. Then, you can
  * draw all layers using {@link #draw(Graphics2D, MapView, Bounds)}.
- * 
+ *
  * @author Michael Zangl
  *
  */
@@ -27,13 +25,13 @@ public class LayerDrawManager {
 	private final ArrayList<LayerDrawer> layerDrawers = new ArrayList<>();
 
 	public void setLayersToDraw(List<? extends MapViewPaintable> list) {
-		HashMap<MapViewPaintable, LayerDrawer> oldLayerDrawers = new HashMap<>();
-		for (LayerDrawer d : layerDrawers) {
+		final HashMap<MapViewPaintable, LayerDrawer> oldLayerDrawers = new HashMap<>();
+		for (final LayerDrawer d : layerDrawers) {
 			oldLayerDrawers.put(d.getLayer(), d);
 		}
 
 		layerDrawers.clear();
-		for (MapViewPaintable layer : list) {
+		for (final MapViewPaintable layer : list) {
 			LayerDrawer drawer = oldLayerDrawers.remove(layer);
 			if (drawer == null) {
 				drawer = createDrawerForLayer(layer);
@@ -42,7 +40,7 @@ public class LayerDrawManager {
 		}
 
 		// Now tell the remaining drawers that we don't need them any more.
-		for (LayerDrawer drawer : oldLayerDrawers.values()) {
+		for (final LayerDrawer drawer : oldLayerDrawers.values()) {
 			drawer.dispose();
 		}
 	}
@@ -56,7 +54,7 @@ public class LayerDrawManager {
 	}
 
 	public void draw(Graphics2D g2d, MapView mv, Bounds box) {
-		for (LayerDrawer ld : layerDrawers) {
+		for (final LayerDrawer ld : layerDrawers) {
 			ld.drawLayer(g2d, mv, box);
 		}
 	}

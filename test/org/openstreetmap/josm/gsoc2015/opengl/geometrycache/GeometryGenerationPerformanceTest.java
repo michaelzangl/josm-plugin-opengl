@@ -29,7 +29,7 @@ import org.openstreetmap.josm.data.osm.DataSet;
 import org.openstreetmap.josm.data.osm.OsmDataGenerator;
 import org.openstreetmap.josm.data.osm.OsmDataGenerator.DataGenerator;
 import org.openstreetmap.josm.data.osm.OsmDataGenerator.NodeDataGenerator;
-import org.openstreetmap.josm.gsoc2015.opengl.layer.OsmLayerDrawer;
+import org.openstreetmap.josm.gsoc2015.opengl.layers.OsmLayerDrawer;
 import org.openstreetmap.josm.gsoc2015.opengl.osm.OpenGLStyledMapRenderer.StyleGenerationState;
 import org.openstreetmap.josm.gsoc2015.opengl.pool.SimpleBufferPool;
 import org.openstreetmap.josm.gui.MapView;
@@ -75,6 +75,7 @@ public class GeometryGenerationPerformanceTest {
 		public void run() {
 			System.out.println(description + "...");
 			StyleGenerationState.MAX_GEOMETRIES_GENERATED = Integer.MAX_VALUE;
+			StyleGenerationState.MAX_TIME = Integer.MAX_VALUE;
 			MapCSSStyleSource source = new MapCSSStyleSource(css);
 			PerformanceTestTimer timer = PerformanceTestUtils
 					.startTimer("MapCSSStyleSource#loadStyleSource(...) for "

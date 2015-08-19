@@ -9,17 +9,17 @@ import java.awt.Rectangle;
 /**
  * This is a layout that positions one component with full size and the rest of
  * the components as if there was no layout.
- * 
+ *
  * @author Michael Zangl
  *
  */
 public class AbsoluteOverlayLayout implements LayoutManager {
-	
-	private Component fullSizeComponent;
+
+	private final Component fullSizeComponent;
 
 	public AbsoluteOverlayLayout(Component fullSizeComponent) {
 		this.fullSizeComponent = fullSizeComponent;
-		
+
 	}
 
 	@Override
@@ -28,7 +28,7 @@ public class AbsoluteOverlayLayout implements LayoutManager {
 
 	@Override
 	public void layoutContainer(Container parent) {
-		for (Component c : parent.getComponents()) {
+		for (final Component c : parent.getComponents()) {
 			if (c == fullSizeComponent) {
 				c.setBounds(new Rectangle(parent.getSize()));
 			}

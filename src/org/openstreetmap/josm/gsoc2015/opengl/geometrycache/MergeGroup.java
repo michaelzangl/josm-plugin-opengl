@@ -14,36 +14,36 @@ import org.openstreetmap.josm.gui.mappaint.StyleCache;
  * them. This is why we need to invalidate all geometries that have merge
  * relations to the primitive. Those are therefore stored in the same merge
  * group.
- * 
+ *
  * @author Michael Zangl.
  *
  */
 public class MergeGroup {
 
-	private ArrayList<RecordedOsmGeometries> geometries = new ArrayList<>();
-	private ArrayList<OsmPrimitive> primitives = new ArrayList<>();
-	
+	private final ArrayList<RecordedOsmGeometries> geometries = new ArrayList<>();
+	private final ArrayList<OsmPrimitive> primitives = new ArrayList<>();
+
 	// TODO: This should be temporary.
-	private HashMap<OsmPrimitive, StyleCache> primitiveStyleUsed = new HashMap<>();
-	private HashMap<OsmPrimitive, Boolean> primitiveStyleHighlighted = new HashMap<>();
-	
+	private final HashMap<OsmPrimitive, StyleCache> primitiveStyleUsed = new HashMap<>();
+	private final HashMap<OsmPrimitive, Boolean> primitiveStyleHighlighted = new HashMap<>();
+
 	public float getMergeRating(OsmPrimitive p, Collection<RecordedOsmGeometries> geometries) {
 		float m = 0;
 		if (moreMergesRecommended()) {
-			for (RecordedOsmGeometries g : geometries) {
+			for (final RecordedOsmGeometries g : geometries) {
 				m += getMergeRating(g);
 			}
 		}
 		return m;
 	}
-	
+
 	private float getMergeRating(RecordedOsmGeometries g) {
 		if (g == null) {
 			throw new NullPointerException("Got a null geometry.");
 		}
-		
+
 		float r = 0;
-		for (RecordedOsmGeometries inGroupGeometry : geometries) {
+		for (final RecordedOsmGeometries inGroupGeometry : geometries) {
 			r = Math.max(r, g.getCombineRating(inGroupGeometry));
 		}
 		return r;
@@ -51,7 +51,7 @@ public class MergeGroup {
 
 	public void merge(OsmPrimitive p, Collection<RecordedOsmGeometries> geometries) {
 		//XXX This can be removed if performance is an issue.
-		for (RecordedOsmGeometries m : geometries) {
+		for (final RecordedOsmGeometries m : geometries) {
 			if (this.geometries.contains(m)) {
 				throw new IllegalArgumentException("Attemt to merge a geometry that is already in this group.");
 			}
@@ -59,18 +59,18 @@ public class MergeGroup {
 				throw new IllegalArgumentException("Got a geometry that already has a merge group.");
 			}
 		}
-		
+
 		primitives.add(p);
-		StyleCache style = p.mappaintStyle;
+		final StyleCache style = p.mappaintStyle;
 		if (style != null) {
 			primitiveStyleUsed.put(p, style);
 		} else {
 			Main.warn("No style set for " + p);
 		}
 		primitiveStyleHighlighted.put(p, p.isHighlighted());
-		for (RecordedOsmGeometries m : geometries) {
+		for (final RecordedOsmGeometries m : geometries) {
 			boolean merged = false;
-			for (RecordedOsmGeometries g : this.geometries) {
+			for (final RecordedOsmGeometries g : this.geometries) {
 				if (g.mergeWith(m)) {
 					merged = true;
 					break;
@@ -82,15 +82,15 @@ public class MergeGroup {
 			}
 		}
 	}
-	
+
 	public boolean moreMergesRecommended() {
-		return geometries.size() < 30 && primitives.size() < 80; 
+		return geometries.size() < 30 && primitives.size() < 80;
 	}
 
 	public ArrayList<RecordedOsmGeometries> getGeometries() {
 		return geometries;
 	}
-	
+
 	public ArrayList<OsmPrimitive> getPrimitives() {
 		return primitives;
 	}

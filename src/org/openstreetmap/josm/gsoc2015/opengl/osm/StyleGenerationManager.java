@@ -26,7 +26,7 @@ import org.openstreetmap.josm.gsoc2015.opengl.osm.search.WaySearcher;
 /**
  * This class manages a bunch of threads that search primitives, generate styles
  * and return the results.
- * 
+ *
  * <p>
  * There are three phases of style generation:
  * <ol>
@@ -41,7 +41,7 @@ import org.openstreetmap.josm.gsoc2015.opengl.osm.search.WaySearcher;
  * <p>
  * To allow for parallel geometry (re)generation and drawing of already
  * generated geometries, this generator allows for processing bulks of data.
- * 
+ *
  * <h2>Draw process</h2>
  * <p>
  * All entries in the cache are marked as unused.
@@ -64,13 +64,13 @@ import org.openstreetmap.josm.gsoc2015.opengl.osm.search.WaySearcher;
  * <li>The cache does not contain an entry. We mark the geometry to be created
  * in a new way.
  * </ol>
- * 
+ *
  * All entries marked for drawing are then displayed. As soon as new geometries
  * are generated, a redraw is scheduled (TODO: delayed).
  * <p>
  * TODO: Wait a bit here.
- * 
- * 
+ *
+ *
  * <h2>Cache cleaning</h2>
  * <p>
  * We need to force a clean from the cache:
@@ -83,33 +83,23 @@ import org.openstreetmap.josm.gsoc2015.opengl.osm.search.WaySearcher;
  * <ul>
  * <li>Primitives with tag changes
  * </ul>
- * 
+ *
  * @author Michael Zangl
  *
  */
 public class StyleGenerationManager {
-	private final DataSet data;
-
-	private final StyleGeometryCache cache;
-
-	private BackgroundThreadPool geometryGenerationThreads;
-
-	private DrawThreadPool drawThreadPool = new DrawThreadPool();
-
-	public StyleGenerationManager(DataSet data,
-			FullRepaintListener repaintListener) {
-		this.data = data;
-		cache = new StyleGeometryCache(repaintListener);
-		cache.addListeners(data, Main.map.mapView);
-		geometryGenerationThreads = new BackgroundThreadPool(
-				cache.getRegenerator());
+	private final class RunCacheDispose implements Runnable {
+		@Override
+		public void run() {
+			cache.dispose();
+		}
 	}
 
 	/**
 	 * This is a thread pool for drawing. It handles multiple threads and allows
 	 * you to await the termination of all tasks scheduled on the threads.
-	 * 
-	 * @author michael
+	 *
+	 * @author Michael Zangl
 	 *
 	 */
 	private static class DrawThreadPool {
@@ -119,6 +109,12 @@ public class StyleGenerationManager {
 		// Executors.newFixedThreadPool(1);
 		private final LinkedList<Future<?>> futuresToAwait = new LinkedList<>();
 
+		/**
+		 * Schedules a new task on any draw thread.
+		 *
+		 * @param r
+		 *            The task
+		 */
 		public void scheduleTask(Runnable r) {
 			futuresToAwait.add(drawThreads.submit(r));
 		}
@@ -148,7 +144,7 @@ public class StyleGenerationManager {
 
 	private static class BackgroundRegeneationRunner extends Thread {
 		private boolean shutdown;
-		private BackgroundGemometryRegenerator regenerator;
+		private final BackgroundGemometryRegenerator regenerator;
 		private StyleGenerationState state;
 		private final Object stateMutex = new Object();
 
@@ -162,7 +158,7 @@ public class StyleGenerationManager {
 		public void run() {
 			StyleGenerationState usedState = null;
 			StyledGeometryGenerator generator = null;
-			
+
 			while (!shutdown) {
 				regenerator.waitForNewWork();
 				if (shutdown) {
@@ -181,14 +177,15 @@ public class StyleGenerationManager {
 				if (generator == null) {
 					generator = new StyledGeometryGenerator(usedState);
 				}
-				
-				RegenerationTask nextTasks = regenerator.generateRegenerationTask();
+
+				final RegenerationTask nextTasks = regenerator
+						.generateRegenerationTask();
 				if (nextTasks != null) {
 					nextTasks.runWithGenerator(generator);
 				}
 			}
 		}
-		
+
 		public void setState(StyleGenerationState state) {
 			synchronized (stateMutex) {
 				this.state = state;
@@ -200,9 +197,15 @@ public class StyleGenerationManager {
 		}
 	}
 
+	/**
+	 * Those are the threads that run in the background and regenerate
+	 * geometries with low priority.
+	 *
+	 * @author Michael Zangl
+	 */
 	public static class BackgroundThreadPool {
 		private final BackgroundRegeneationRunner[] bgThreads = new BackgroundRegeneationRunner[4];
-		private BackgroundGemometryRegenerator regenerator;
+		private final BackgroundGemometryRegenerator regenerator;
 
 		public BackgroundThreadPool(BackgroundGemometryRegenerator regenerator) {
 			this.regenerator = regenerator;
@@ -216,21 +219,21 @@ public class StyleGenerationManager {
 		 * Stops this thread pool.
 		 */
 		public void stop() {
-			for (BackgroundRegeneationRunner bgThread : bgThreads) {
+			for (final BackgroundRegeneationRunner bgThread : bgThreads) {
 				bgThread.shutdown();
 			}
 			regenerator.resumeAllWaiting();
 		}
 
 		public void setState(StyleGenerationState sgs) {
-			for (BackgroundRegeneationRunner bgThread : bgThreads) {
+			for (final BackgroundRegeneationRunner bgThread : bgThreads) {
 				bgThread.setState(sgs);
 			}
 		}
 	}
 
 	private class PrimitiveForDrawSearcher<T extends OsmPrimitive> implements
-			OsmPrimitiveHandler<T> {
+	OsmPrimitiveHandler<T> {
 		// TODO: Adaptive for nodes/rest
 		private static final int BULK_SIZE = 5000;
 		private final StyleGenerationState sgs;
@@ -252,37 +255,68 @@ public class StyleGenerationManager {
 		}
 	}
 
+	private final DataSet data;
+
+	private final StyleGeometryCache cache;
+
+	private final BackgroundThreadPool geometryGenerationThreads;
+
+	private final DrawThreadPool drawThreadPool = new DrawThreadPool();
+
+
+	/**
+	 * Creates a new style generation manager.
+	 * @param data The data set this is for.
+	 * @param repaintListener A repaint listener to notify whenever styles changed.
+	 */
+	public StyleGenerationManager(DataSet data,
+			FullRepaintListener repaintListener) {
+		this.data = data;
+		cache = new StyleGeometryCache(repaintListener);
+		cache.addListeners(data, Main.map.mapView);
+		geometryGenerationThreads = new BackgroundThreadPool(
+				cache.getRegenerator());
+	}
+
 	/**
 	 * Gets a list of geometries to draw the current frame.
-	 * 
+	 *
 	 * @param bbox
 	 *            The bbox.
-	 * @return
+	 * @return A list of geometries to draw for the given bbox.
 	 */
 	public List<RecordedOsmGeometries> getDrawGeometries(BBox bbox,
 			StyleGenerationState sgs) {
-		long time1 = System.currentTimeMillis();
+		final long time1 = System.currentTimeMillis();
 		geometryGenerationThreads.setState(sgs);
 		cache.startFrame();
 		drawThreadPool.scheduleTask(new NodeSearcher(
-				new PrimitiveForDrawSearcher<Node>(sgs, cache),
-				data, bbox));
+				new PrimitiveForDrawSearcher<Node>(sgs, cache), data, bbox));
 		drawThreadPool.scheduleTask(new WaySearcher(
-				new PrimitiveForDrawSearcher<Way>(sgs, cache), data,
-				bbox));
-		drawThreadPool.scheduleTask(new RelationSearcher(
-				new PrimitiveForDrawSearcher<Relation>(sgs, cache), data, bbox));
+				new PrimitiveForDrawSearcher<Way>(sgs, cache), data, bbox));
+		drawThreadPool
+		.scheduleTask(new RelationSearcher(
+				new PrimitiveForDrawSearcher<Relation>(sgs, cache),
+				data, bbox));
 		drawThreadPool.finish();
-		List<RecordedOsmGeometries> recorded = cache.endFrame();
-		long time2 = System.currentTimeMillis();
+		final List<RecordedOsmGeometries> recorded = cache.endFrame();
+		final long time2 = System.currentTimeMillis();
 		Collections.sort(recorded);
 		System.out
-				.println("STYLE GEN in getDrawGeometries()" + (time2 - time1));
+		.println("STYLE GEN in getDrawGeometries()" + (time2 - time1));
 		System.out.println("SORTING in getDrawGeometries(): "
 				+ (System.currentTimeMillis() - time2));
 		return recorded;
 	}
 
+	/**
+	 * Checks if this generator is for the given data set.
+	 *
+	 * @param data2
+	 *            The data set.
+	 * @return <code>true</code> if this is the data set we were constructed
+	 *         with.
+	 */
 	public boolean usesDataSet(DataSet data2) {
 		return data == data2;
 	}
@@ -292,12 +326,7 @@ public class StyleGenerationManager {
 	 */
 	public void dispose() {
 		cache.removeListeners(data);
-		drawThreadPool.scheduleTask(new Runnable() {
-			@Override
-			public void run() {
-				cache.dispose();
-			}
-		});
+		drawThreadPool.scheduleTask(new RunCacheDispose());
 		drawThreadPool.stop();
 		geometryGenerationThreads.stop();
 	}

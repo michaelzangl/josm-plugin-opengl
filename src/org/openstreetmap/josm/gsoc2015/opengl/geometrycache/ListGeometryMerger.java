@@ -9,7 +9,7 @@ import org.openstreetmap.josm.data.osm.OsmPrimitive;
 public class ListGeometryMerger extends GeometryMerger {
 
 	private static final int ACTIVE_MERGE_GROUPS = 100;
-	private LinkedHashSet<MergeGroup> openMergeGroups = new LinkedHashSet<>();
+	private final LinkedHashSet<MergeGroup> openMergeGroups = new LinkedHashSet<>();
 
 	protected HashSet<RecordedOsmGeometries> geometries = new HashSet<>();
 
@@ -18,17 +18,18 @@ public class ListGeometryMerger extends GeometryMerger {
 	 * @param primitive The primitive to add the geometries for.
 	 * @param geometries All geometries for that primitive.
 	 */
+	@Override
 	public synchronized void addMergeables(OsmPrimitive primitive, Collection<RecordedOsmGeometries> geometries) {
-		for (RecordedOsmGeometries g : geometries) {
+		for (final RecordedOsmGeometries g : geometries) {
 			if (this.geometries.contains(g)) {
 				throw new IllegalArgumentException("Attempt to add twice: " + g);
 			}
 		}
-		
+
 		MergeGroup maxMergeRated = null;
 		float maxMergeRating = .3f; // <- Minimum rating to merge
-		for (MergeGroup g : openMergeGroups) {
-			float mergeRating = g.getMergeRating(primitive, geometries);
+		for (final MergeGroup g : openMergeGroups) {
+			final float mergeRating = g.getMergeRating(primitive, geometries);
 			if (mergeRating > maxMergeRating) {
 				maxMergeRated = g;
 				maxMergeRating = mergeRating;
@@ -36,7 +37,7 @@ public class ListGeometryMerger extends GeometryMerger {
 		}
 		if (maxMergeRated != null) {
 		} else {
-			MergeGroup group = new MergeGroup();
+			final MergeGroup group = new MergeGroup();
 			mergeGroups.add(group);
 			openMergeGroups.add(group);
 			if (openMergeGroups.size() > ACTIVE_MERGE_GROUPS) {

@@ -26,7 +26,7 @@ import org.openstreetmap.josm.tools.Utils;
 
 /**
  * This class attempts to install JOGL.
- * 
+ *
  * @author michael
  */
 public class JOGLInstaller extends SwingWorker<Void, ProgressStatus> {
@@ -60,7 +60,7 @@ public class JOGLInstaller extends SwingWorker<Void, ProgressStatus> {
 	public interface JOGLInstallProgress {
 		/**
 		 * Called whenever the installation progress changed.
-		 * 
+		 *
 		 * @param progress
 		 * @param message
 		 */
@@ -77,12 +77,12 @@ public class JOGLInstaller extends SwingWorker<Void, ProgressStatus> {
 	 * Just for the progress bar, does not have to be exact.
 	 */
 	private static final int LIB_COUNT_MAX = 22;
-	private JOGLInstallProgress progressMonitor;
-	private PluginInformation pluginInformation;
+	private final JOGLInstallProgress progressMonitor;
+	private final PluginInformation pluginInformation;
 
 	/**
 	 * Synchronizes the installation of jogl.
-	 * 
+	 *
 	 * @author michael
 	 *
 	 */
@@ -93,7 +93,7 @@ public class JOGLInstaller extends SwingWorker<Void, ProgressStatus> {
 			while (currentInstaller != null) {
 				try {
 					wait();
-				} catch (InterruptedException e) {
+				} catch (final InterruptedException e) {
 				}
 			}
 			currentInstaller = installer;
@@ -133,8 +133,8 @@ public class JOGLInstaller extends SwingWorker<Void, ProgressStatus> {
 		try {
 			get();
 			progressMonitor.joglInstalled();
-		} catch (InterruptedException e) {
-		} catch (ExecutionException e) {
+		} catch (final InterruptedException e) {
+		} catch (final ExecutionException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
@@ -142,28 +142,28 @@ public class JOGLInstaller extends SwingWorker<Void, ProgressStatus> {
 
 	@Override
 	protected void process(List<ProgressStatus> chunks) {
-		for (ProgressStatus chunk : chunks) {
+		for (final ProgressStatus chunk : chunks) {
 			progressMonitor.progressChanged(chunk.getProgress(),
 					chunk.getMessage());
 		}
 	}
 
 	private void attemptToExtract() throws IOException, ClassNotFoundException {
-		File pluginsDirectory = Main.pref.getPluginsDirectory();
-		String name = pluginInformation.getName();
-		File pluginDir = new File(pluginsDirectory, name);
+		final File pluginsDirectory = Main.pref.getPluginsDirectory();
+		final String name = pluginInformation.getName();
+		final File pluginDir = new File(pluginsDirectory, name);
 		pluginDir.mkdirs();
 
-		File versionFile = new File(pluginDir, "jogl-last-update");
-		String versionOnDisk = getVersionFileContent(versionFile);
-		String currentVersion = pluginInformation.version;
+		final File versionFile = new File(pluginDir, "jogl-last-update");
+		final String versionOnDisk = getVersionFileContent(versionFile);
+		final String currentVersion = pluginInformation.version;
 
-		File joglDir = new File(pluginDir, "lib");
+		final File joglDir = new File(pluginDir, "lib");
 
 		// If the version file is correct, we assume the right version of jogl
 		// is installed correctly.
 		if (!versionOnDisk.equals(currentVersion)) {
-			File pluginJar = new File(pluginsDirectory, name + ".jar");
+			final File pluginJar = new File(pluginsDirectory, name + ".jar");
 			extractJogl(pluginJar, joglDir);
 			writeVersionFile(versionFile, currentVersion);
 		}
@@ -181,12 +181,12 @@ public class JOGLInstaller extends SwingWorker<Void, ProgressStatus> {
 	}
 
 	private void load(File joglDir) {
-		DynamicURLClassLoader loader = PluginHandler.getPluginClassLoader();
+		final DynamicURLClassLoader loader = PluginHandler.getPluginClassLoader();
 
-		File joglJar = new File(joglDir, "jogl-all.jar");
+		final File joglJar = new File(joglDir, "jogl-all.jar");
 		System.out.println("Adding " + joglJar);
 		loader.addURL(Utils.fileToURL(joglJar));
-		File gluegenJar = new File(joglDir, "gluegen-rt.jar");
+		final File gluegenJar = new File(joglDir, "gluegen-rt.jar");
 		System.out.println("Adding " + gluegenJar);
 		loader.addURL(Utils.fileToURL(gluegenJar));
 	}
@@ -195,17 +195,17 @@ public class JOGLInstaller extends SwingWorker<Void, ProgressStatus> {
 		joglDir.mkdirs();
 
 		// get the zip file content
-		ZipInputStream zis = new ZipInputStream(new FileInputStream(pluginJar));
+		final ZipInputStream zis = new ZipInputStream(new FileInputStream(pluginJar));
 		// get the zipped file list entry
 		ZipEntry ze = zis.getNextEntry();
-		Pattern libPattern = Pattern.compile("resources/lib/([\\w-]+.jar)");
-		int libCount = 0;
+		final Pattern libPattern = Pattern.compile("resources/lib/([\\w-]+.jar)");
+		final int libCount = 0;
 
 		while (ze != null) {
-			Matcher matcher = libPattern.matcher(ze.getName());
+			final Matcher matcher = libPattern.matcher(ze.getName());
 			if (matcher.matches()) {
 				// TODO tr
-				String name = matcher.group(1);
+				final String name = matcher.group(1);
 				progressMonitor.progressChanged((float) libCount
 						/ LIB_COUNT_MAX, "Extracting " + name);
 				extractTo(zis, new File(joglDir, name));
@@ -220,7 +220,7 @@ public class JOGLInstaller extends SwingWorker<Void, ProgressStatus> {
 	private void extractTo(ZipInputStream zis, File file)
 			throws FileNotFoundException, IOException {
 		try (FileOutputStream out = new FileOutputStream(file)) {
-			byte[] buffer = new byte[8192];
+			final byte[] buffer = new byte[8192];
 			int len;
 			while ((len = zis.read(buffer)) != -1) {
 				out.write(buffer, 0, len);
@@ -238,10 +238,11 @@ public class JOGLInstaller extends SwingWorker<Void, ProgressStatus> {
 
 	private String getVersionFileContent(File versionFile) throws IOException {
 		if (versionFile.exists()) {
-			List<String> lines = Files.readAllLines(versionFile.toPath(),
+			final List<String> lines = Files.readAllLines(versionFile.toPath(),
 					StandardCharsets.UTF_8);
-			if (lines.size() > 0)
+			if (lines.size() > 0) {
 				return lines.get(0);
+			}
 		}
 		return "";
 	}
@@ -251,7 +252,7 @@ public class JOGLInstaller extends SwingWorker<Void, ProgressStatus> {
 	/**
 	 * Forces JOGL to be installed and initialized. As soon as it is, the
 	 * {@link JOGLInstallProgress#joglInstalled()} method is called.
-	 * 
+	 *
 	 * @param progressMonitor
 	 * @param pluginInformation
 	 */

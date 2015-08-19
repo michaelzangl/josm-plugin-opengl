@@ -5,11 +5,21 @@ import java.util.List;
 import org.openstreetmap.josm.gsoc2015.opengl.geometrycache.OsmPrimitiveRecorder.RecordedPrimitiveReceiver;
 import org.openstreetmap.josm.gsoc2015.opengl.geometrycache.RecordedOsmGeometries;
 
-class SimpleRecodingReceiver implements
-		RecordedPrimitiveReceiver {
+/**
+ * This geometry receiver simply stores them in the privided list.
+ *
+ * @author Michael Zangl
+ */
+class SimpleRecodingReceiver implements RecordedPrimitiveReceiver {
 
-	private List<RecordedOsmGeometries> recorded;
+	private final List<RecordedOsmGeometries> recorded;
 
+	/**
+	 * Creates a new receiver.
+	 *
+	 * @param recorded
+	 *            The list to store received geometries in.
+	 */
 	public SimpleRecodingReceiver(List<RecordedOsmGeometries> recorded) {
 		this.recorded = recorded;
 	}

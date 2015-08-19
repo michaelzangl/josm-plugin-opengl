@@ -12,6 +12,17 @@ import org.openstreetmap.josm.data.osm.Relation;
  */
 public class RelationSearcher extends PrimitiveSearcher<Relation> {
 
+	/**
+	 * Creates a new relation searcher
+	 *
+	 * @param handler
+	 *            The handler to send the found primitives to. It may be invoked
+	 *            multiple times in the future.
+	 * @param data
+	 *            The data to search in.
+	 * @param bbox
+	 *            The bounding box to search.
+	 */
 	public RelationSearcher(OsmPrimitiveHandler<Relation> handler,
 			DataSet data, BBox bbox) {
 		super(handler, data, bbox);

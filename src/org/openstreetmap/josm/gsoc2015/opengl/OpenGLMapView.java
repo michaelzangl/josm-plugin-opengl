@@ -22,17 +22,26 @@ import org.openstreetmap.josm.tools.Shortcut;
  * This class is our version of {@link MapView}. Since the {@link MapView} class
  * also handles global state, we cannot extend it. Some of the operations here
  * are just copy+pasted from {@link MapView}.
- * 
+ *
  * @author michael
  *
  */
 public class OpenGLMapView extends JPanel {
 	/**
-	 * 
+	 *
 	 */
 	private static final long serialVersionUID = -7197762169283559138L;
-	private MapView mapView;
+	private final MapView mapView;
 
+	/**
+	 * Creates a new OpenGL map view panel.
+	 *
+	 * @param mapView
+	 *            The map view to use.
+	 * @param pluginInformation
+	 *            The plugin information of this plugin, required for installing
+	 *            jogl.
+	 */
 	public OpenGLMapView(MapView mapView, PluginInformation pluginInformation) {
 		super(new BorderLayout());
 		this.mapView = mapView;
@@ -58,19 +67,19 @@ public class OpenGLMapView extends JPanel {
 
 	protected void addOpenglView() {
 		removeAll();
-		SpringLayout springLayout = new SpringLayout();
+		final SpringLayout springLayout = new SpringLayout();
 		setLayout(springLayout);
 
 		// This adds some absolutely positioned elements to this view.
-		for (JComponent c : MapView.getMapNavigationComponents(mapView)) {
+		for (final JComponent c : MapView.getMapNavigationComponents(mapView)) {
 			add(c);
 		}
 
 		// Convert all bounds to swing constrains.
-		for (Component c : getComponents()) {
+		for (final Component c : getComponents()) {
 			Rectangle absBounds = c.getBounds();
 			if (absBounds == null) {
-				Point location = c.getLocation();
+				final Point location = c.getLocation();
 				if (location != null) {
 					absBounds = new Rectangle(c.getPreferredSize());
 					absBounds.translate(location.x, location.y);
@@ -90,17 +99,18 @@ public class OpenGLMapView extends JPanel {
 		}
 
 		// The last added component is painted first.
-		JPanel mouseEventIntercept = new InterceptMouseEvents(mapView);
+		final JPanel mouseEventIntercept = new InterceptMouseEvents(mapView);
 		add(mouseEventIntercept);
 		setBackground(new Color(0, 0, 0, 0));
 		setToFullSize(springLayout, this, mouseEventIntercept);
-		
-		Component renderer = MapPanelFactory.getMapRenderer(mapView);
+
+		final Component renderer = MapPanelFactory.getMapRenderer(mapView);
 		add(renderer);
 		setToFullSize(springLayout, mouseEventIntercept, renderer);
 	}
 
-	private void setToFullSize(SpringLayout springLayout, Component parent, Component child) {
+	private void setToFullSize(SpringLayout springLayout, Component parent,
+			Component child) {
 		springLayout.putConstraint(SpringLayout.WEST, child, 0,
 				SpringLayout.WEST, parent);
 		springLayout.putConstraint(SpringLayout.NORTH, child, 0,

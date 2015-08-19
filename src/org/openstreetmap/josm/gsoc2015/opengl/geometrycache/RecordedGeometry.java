@@ -8,13 +8,14 @@ import java.util.Objects;
 
 import javax.media.opengl.GL;
 import javax.media.opengl.GL2;
+import javax.media.opengl.GL2GL3;
 
 import org.jogamp.glg2d.VertexBuffer;
 import org.openstreetmap.josm.Main;
 import org.openstreetmap.josm.gsoc2015.opengl.geometrycache.TextureManager.TextureEntry;
-import org.openstreetmap.josm.gsoc2015.opengl.pool.Releaseable;
+import org.openstreetmap.josm.gsoc2015.opengl.pool.Releasable;
 import org.openstreetmap.josm.gsoc2015.opengl.pool.VertexBufferProvider;
-import org.openstreetmap.josm.gsoc2015.opengl.pool.VertexBufferProvider.ReleaseableVertexBuffer;
+import org.openstreetmap.josm.gsoc2015.opengl.pool.VertexBufferProvider.ReleasableVertexBuffer;
 
 import com.jogamp.common.nio.Buffers;
 
@@ -22,7 +23,7 @@ import com.jogamp.common.nio.Buffers;
  * This is a recorded geometry data. Each geometry consists of a direct
  * {@link FloatBuffer} that holds x/y coordinates and optionally U7V coordinates
  * for the texture.
- * 
+ *
  * @author michael
  *
  */
@@ -39,18 +40,18 @@ public class RecordedGeometry {
 
 	private static IdentityHashMap<VertexBuffer, VertexBuffer> used = new IdentityHashMap<>();
 
-	protected Releaseable coordinates;
+	protected Releasable coordinates;
 	protected int points;
 	private int vbo = -1;
 	protected final int color;
 	protected int drawMode;
 	protected final TextureEntry texture;
 
-	private GLLineStrippleDefinition lineStripple;
+	private final GLLineStippleDefinition lineStripple;
 
 	/**
 	 * Creates a new recorded geometry.
-	 * 
+	 *
 	 * @param drawMode
 	 * @param coordinates
 	 *            The coordinates array. The length is queried by using the
@@ -59,8 +60,8 @@ public class RecordedGeometry {
 	 * @param color
 	 * @param texture
 	 */
-	private RecordedGeometry(int drawMode, Releaseable coordinates, int color,
-			TextureEntry texture, GLLineStrippleDefinition lineStripple) {
+	private RecordedGeometry(int drawMode, Releasable coordinates, int color,
+			TextureEntry texture, GLLineStippleDefinition lineStripple) {
 		if (!coordinates.getBuffer().isDirect()) {
 			throw new IllegalArgumentException(
 					"Can only handle direct float buffers.");
@@ -74,19 +75,19 @@ public class RecordedGeometry {
 		this.coordinates = coordinates;
 		this.color = color;
 		this.texture = texture;
-		this.points = coordinates.getBuffer().position()
+		points = coordinates.getBuffer().position()
 				/ getBufferEntriesForPoint();
 		this.lineStripple = lineStripple;
 	}
 
-	public RecordedGeometry(int drawMode, Releaseable vBuffer, int color) {
+	public RecordedGeometry(int drawMode, Releasable vBuffer, int color) {
 		this(drawMode, vBuffer, color, null, null);
 	}
 
 	/**
 	 * Disposes the underlying buffer and frees all allocated resources. The
 	 * object may not be used afterwards.
-	 * 
+	 *
 	 * @param gl
 	 */
 	public synchronized void dispose() {
@@ -100,6 +101,7 @@ public class RecordedGeometry {
 		points = 0;
 	}
 
+	@Override
 	protected void finalize() throws Throwable {
 		if (points > 0) {
 			Main.warn("RecordedGeometry was finalized but is missing dispose()");
@@ -113,19 +115,19 @@ public class RecordedGeometry {
 		}
 
 		if (vbo < 0 && points > MIN_VBO_POINTS) {
-			FloatBuffer buffer = coordinates.getBuffer();
+			final FloatBuffer buffer = coordinates.getBuffer();
 			// convert to VBO
 
-			int[] vboIds = new int[1];
+			final int[] vboIds = new int[1];
 			gl.glGenBuffers(1, vboIds, 0);
 			vbo = vboIds[0];
 			if (vbo == 0) {
 				Main.warn("Could not generate VBO object.");
 				vbo = -1;
 			} else {
-				gl.glBindBuffer(GL2.GL_ARRAY_BUFFER, vbo);
+				gl.glBindBuffer(GL.GL_ARRAY_BUFFER, vbo);
 				buffer.rewind();
-				gl.glBufferData(GL2.GL_ARRAY_BUFFER, buffer.remaining()
+				gl.glBufferData(GL.GL_ARRAY_BUFFER, buffer.remaining()
 						* Buffers.SIZEOF_FLOAT, buffer, GL.GL_STATIC_DRAW);
 				// we don't need this any more
 				coordinates.release();
@@ -137,10 +139,10 @@ public class RecordedGeometry {
 		state.setColor(color);
 		state.setLineStripple(lineStripple);
 
-		int stride = getBufferEntriesForPoint() * Buffers.SIZEOF_FLOAT;
+		final int stride = getBufferEntriesForPoint() * Buffers.SIZEOF_FLOAT;
 		FloatBuffer buffer = null;
 		if (vbo >= 0) {
-			gl.glBindBuffer(GL2.GL_ARRAY_BUFFER, vbo);
+			gl.glBindBuffer(GL.GL_ARRAY_BUFFER, vbo);
 			gl.glVertexPointer(2, GL.GL_FLOAT, stride, 0);
 		} else {
 			buffer = coordinates.getBuffer();
@@ -174,7 +176,7 @@ public class RecordedGeometry {
 		}
 
 		if (vbo >= 0) {
-			gl.glBindBuffer(GL2.GL_ARRAY_BUFFER, 0);
+			gl.glBindBuffer(GL.GL_ARRAY_BUFFER, 0);
 		}
 	}
 
@@ -184,7 +186,7 @@ public class RecordedGeometry {
 
 	/**
 	 * Check whether this draw command has no influence on the output.
-	 * 
+	 *
 	 * @return <code>true</code> if there is no influence.
 	 */
 	public boolean isNop() {
@@ -193,7 +195,7 @@ public class RecordedGeometry {
 
 	/**
 	 * Creates a hash that suggests which geometries could be combined.
-	 * 
+	 *
 	 * @return The hash.
 	 */
 	public int getCombineHash() {
@@ -201,8 +203,8 @@ public class RecordedGeometry {
 		int result = 1;
 		result = prime * result + color;
 		result = prime * result + getBestCombineDrawMode();
-		result = prime * result + ((texture == null) ? 0 : texture.hashCode());
-		result = prime * result + ((lineStripple == null) ? 0 : lineStripple.hashCode());
+		result = prime * result + (texture == null ? 0 : texture.hashCode());
+		result = prime * result + (lineStripple == null ? 0 : lineStripple.hashCode());
 		return result;
 	}
 
@@ -210,31 +212,31 @@ public class RecordedGeometry {
 	 * Get the draw mode that should be used when combing this buffer. In some
 	 * draw modes, putting multiple geometries in one buffer is not possible.
 	 * Those are converted to a geometry that is suited for combining.
-	 * 
+	 *
 	 * @return The draw mode to use after combining geometries.
 	 */
 	private int getBestCombineDrawMode() {
 		if (shouldConvertToTriangles()) {
-			return GL2.GL_TRIANGLES;
+			return GL.GL_TRIANGLES;
 		} else if (shouldConvertToLines()) {
-			return GL2.GL_LINES;
+			return GL.GL_LINES;
 		}
 		return drawMode;
 	}
 
 	private boolean shouldConvertToTriangles() {
-		return (drawMode == GL2.GL_TRIANGLE_STRIP || drawMode == GL2.GL_TRIANGLE_FAN)
+		return (drawMode == GL.GL_TRIANGLE_STRIP || drawMode == GL.GL_TRIANGLE_FAN)
 				&& points < MAX_CONVERT_POINTS;
 	}
 
 	private boolean shouldConvertToLines() {
-		return (drawMode == GL2.GL_LINE_STRIP || drawMode == GL2.GL_LINE_LOOP)
+		return (drawMode == GL.GL_LINE_STRIP || drawMode == GL.GL_LINE_LOOP)
 				&& points < MAX_CONVERT_POINTS;
 	}
 
 	/**
 	 * Checks if two geomtries could be combined. The result is symetric.
-	 * 
+	 *
 	 * @param other
 	 * @return
 	 */
@@ -246,9 +248,9 @@ public class RecordedGeometry {
 	}
 
 	private boolean hasMergeableDrawMode() {
-		int drawMode = getBestCombineDrawMode();
-		return drawMode == GL2.GL_QUADS || drawMode == GL2.GL_LINES
-				|| drawMode == GL2.GL_TRIANGLES || drawMode == GL2.GL_POINTS;
+		final int drawMode = getBestCombineDrawMode();
+		return drawMode == GL2GL3.GL_QUADS || drawMode == GL.GL_LINES
+				|| drawMode == GL.GL_TRIANGLES || drawMode == GL.GL_POINTS;
 	}
 
 	/**
@@ -257,7 +259,7 @@ public class RecordedGeometry {
 	 * If the merge is successful, drawing this geometry has the same effect as
 	 * a drwa of this and the odert geometry would have before the merge. The
 	 * other geometry is automatically disposed.
-	 * 
+	 *
 	 * @param other
 	 * @return
 	 */
@@ -269,11 +271,11 @@ public class RecordedGeometry {
 			throw new IllegalArgumentException("Cannot combine with myself.");
 		}
 
-		int newPoints = getPointsAfterConversion()
+		final int newPoints = getPointsAfterConversion()
 				+ other.getPointsAfterConversion();
-		Releaseable newCoordinates;
+		Releasable newCoordinates;
 
-		int newDrawMode = getBestCombineDrawMode();
+		final int newDrawMode = getBestCombineDrawMode();
 
 		// Create coordinates array if required.
 		int newBufferSize = newPoints * getBufferEntriesForPoint();
@@ -315,12 +317,12 @@ public class RecordedGeometry {
 	 * Transfers my coordinates to the given buffer, converting if needed.
 	 * <p>
 	 * Positions the cursor at the end of the data.
-	 * 
+	 *
 	 * @param to
 	 * @return
 	 */
 	private void transferToBuffer(FloatBuffer to) {
-		FloatBuffer coordBuffer = coordinates.getBuffer();
+		final FloatBuffer coordBuffer = coordinates.getBuffer();
 		coordBuffer.rewind();
 		if (shouldConvertToTriangles()) {
 			transferAndConvertToTriangles(coordBuffer, to, points, drawMode,
@@ -329,7 +331,7 @@ public class RecordedGeometry {
 			transferAndConvertToLines(coordBuffer, to, points, drawMode,
 					getBufferEntriesForPoint());
 		} else {
-			int entries = points * getBufferEntriesForPoint();
+			final int entries = points * getBufferEntriesForPoint();
 			transfer(coordBuffer, to, entries);
 		}
 	}
@@ -343,7 +345,7 @@ public class RecordedGeometry {
 	 * <p>
 	 * For a triangle strip, we convert to triangles with the points (1,2,3),
 	 * (3,2,4), (3,4,5) ...
-	 * 
+	 *
 	 * @param from
 	 *            The buffer to take from.
 	 * @param to
@@ -356,15 +358,15 @@ public class RecordedGeometry {
 	 */
 	private static void transferAndConvertToTriangles(FloatBuffer from,
 			FloatBuffer to, int oldPoints, int oldDrawMode, int pointSize) {
-		int triangles = (oldPoints - 2);
-		int fromOffset = from.position();
+		final int triangles = oldPoints - 2;
+		final int fromOffset = from.position();
 		// int toOffset = to.position();
 		// System.out.println("Converting " + triangles + " triangles: from@"
 		// + fromOffset + " of " + from.capacity() + ", to@" + toOffset
 		// + " of " + to.capacity());
 
-		if (oldDrawMode == GL2.GL_TRIANGLE_STRIP) {
-		} else if (oldDrawMode == GL2.GL_TRIANGLE_FAN) {
+		if (oldDrawMode == GL.GL_TRIANGLE_STRIP) {
+		} else if (oldDrawMode == GL.GL_TRIANGLE_FAN) {
 		} else {
 			throw new IllegalArgumentException("Cannot convert to triangles: "
 					+ oldDrawMode);
@@ -375,13 +377,13 @@ public class RecordedGeometry {
 			toPut = to;
 			to = Buffers.newDirectFloatBuffer(triangles * 3 * pointSize);
 		}
-		FloatBuffer fromCopy = from.duplicate();
+		final FloatBuffer fromCopy = from.duplicate();
 
 		// Go backward to support in-buffer conversion.
 		for (int triangle = 0; triangle < triangles; triangle++) {
 			int vertex1, vertex2;
-			if (oldDrawMode == GL2.GL_TRIANGLE_STRIP) {
-				int odd = triangle % 2; // 0 or 1
+			if (oldDrawMode == GL.GL_TRIANGLE_STRIP) {
+				final int odd = triangle % 2; // 0 or 1
 				// We could reduce number of gets here by storing the result.
 				vertex1 = triangle + odd;
 				vertex2 = triangle + 1 - odd;
@@ -389,7 +391,7 @@ public class RecordedGeometry {
 				vertex1 = 0;
 				vertex2 = triangle + 1;
 			}
-			int vertex3 = triangle + 2;
+			final int vertex3 = triangle + 2;
 			selectVertexAndPut(fromCopy, fromOffset, vertex1, pointSize, to);
 			selectVertexAndPut(fromCopy, fromOffset, vertex2, pointSize, to);
 			selectVertexAndPut(fromCopy, fromOffset, vertex3, pointSize, to);
@@ -403,8 +405,8 @@ public class RecordedGeometry {
 
 	private static void transferAndConvertToLines(FloatBuffer from,
 			FloatBuffer to, int oldPoints, int oldDrawMode, int pointSize) {
-		int linesPoints = getLinesPointCount(oldPoints, oldDrawMode);
-		int fromOffset = from.position();
+		final int linesPoints = getLinesPointCount(oldPoints, oldDrawMode);
+		final int fromOffset = from.position();
 		// int toOffset = to.position();
 		// System.out.println("Converting " + (linesPoints / 2) +
 		// " lines: from@"
@@ -415,7 +417,7 @@ public class RecordedGeometry {
 			toPut = to;
 			to = Buffers.newDirectFloatBuffer(linesPoints * pointSize);
 		}
-		FloatBuffer fromCopy = from.duplicate();
+		final FloatBuffer fromCopy = from.duplicate();
 
 		// Go backward to support in-buffer conversion.
 		for (int point = 0; point < linesPoints / 2; point++) {
@@ -434,9 +436,9 @@ public class RecordedGeometry {
 
 	private static int getLinesPointCount(int oldPoints, int oldDrawMode) {
 		int lineSegments;
-		if (oldDrawMode == GL2.GL_LINE_STRIP) {
+		if (oldDrawMode == GL.GL_LINE_STRIP) {
 			lineSegments = (oldPoints - 1) * 2;
-		} else if (oldDrawMode == GL2.GL_LINE_LOOP) {
+		} else if (oldDrawMode == GL.GL_LINE_LOOP) {
 			lineSegments = oldPoints * 2;
 		} else {
 			throw new IllegalArgumentException("Cannot convert to triangles: "
@@ -456,7 +458,7 @@ public class RecordedGeometry {
 		try {
 			fromCopy.limit(fromOffset + (vertexN + 1) * pointSize);
 			fromCopy.position(fromOffset + vertexN * pointSize);
-		} catch (IllegalArgumentException e) {
+		} catch (final IllegalArgumentException e) {
 			System.err.println("Position: "
 					+ (fromOffset + vertexN * pointSize));
 			throw e;
@@ -490,7 +492,7 @@ public class RecordedGeometry {
 	public static RecordedGeometry generateTexture(TextureEntry texture,
 			int color, Point2D sw, Point2D se, Point2D ne, Point2D nw,
 			float relSx1, float relSy1, float relSx2, float relSy2) {
-		float[] corners = new float[] { (float) sw.getX(), (float) sw.getY(),
+		final float[] corners = new float[] { (float) sw.getX(), (float) sw.getY(),
 				(float) se.getX(), (float) se.getY(), (float) ne.getX(),
 				(float) ne.getY(), (float) nw.getX(), (float) nw.getY(), };
 		return generateTexture(texture, color, corners, relSx1, relSy1, relSx2,
@@ -500,8 +502,8 @@ public class RecordedGeometry {
 	public static RecordedGeometry generateTexture(TextureEntry texture,
 			int color, float[] corners, float relSx1, float relSy1,
 			float relSx2, float relSy2) {
-		Releaseable releasable = VERTEX_BUFFER_PROVIDER.getBuffer(4 * 4);
-		FloatBuffer cornerBuffer = releasable.getBuffer();
+		final Releasable releasable = VERTEX_BUFFER_PROVIDER.getBuffer(4 * 4);
+		final FloatBuffer cornerBuffer = releasable.getBuffer();
 		// SW
 		cornerBuffer.put(corners, 0, 2);
 		cornerBuffer.put(relSx1);
@@ -518,13 +520,13 @@ public class RecordedGeometry {
 		cornerBuffer.put(corners, 6, 2);
 		cornerBuffer.put(relSx1);
 		cornerBuffer.put(relSy1);
-		return new RecordedGeometry(GL2.GL_QUADS, releasable, color, texture,
+		return new RecordedGeometry(GL2GL3.GL_QUADS, releasable, color, texture,
 				null);
 	}
 
 	public static RecordedGeometry generateLine(
-			GLLineStrippleDefinition stripple, int color,
-			ReleaseableVertexBuffer floatBuffer, boolean closedLine) {
+			GLLineStippleDefinition stripple, int color,
+			ReleasableVertexBuffer floatBuffer, boolean closedLine) {
 		int mode;
 		if (floatBuffer.getBuffer().position() == 4) {
 			mode = GL.GL_LINES;

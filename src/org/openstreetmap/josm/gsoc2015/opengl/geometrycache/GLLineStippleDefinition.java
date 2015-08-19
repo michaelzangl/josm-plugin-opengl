@@ -4,7 +4,13 @@ import java.awt.BasicStroke;
 
 import javax.media.opengl.GL2;
 
-public class GLLineStrippleDefinition {
+/**
+ * This class defines a line style that can be drawn using gl line stipple.
+ *
+ * @author Michael Zangl
+ *
+ */
+public class GLLineStippleDefinition {
 	private final float width;
 	/**
 	 * Only values 1...256 are allowed.
@@ -12,7 +18,17 @@ public class GLLineStrippleDefinition {
 	private final int factor;
 	private final int pattern;
 
-	public GLLineStrippleDefinition(float width, int factor, int pattern) {
+	/**
+	 * Create a new stipple definition
+	 *
+	 * @param width
+	 *            The parameter for {@link GL2#glLineWidth(float)}
+	 * @param factor
+	 *            The parameter for {@link GL2#glLineStipple(int, short)}
+	 * @param pattern
+	 *            The parameter for {@link GL2#glLineStipple(int, short)}
+	 */
+	public GLLineStippleDefinition(float width, int factor, int pattern) {
 		super();
 		this.width = width;
 		this.factor = factor;
@@ -31,25 +47,39 @@ public class GLLineStrippleDefinition {
 
 	@Override
 	public boolean equals(Object obj) {
-		if (this == obj)
+		if (this == obj) {
 			return true;
-		if (obj == null)
+		}
+		if (obj == null) {
 			return false;
-		if (getClass() != obj.getClass())
+		}
+		if (getClass() != obj.getClass()) {
 			return false;
-		GLLineStrippleDefinition other = (GLLineStrippleDefinition) obj;
-		if (factor != other.factor)
+		}
+		final GLLineStippleDefinition other = (GLLineStippleDefinition) obj;
+		if (factor != other.factor) {
 			return false;
-		if (pattern != other.pattern)
+		}
+		if (pattern != other.pattern) {
 			return false;
-		if (Float.floatToIntBits(width) != Float.floatToIntBits(other.width))
+		}
+		if (Float.floatToIntBits(width) != Float.floatToIntBits(other.width)) {
 			return false;
+		}
 		return true;
 	}
 
-	public static GLLineStrippleDefinition generate(BasicStroke stroke) {
-		float[] dashes = stroke.getDashArray();
-		float width = stroke.getLineWidth();
+	/**
+	 * Generates the best matching stipple definition for that stroke
+	 *
+	 * @param stroke
+	 *            The stroke to convert
+	 * @return The stipple definition or <code>null</code> if conversion was
+	 *         not possible.
+	 */
+	public static GLLineStippleDefinition generate(BasicStroke stroke) {
+		final float[] dashes = stroke.getDashArray();
+		final float width = stroke.getLineWidth();
 		if (width < .5 || width > 5) {
 			// TODO: Query those values from OpenGL.
 			return null;
@@ -63,28 +93,29 @@ public class GLLineStrippleDefinition {
 		} else {
 			factor = findBestFactor(dashes);
 
-			float phase = stroke.getDashPhase();
+			final float phase = stroke.getDashPhase();
 			// Now fill using the dashes array.
 			pattern = 0;
 			for (int i = 0; i < 16; i++) {
-				boolean isDash = getInDashArray(dashes, phase + (i + .5f) * factor);
-//				System.out.println("For " + i + " testing "
-//						+ (phase + (i + .5f) * factor) + " in "
-//						+ Arrays.toString(dashes) + " => " + isDash);
+				final boolean isDash = getInDashArray(dashes, phase + (i + .5f)
+						* factor);
+				// System.out.println("For " + i + " testing "
+				// + (phase + (i + .5f) * factor) + " in "
+				// + Arrays.toString(dashes) + " => " + isDash);
 				if (isDash) {
 					pattern |= 1 << i;
 				}
 			}
 		}
 
-		return new GLLineStrippleDefinition(width, factor, pattern);
+		return new GLLineStippleDefinition(width, factor, pattern);
 	}
 
 	private static boolean getInDashArray(float[] dashes, float distance) {
 		float distanceWalked = 0;
 		boolean inDash = false;
 		for (int i = 0; i < 100; i++) {
-			for (float d : dashes) {
+			for (final float d : dashes) {
 				distanceWalked += d;
 				inDash ^= true;
 				if (distanceWalked >= distance) {
@@ -98,18 +129,18 @@ public class GLLineStrippleDefinition {
 	private static int findBestFactor(float[] dashes) {
 		// we attempt to find the best factor that fits our dash array.
 		// the end should match as good as possible.
-		float dashesLength = sum(dashes);
+		final float dashesLength = sum(dashes);
 		float bestDifference = Float.POSITIVE_INFINITY;
 		int bestFactor = 1;
 		for (int factor = 1; factor < 20; factor++) {
-			int length = factor * (1 << 16);
-			int dashesRepeated = Math.round(length / dashesLength);
+			final int length = factor * (1 << 16);
+			final int dashesRepeated = Math.round(length / dashesLength);
 			if (dashesRepeated == 0) {
 				continue;
 			}
 			float difference = Math.abs((float) length / dashesRepeated
 					- dashesLength);
-			
+
 			float distanceWalked = 0;
 			for (int i = 0; i < dashes.length; i++) {
 				distanceWalked += dashes[i];
@@ -120,9 +151,6 @@ public class GLLineStrippleDefinition {
 					difference += distanceToNextInt(distanceWalked / factor);
 				}
 			}
-			
-			// XXX: We might want to add the difference for the individual
-			// dashes.
 
 			if (difference < bestDifference) {
 				bestFactor = factor;
@@ -138,7 +166,7 @@ public class GLLineStrippleDefinition {
 
 	private static float sum(float[] floats) {
 		float sum = 0;
-		for (float f : floats) {
+		for (final float f : floats) {
 			sum += f;
 		}
 		return sum;

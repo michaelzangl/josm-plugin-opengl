@@ -5,6 +5,7 @@ import java.nio.FloatBuffer;
 
 import javax.media.opengl.GL;
 import javax.media.opengl.GL2;
+import javax.media.opengl.fixedfunc.GLMatrixFunc;
 import javax.media.opengl.fixedfunc.GLPointerFunc;
 
 import org.openstreetmap.josm.gsoc2015.opengl.osm.ViewPosition;
@@ -12,15 +13,16 @@ import org.openstreetmap.josm.gsoc2015.opengl.osm.ViewPosition;
 import com.jogamp.common.nio.Buffers;
 
 /**
- * This is a state cache for OpenGL. All color changes need to be passed through
- * here.
- * 
+ * This is a state cache for OpenGL. All color changes and other state changes
+ * need to be passed through here. This class optimizes those state changes to
+ * minimize the number of native calls required.
+ *
  * @author michael
  *
  */
 public class GLState {
 
-	private GL2 gl;
+	private final GL2 gl;
 
 	public GLState(GL2 gl) {
 		this.gl = gl;
@@ -29,20 +31,28 @@ public class GLState {
 	private int activeColor;
 	private boolean texCoordActive;
 	private ViewPosition currentViewPosition;
-	private FloatBuffer oldModelview = Buffers.newDirectFloatBuffer(16);
-	private GLLineStrippleDefinition oldLineStripple;
+	private final FloatBuffer oldModelview = Buffers.newDirectFloatBuffer(16);
+	private GLLineStippleDefinition oldLineStripple;
 
+	/**
+	 * Starts with the default opengl state.
+	 *
+	 * @param viewPosition
+	 *            The initial view position.
+	 */
 	public void initialize(ViewPosition viewPosition) {
 		ckeckGLError(false);
-		gl.glGetFloatv(GL2.GL_MODELVIEW_MATRIX, oldModelview);
+		gl.glGetFloatv(GLMatrixFunc.GL_MODELVIEW_MATRIX, oldModelview);
 		ckeckGLError(true);
 
 		currentViewPosition = viewPosition;
 		activeColor = Color.white.getRGB();
 		setColorImpl(activeColor);
 		ckeckGLError(true);
-		gl.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MIN_FILTER, GL.GL_LINEAR);
-		gl.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MAG_FILTER, GL.GL_NEAREST);
+		gl.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MIN_FILTER,
+				GL.GL_LINEAR);
+		gl.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MAG_FILTER,
+				GL.GL_NEAREST);
 		gl.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_WRAP_S, GL.GL_REPEAT);
 		gl.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_WRAP_T, GL.GL_REPEAT);
 		ckeckGLError(true);
@@ -58,7 +68,7 @@ public class GLState {
 
 	private void ckeckGLError(boolean fromMe) {
 		while (true) {
-			int error = gl.glGetError();
+			final int error = gl.glGetError();
 			if (error == GL.GL_NO_ERROR) {
 				break;
 			}
@@ -81,6 +91,9 @@ public class GLState {
 		ckeckGLError(true);
 	}
 
+	/**
+	 * Resets the OpenGL state to the state assumed by GLG2D.
+	 */
 	public void done() {
 		ckeckGLError(false);
 		gl.glDisableClientState(GLPointerFunc.GL_VERTEX_ARRAY);
@@ -88,6 +101,13 @@ public class GLState {
 		ckeckGLError(true);
 	}
 
+	/**
+	 * Sets the color.
+	 *
+	 * @param rgba
+	 *            The color as rgba value.
+	 * @see Color#getRGB()
+	 */
 	public void setColor(int rgba) {
 		ckeckGLError(false);
 		if (activeColor != rgba) {
@@ -103,13 +123,19 @@ public class GLState {
 				(byte) (rgba & 0xFF), (byte) (rgba >> 24 & 0xFF));
 	}
 
+	/**
+	 * Sets the current view position. Adjusts the transform matrix accordingly.
+	 *
+	 * @param viewPosition
+	 *            The new view position.
+	 */
 	public void toViewPosition(ViewPosition viewPosition) {
 		ckeckGLError(false);
 		if (!viewPosition.equals(currentViewPosition)) {
 			// convert the current matrix to the new view position.
-			float[] m = new float[] { 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0,
+			final float[] m = new float[] { 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0,
 					0, 1 };
-			float scale = (float) currentViewPosition
+			final float scale = (float) currentViewPosition
 					.translateScaleTo(viewPosition);
 			m[0] = scale;
 			m[5] = scale;
@@ -122,7 +148,11 @@ public class GLState {
 		ckeckGLError(true);
 	}
 
-	public void setLineStripple(GLLineStrippleDefinition lineStripple) {
+	/**
+	 * Sets the style for drawing lines.
+	 * @param lineStripple The line style.
+	 */
+	public void setLineStripple(GLLineStippleDefinition lineStripple) {
 		ckeckGLError(false);
 		if (lineStripple == null) {
 			// non-line drawing is not affected. We can safely ignore this.
@@ -134,7 +164,7 @@ public class GLState {
 		}
 		lineStripple.activate(gl);
 
-		this.oldLineStripple = lineStripple;
+		oldLineStripple = lineStripple;
 		ckeckGLError(true);
 	}
 }

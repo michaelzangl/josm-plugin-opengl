@@ -17,14 +17,14 @@ import com.jogamp.opengl.util.Animator;
 /**
  * This is our replacement for the {@link MapView}. This panel draws the current
  * map state.
- * 
+ *
  * @author Michael Zangl
  *
  */
 public class MapPanel extends GLJPanel implements RepaintListener {
 
 	private final class GLJPanelListener implements PaintModeListener,
-			MapViewportListener {
+	MapViewportListener {
 		@Override
 		public void paintModeChanged(PaintMode newMode) {
 			if (activeDrawer != null) {
@@ -44,14 +44,11 @@ public class MapPanel extends GLJPanel implements RepaintListener {
 		}
 	}
 
-	/**
-	 * 
-	 */
 	private static final long serialVersionUID = 7479651466293194041L;
 	private final Animator animator;
 
 	public static GLCapabilities getDefaultCapabalities() {
-		GLCapabilities caps = new GLCapabilities(GLProfile.getGL2ES1());
+		final GLCapabilities caps = new GLCapabilities(GLProfile.getGL2ES1());
 		caps.setRedBits(8);
 		caps.setGreenBits(8);
 		caps.setBlueBits(8);
@@ -68,6 +65,12 @@ public class MapPanel extends GLJPanel implements RepaintListener {
 
 	private GLDrawer activeDrawer = null;
 
+	/**
+	 * Creates a new map panel that mirrors the given map view.
+	 *
+	 * @param mapView
+	 *            The map view.
+	 */
 	public MapPanel(MapView mapView) {
 		super(getDefaultCapabalities());
 		this.mapView = mapView;
@@ -77,7 +80,7 @@ public class MapPanel extends GLJPanel implements RepaintListener {
 		// When to repaint...
 		animator = new Animator(this);
 		animator.setRunAsFastAsPossible(false);
-		GLJPanelListener l = new GLJPanelListener();
+		final GLJPanelListener l = new GLJPanelListener();
 		new MapViewportObserver(mapView).addMapViewportListener(l);
 
 		MapViewPaintModeState.getInstance().addPaintModeListener(l, true);

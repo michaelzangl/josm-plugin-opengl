@@ -13,13 +13,13 @@ import org.openstreetmap.josm.tools.Shortcut;
 /**
  * This action allows you to change the paint mode between OpenGL and normal
  * Java2D.
- * 
+ *
  * @author Michael Zangl
  */
 final class ChangePaintModeAction extends ToggleAction implements
-		MapViewPaintModeState.PaintModeListener {
+MapViewPaintModeState.PaintModeListener {
 	/**
-	 * 
+	 *
 	 */
 	private static final long serialVersionUID = -5075624956921762216L;
 	private static final ChangePaintModeAction instance = new ChangePaintModeAction();
@@ -44,11 +44,11 @@ final class ChangePaintModeAction extends ToggleAction implements
 
 	@Override
 	public void actionPerformed(ActionEvent e) {
-		MapViewPaintModeState.PaintMode mode = MapViewPaintModeState
+		final MapViewPaintModeState.PaintMode mode = MapViewPaintModeState
 				.getInstance().getCurrentPaintMode();
-		MapViewPaintModeState.PaintMode[] modes = PaintMode.values();
-		MapViewPaintModeState.PaintMode nextMode = modes[(mode.ordinal() + 1)
-				% modes.length];
+		final MapViewPaintModeState.PaintMode[] modes = PaintMode.values();
+		final MapViewPaintModeState.PaintMode nextMode = modes[(mode.ordinal() + 1)
+		                                                       % modes.length];
 		MapViewPaintModeState.getInstance().setCurrentPaintMode(nextMode);
 	}
 

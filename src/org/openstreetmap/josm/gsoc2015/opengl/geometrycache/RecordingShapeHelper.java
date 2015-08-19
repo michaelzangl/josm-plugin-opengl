@@ -10,7 +10,7 @@ import javax.media.opengl.GL;
 import org.jogamp.glg2d.impl.AbstractShapeHelper;
 import org.jogamp.glg2d.impl.SimplePathVisitor;
 import org.openstreetmap.josm.gsoc2015.opengl.pool.VertexBufferProvider;
-import org.openstreetmap.josm.gsoc2015.opengl.pool.VertexBufferProvider.ReleaseableVertexBuffer;
+import org.openstreetmap.josm.gsoc2015.opengl.pool.VertexBufferProvider.ReleasableVertexBuffer;
 
 public class RecordingShapeHelper extends AbstractShapeHelper {
 
@@ -23,7 +23,7 @@ public class RecordingShapeHelper extends AbstractShapeHelper {
 
 		public static Clockwise isClockwise(float x1, float y1, float x2,
 				float y2, float x3, float y3) {
-			float area = (x2 - x1) * (y1 + y2) + (x3 - x2) * (y2 + y3)
+			final float area = (x2 - x1) * (y1 + y2) + (x3 - x2) * (y2 + y3)
 					+ (x1 - x3) * (y1 + y3);
 			if (area > .00001) {
 				return COUNTER_CLOCKWISE;
@@ -50,11 +50,11 @@ public class RecordingShapeHelper extends AbstractShapeHelper {
 	 * As long as all outer vertexes form a circular shape, we are good. This is
 	 * the case if and only if all triangles have the same orientation (either
 	 * clockwise or counter-clockwise)
-	 * 
+	 *
 	 * @author Michael Zangl
 	 */
 	private static class RecordingStarOrTesselatorVisitor extends
-			SimplePathVisitor {
+	SimplePathVisitor {
 		/**
 		 * Most simple shapes should not have more than 16 corners. XXX:
 		 * Confirm.
@@ -79,14 +79,14 @@ public class RecordingShapeHelper extends AbstractShapeHelper {
 		private Clockwise isClockwise = Clockwise.NOT_SURE;
 
 		private final VertexBufferProvider VERTEX_BUFFER_PROVIDER = VertexBufferProvider.DEFAULT;
-		private ReleaseableVertexBuffer vBuffer = VERTEX_BUFFER_PROVIDER
+		private ReleasableVertexBuffer vBuffer = VERTEX_BUFFER_PROVIDER
 				.getVertexBuffer(DEFAULT_SIZE);
 
 		public RecordingStarOrTesselatorVisitor(
 				RecordingColorHelper colorHelper, Recorder recorder) {
-			this.colorRecorder = colorHelper;
+			colorRecorder = colorHelper;
 			this.recorder = recorder;
-			this.fallback = new RecordingTesselatorVisitor(colorHelper,
+			fallback = new RecordingTesselatorVisitor(colorHelper,
 					recorder);
 		}
 
@@ -131,7 +131,7 @@ public class RecordingShapeHelper extends AbstractShapeHelper {
 				vBuffer.addVertex(startPointX, startPointY);
 				vBuffer.addVertex(lastPointX, lastPointY);
 				vBuffer.addVertex(vertex[0], vertex[1]);
-				Clockwise cw = Clockwise.isClockwise(startPointX, startPointY,
+				final Clockwise cw = Clockwise.isClockwise(startPointX, startPointY,
 						lastPointX, lastPointY, vertex[0], vertex[1]);
 				if (cw != Clockwise.NOT_SURE
 						&& isClockwise != Clockwise.NOT_SURE
@@ -146,14 +146,14 @@ public class RecordingShapeHelper extends AbstractShapeHelper {
 
 		private void switchToFallback() {
 			// replay the last steps.
-			FloatBuffer buffer = vBuffer.getBuffer();
-			int count = buffer.position();
+			final FloatBuffer buffer = vBuffer.getBuffer();
+			final int count = buffer.position();
 			if (count < 2 * 3) {
 				throw new IllegalStateException(
 						"vBuffer was not filled enough.");
 			}
 			buffer.rewind();
-			float[] vertex = new float[2];
+			final float[] vertex = new float[2];
 			buffer.get(vertex);
 			fallback.moveTo(vertex);
 			buffer.get(vertex);
@@ -220,11 +220,11 @@ public class RecordingShapeHelper extends AbstractShapeHelper {
 
 	@Override
 	public void draw(Shape shape) {
-		Stroke stroke = getStroke();
+		final Stroke stroke = getStroke();
 		// long time1 = System.currentTimeMillis();
 		if (stroke instanceof BasicStroke) {
-			BasicStroke basicStroke = (BasicStroke) stroke;
-			GLLineStrippleDefinition stripple = GLLineStrippleDefinition
+			final BasicStroke basicStroke = (BasicStroke) stroke;
+			final GLLineStippleDefinition stripple = GLLineStippleDefinition
 					.generate(basicStroke);
 			if (stripple != null) {
 				fastLineVisitor.setStripple(stripple);
@@ -240,7 +240,7 @@ public class RecordingShapeHelper extends AbstractShapeHelper {
 			}
 		}
 		// System.out.println("Slow line beign?");
-		Shape strokedShape = stroke.createStrokedShape(shape);
+		final Shape strokedShape = stroke.createStrokedShape(shape);
 		// long time2 = System.currentTimeMillis();
 		fill(strokedShape);
 		// System.out.println("Slow line end? " + (time2 - time1) + "ms, "

@@ -12885,10 +12885,10 @@ public class GLLineStrippleDefinitionTest {
 				BasicStroke.JOIN_ROUND, 3, new float[] { 1, 3 }, 0);
 		BasicStroke s2 = new BasicStroke(1, BasicStroke.CAP_ROUND,
 				BasicStroke.JOIN_ROUND, 3, new float[] { 1, 1 }, 0);
-		assertTrue(GLLineStrippleDefinition.generate(s).equals(
-				GLLineStrippleDefinition.generate(s)));
-		assertFalse(GLLineStrippleDefinition.generate(s).equals(
-				GLLineStrippleDefinition.generate(s2)));
+		assertTrue(GLLineStippleDefinition.generate(s).equals(
+				GLLineStippleDefinition.generate(s)));
+		assertFalse(GLLineStippleDefinition.generate(s).equals(
+				GLLineStippleDefinition.generate(s2)));
 	}
 
 	@Test
@@ -12897,28 +12897,28 @@ public class GLLineStrippleDefinitionTest {
 				BasicStroke.JOIN_ROUND, 3, new float[] { 1, 1 }, 0);
 
 		TestLineStrippleActivate testGL = new TestLineStrippleActivate(1, 1, 0x5555);
-		GLLineStrippleDefinition.generate(s).activate(testGL);
+		GLLineStippleDefinition.generate(s).activate(testGL);
 		assertTrue(testGL.done());
 		
 		s = new BasicStroke(1, BasicStroke.CAP_ROUND,
 				BasicStroke.JOIN_ROUND, 3, new float[] { 1, 3 }, 0);
 
 		testGL = new TestLineStrippleActivate(1, 1, 0x1111);
-		GLLineStrippleDefinition.generate(s).activate(testGL);
+		GLLineStippleDefinition.generate(s).activate(testGL);
 		assertTrue(testGL.done());
 		
 		s = new BasicStroke(1, BasicStroke.CAP_ROUND,
 				BasicStroke.JOIN_ROUND, 3, new float[] { 1, 3 }, 2);
 
 		testGL = new TestLineStrippleActivate(1, 1, 0x4444);
-		GLLineStrippleDefinition.generate(s).activate(testGL);
+		GLLineStippleDefinition.generate(s).activate(testGL);
 		assertTrue(testGL.done());
 		
 		s = new BasicStroke(2, BasicStroke.CAP_ROUND,
 				BasicStroke.JOIN_ROUND, 3, new float[] { 1, 1 }, 0);
 
 		testGL = new TestLineStrippleActivate(2, 1, 0x5555);
-		GLLineStrippleDefinition.generate(s).activate(testGL);
+		GLLineStippleDefinition.generate(s).activate(testGL);
 		assertTrue(testGL.done());
 	}
 

@@ -7,16 +7,27 @@ import java.util.LinkedList;
  * between OpenGL and Java2D.
  * <p>
  * Global change listeners can be registered.
- * 
+ *
  * @author Michael Zangl
  *
  */
 public final class MapViewPaintModeState {
 
+	/**
+	 * The supported paint modes.
+	 *
+	 * @author Michael Zangl
+	 */
 	public enum PaintMode {
 		JAVA2D, OPENGL
 	}
 
+	/**
+	 * A listener that listens for paint mode changes.
+	 *
+	 * @author Michael Zangl
+	 *
+	 */
 	public interface PaintModeListener {
 		void paintModeChanged(MapViewPaintModeState.PaintMode newMode);
 	}
@@ -25,14 +36,14 @@ public final class MapViewPaintModeState {
 
 	private MapViewPaintModeState.PaintMode currentPaintMode = PaintMode.JAVA2D;
 
-	private LinkedList<MapViewPaintModeState.PaintModeListener> paintModeListeners = new LinkedList<>();
+	private final LinkedList<MapViewPaintModeState.PaintModeListener> paintModeListeners = new LinkedList<>();
 
 	private MapViewPaintModeState() {
 	}
 
 	/**
 	 * Get the current paint mode.
-	 * 
+	 *
 	 * @return The paint mode that was set last.
 	 */
 	public synchronized PaintMode getCurrentPaintMode() {
@@ -41,7 +52,7 @@ public final class MapViewPaintModeState {
 
 	/**
 	 * Changes the paint mode and fires the change listeners if it was changed.
-	 * 
+	 *
 	 * @param currentPaintMode
 	 *            The paint mode.
 	 */
@@ -53,12 +64,21 @@ public final class MapViewPaintModeState {
 		if (this.currentPaintMode != currentPaintMode) {
 			this.currentPaintMode = currentPaintMode;
 			System.out.println("Setting paint mode: " + currentPaintMode);
-			for (MapViewPaintModeState.PaintModeListener l : paintModeListeners) {
+			for (final MapViewPaintModeState.PaintModeListener l : paintModeListeners) {
 				l.paintModeChanged(currentPaintMode);
 			}
 		}
 	}
 
+	/**
+	 * Add a new paint mode listener.
+	 *
+	 * @param l
+	 *            The listener
+	 * @param fireNow
+	 *            <code>true</code> if the listener should be fired now.
+	 * @see #removePaintModeListener(PaintModeListener)
+	 */
 	public synchronized void addPaintModeListener(
 			MapViewPaintModeState.PaintModeListener l, boolean fireNow) {
 		paintModeListeners.add(l);
@@ -67,6 +87,13 @@ public final class MapViewPaintModeState {
 		}
 	}
 
+	/**
+	 * Removes a paint mode listener.
+	 *
+	 * @param l
+	 *            The listener
+	 * @see #addPaintModeListener(PaintModeListener, boolean)
+	 */
 	public synchronized void removePaintModeListener(
 			MapViewPaintModeState.PaintModeListener l) {
 		paintModeListeners.remove(l);
@@ -74,7 +101,7 @@ public final class MapViewPaintModeState {
 
 	/**
 	 * Gets the one single {@link MapViewPaintModeState} object.
-	 * 
+	 *
 	 * @return
 	 */
 	public static MapViewPaintModeState getInstance() {

@@ -6,15 +6,15 @@ import javax.media.opengl.GL;
 
 import org.jogamp.glg2d.impl.SimplePathVisitor;
 import org.openstreetmap.josm.gsoc2015.opengl.pool.VertexBufferProvider;
-import org.openstreetmap.josm.gsoc2015.opengl.pool.VertexBufferProvider.ReleaseableVertexBuffer;
+import org.openstreetmap.josm.gsoc2015.opengl.pool.VertexBufferProvider.ReleasableVertexBuffer;
 
 /**
  * This visitor records a line as {@link GL#GL_LINE_LOOP} or
  * {@link GL#GL_LINE_STRIP}
  * <p>
  * This is only possible if the line style is supported by OpenGL.
- * 
- * @see GLLineStrippleDefinition
+ *
+ * @see GLLineStippleDefinition
  * @author Michael Zangl
  */
 public class RecordingLineVisitor extends SimplePathVisitor {
@@ -25,9 +25,9 @@ public class RecordingLineVisitor extends SimplePathVisitor {
 	 */
 	private static final int DEFAULT_LINE_LENGTH = 32;
 
-	private GLLineStrippleDefinition stripple;
+	private GLLineStippleDefinition stripple;
 
-	private ReleaseableVertexBuffer vBuffer;
+	private ReleasableVertexBuffer vBuffer;
 
 	private final RecordingColorHelper colorHelper;
 
@@ -42,7 +42,7 @@ public class RecordingLineVisitor extends SimplePathVisitor {
 		resetVBuffer();
 	}
 
-	public void setStripple(GLLineStrippleDefinition stripple) {
+	public void setStripple(GLLineStippleDefinition stripple) {
 		this.stripple = stripple;
 	}
 

@@ -14,14 +14,14 @@ import org.openstreetmap.josm.gsoc2015.opengl.osm.ViewPosition;
 
 /**
  * A recorder that records the geometry for one OSM primitive.
- * 
+ *
  * @author michael
  */
 public class OsmPrimitiveRecorder implements Recorder, Visitor {
 
-	private List<RecordedGeometry> geometries = new ArrayList<>();
+	private final List<RecordedGeometry> geometries = new ArrayList<>();
 	private OsmPrimitive activePrimitive;
-	private RecordedPrimitiveReceiver receiver;
+	private final RecordedPrimitiveReceiver receiver;
 	private long activeOrderIndex;
 	private ViewPosition viewPosition;
 
@@ -54,7 +54,7 @@ public class OsmPrimitiveRecorder implements Recorder, Visitor {
 	/**
 	 * Starts recording geometries for the given primitive. All draw calls until
 	 * the next end() are recorded.
-	 * 
+	 *
 	 * @param p
 	 *            The primitive to record for.
 	 * @param viewPosition
@@ -67,7 +67,7 @@ public class OsmPrimitiveRecorder implements Recorder, Visitor {
 			throw new IllegalStateException("start() called without a end().");
 		}
 		reset();
-		this.activeOrderIndex = orderIndex;
+		activeOrderIndex = orderIndex;
 		this.viewPosition = viewPosition;
 		activePrimitive = p;
 	}

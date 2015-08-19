@@ -7,21 +7,21 @@ import com.jogamp.common.nio.Buffers;
 /**
  * This class allocates a new buffer on each request and lets the garbage
  * collector handle collecting.
- * 
+ *
  * @author Michael Zangl
  *
  */
 public class VertexBufferAllocator extends VertexBufferProvider {
 
 	public static VertexBufferAllocator INSTANCE = new VertexBufferAllocator();
-	
+
 	public VertexBufferAllocator() {
 		super();
 	}
 
 	@Override
-	public ReleaseableVertexBuffer getVertexBuffer(int minimumSize) {
-		return new ReleaseableVertexBuffer(minimumSize) {
+	public ReleasableVertexBuffer getVertexBuffer(int minimumSize) {
+		return new ReleasableVertexBuffer(minimumSize) {
 			@Override
 			protected void releaseBuffer(FloatBuffer buffer) {
 			}
@@ -34,8 +34,8 @@ public class VertexBufferAllocator extends VertexBufferProvider {
 	}
 
 	@Override
-	public Releaseable getBuffer(int numFloats) {
-		return ReleaseableFloatBuffer.allocateDirect(numFloats);
+	public Releasable getBuffer(int numFloats) {
+		return ReleasableFloatBuffer.allocateDirect(numFloats);
 	}
 
 }

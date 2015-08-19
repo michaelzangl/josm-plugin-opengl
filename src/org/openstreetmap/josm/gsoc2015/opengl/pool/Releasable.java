@@ -2,7 +2,12 @@ package org.openstreetmap.josm.gsoc2015.opengl.pool;
 
 import java.nio.FloatBuffer;
 
-public interface Releaseable {
+/**
+ * This is a generic, releasable buffer.
+ * @author Michael Zangl
+ *
+ */
+public interface Releasable {
 
 	public FloatBuffer getBuffer();
 	public void release();

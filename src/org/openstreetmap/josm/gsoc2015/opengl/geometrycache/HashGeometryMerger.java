@@ -11,7 +11,7 @@ import org.openstreetmap.josm.data.osm.OsmPrimitive;
 /**
  * This is a geometry merger that uses the hashes of geometries to find the best
  * merge group in which a new geometry should be merged.
- * 
+ *
  * @author Michael Zangl
  *
  */
@@ -21,24 +21,24 @@ public class HashGeometryMerger extends GeometryMerger {
 	/**
 	 * A list of merge groups that are currently open.
 	 */
-	private MergeGroup[] activeMergeGroups = new MergeGroup[ACTIVE_GROUPS];
+	private final MergeGroup[] activeMergeGroups = new MergeGroup[ACTIVE_GROUPS];
 	/**
 	 * For each open merge group, this list contains the sum of hashes stored in
 	 * {@link #hashUses}.
 	 */
-	private int[] mergeGroupHashCount = new int[ACTIVE_GROUPS];
+	private final int[] mergeGroupHashCount = new int[ACTIVE_GROUPS];
 	/**
 	 * This map stores how often an active merge group uses a given hash.
 	 * <p>
 	 * It is a mapping (hashCode, mergeGroupIndex) -> number of used hashes.
 	 */
-	private Hashtable<Integer, byte[]> hashUses = new Hashtable<>();
+	private final Hashtable<Integer, byte[]> hashUses = new Hashtable<>();
 
 	private int getBestMergeables(Collection<RecordedOsmGeometries> geos) {
-		int[] hashUsedCount = new int[ACTIVE_GROUPS];
-		for (RecordedOsmGeometries g : geos) {
-			for (int h : g.getCombineHashes()) {
-				byte[] hashUsed = hashUses.get(h);
+		final int[] hashUsedCount = new int[ACTIVE_GROUPS];
+		for (final RecordedOsmGeometries g : geos) {
+			for (final int h : g.getCombineHashes()) {
+				final byte[] hashUsed = hashUses.get(h);
 				if (hashUsed == null) {
 					continue;
 				}
@@ -53,19 +53,19 @@ public class HashGeometryMerger extends GeometryMerger {
 		// the int, the slot index in the lower half.
 
 		for (int i = 0; i < ACTIVE_GROUPS; i++) {
-			int weightedCount = hashUsedCount[i] * 256
+			final int weightedCount = hashUsedCount[i] * 256
 					/ (mergeGroupHashCount[i] + 1);
 			if (DEBUG) {
 				System.out
-						.println("Rated for slot " + i + ": " + weightedCount);
+				.println("Rated for slot " + i + ": " + weightedCount);
 			}
 			hashUsedCount[i] = 0x7fffffff & (weightedCount << 8) + i;
 		}
 		Arrays.sort(hashUsedCount);
 
 		for (int i = ACTIVE_GROUPS - 1; i > ACTIVE_GROUPS - 6; i--) {
-			int slotToUse = hashUsedCount[i] & ((1 << 8) - 1);
-			MergeGroup group = activeMergeGroups[slotToUse];
+			final int slotToUse = hashUsedCount[i] & (1 << 8) - 1;
+			final MergeGroup group = activeMergeGroups[slotToUse];
 			if (group != null) {
 				return slotToUse;
 			}
@@ -82,18 +82,18 @@ public class HashGeometryMerger extends GeometryMerger {
 			System.out.println("SEARCHING FOR " + geometries);
 			dump();
 		}
-		int groupIndex = getBestMergeables(geometries);
+		final int groupIndex = getBestMergeables(geometries);
 		if (groupIndex < 0) {
-			MergeGroup group = new MergeGroup();
+			final MergeGroup group = new MergeGroup();
 			// now let's add a new group
-			for (byte[] v : hashUses.values()) {
+			for (final byte[] v : hashUses.values()) {
 				v[replacementClock] = 0;
 			}
 			activeMergeGroups[replacementClock] = group;
 			int hashes = 0;
-			for (RecordedOsmGeometries g : geometries) {
-				int[] combineHashes = g.getCombineHashes();
-				for (int h : combineHashes) {
+			for (final RecordedOsmGeometries g : geometries) {
+				final int[] combineHashes = g.getCombineHashes();
+				for (final int h : combineHashes) {
 					byte[] uses = hashUses.get(h);
 					if (uses == null) {
 						uses = new byte[ACTIVE_GROUPS];
@@ -114,7 +114,7 @@ public class HashGeometryMerger extends GeometryMerger {
 			}
 			mergeGroups.add(group);
 		} else {
-			MergeGroup group = activeMergeGroups[groupIndex];
+			final MergeGroup group = activeMergeGroups[groupIndex];
 			group.merge(primitive, geometries);
 			if (!group.moreMergesRecommended()) {
 				activeMergeGroups[groupIndex] = null;
@@ -127,9 +127,9 @@ public class HashGeometryMerger extends GeometryMerger {
 	}
 
 	private void cleanUnusedHashes() {
-		for (Iterator<Entry<Integer, byte[]>> iterator = hashUses.entrySet()
+		for (final Iterator<Entry<Integer, byte[]>> iterator = hashUses.entrySet()
 				.iterator(); iterator.hasNext();) {
-			Entry<Integer, byte[]> k = iterator.next();
+			final Entry<Integer, byte[]> k = iterator.next();
 			if (isEmpty(k.getValue())) {
 				iterator.remove();
 			}
@@ -137,7 +137,7 @@ public class HashGeometryMerger extends GeometryMerger {
 	}
 
 	private boolean isEmpty(byte[] value) {
-		for (byte b : value) {
+		for (final byte b : value) {
 			if (b != 0) {
 				return false;
 			}
@@ -149,7 +149,7 @@ public class HashGeometryMerger extends GeometryMerger {
 		for (int i = 0; i < ACTIVE_GROUPS; i++) {
 			System.out.println("Group " + i + ": " + activeMergeGroups[i]);
 			System.out.print("    Hashes:");
-			for (Entry<Integer, byte[]> h : hashUses.entrySet()) {
+			for (final Entry<Integer, byte[]> h : hashUses.entrySet()) {
 				if (h.getValue()[i] > 0) {
 					System.out.print(" " + Integer.toHexString(h.getKey())
 							+ "x" + h.getValue()[i]);
