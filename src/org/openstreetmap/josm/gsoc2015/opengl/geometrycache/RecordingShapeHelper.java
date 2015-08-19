@@ -54,7 +54,7 @@ public class RecordingShapeHelper extends AbstractShapeHelper {
 	 * @author Michael Zangl
 	 */
 	private static class RecordingStarOrTesselatorVisitor extends
-	SimplePathVisitor {
+			SimplePathVisitor {
 		/**
 		 * Most simple shapes should not have more than 16 corners. XXX:
 		 * Confirm.
@@ -86,8 +86,7 @@ public class RecordingShapeHelper extends AbstractShapeHelper {
 				RecordingColorHelper colorHelper, Recorder recorder) {
 			colorRecorder = colorHelper;
 			this.recorder = recorder;
-			fallback = new RecordingTesselatorVisitor(colorHelper,
-					recorder);
+			fallback = new RecordingTesselatorVisitor(colorHelper, recorder);
 		}
 
 		@Override
@@ -106,7 +105,6 @@ public class RecordingShapeHelper extends AbstractShapeHelper {
 				// We send a moveTo to force closing the current loop.
 				fallback.moveTo(vertex);
 			}
-			commitIfRequired();
 			startPointX = lastPointX = vertex[0];
 			startPointY = lastPointY = vertex[1];
 			inDraw = false;
@@ -131,8 +129,9 @@ public class RecordingShapeHelper extends AbstractShapeHelper {
 				vBuffer.addVertex(startPointX, startPointY);
 				vBuffer.addVertex(lastPointX, lastPointY);
 				vBuffer.addVertex(vertex[0], vertex[1]);
-				final Clockwise cw = Clockwise.isClockwise(startPointX, startPointY,
-						lastPointX, lastPointY, vertex[0], vertex[1]);
+				final Clockwise cw = Clockwise.isClockwise(startPointX,
+						startPointY, lastPointX, lastPointY, vertex[0],
+						vertex[1]);
 				if (cw != Clockwise.NOT_SURE
 						&& isClockwise != Clockwise.NOT_SURE
 						&& cw != isClockwise) {
@@ -154,15 +153,25 @@ public class RecordingShapeHelper extends AbstractShapeHelper {
 			}
 			buffer.rewind();
 			final float[] vertex = new float[2];
-			buffer.get(vertex);
-			fallback.moveTo(vertex);
-			buffer.get(vertex);
-			fallback.lineTo(vertex);
-			for (int vertexPosition = 4; vertexPosition < count; vertexPosition += 6) {
-				buffer.position(vertexPosition);
+			float lastStartX = Float.NaN, lastStartY = Float.NaN;
+			// read all triangles.
+			for (int i = 0; i < count; i += 6) {
+				buffer.get(vertex);
+				if (lastStartX != vertex[0] || lastStartY != vertex[1]) {
+					// a new start started.
+					lastStartX = vertex[0];
+					lastStartY = vertex[1];
+					fallback.moveTo(vertex);
+					buffer.get(vertex);
+					fallback.lineTo(vertex);
+				} else {
+					// fake get
+					buffer.get(vertex);
+				}
 				buffer.get(vertex);
 				fallback.lineTo(vertex);
 			}
+
 			buffer.rewind();
 			failed = true;
 		}
@@ -176,8 +185,7 @@ public class RecordingShapeHelper extends AbstractShapeHelper {
 			if (failed) {
 				fallback.closeLine();
 			}
-			commitIfRequired();
-			// triangle is auto-closed.
+			// triangle is auto-closed when not using fallback.
 		}
 
 		@Override
