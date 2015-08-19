@@ -4,7 +4,7 @@ This is a josm plugin that replaces the default, Java2D map view with a version 
 
 ## Installing
 
-There is no pre-build JAR file yet.
+See [Releases](https://github.com/michaelzangl/josm-plugin-opengl/releases)
 
 ## Compiling
 
@@ -12,7 +12,7 @@ For this plugin, you need a special version of JOSM and of GLG2D. For the ease o
 
 Check out those repositories in the same directory:
 * https://github.com/michaelzangl/josm-plugin-opengl
-* https://github.com/michaelzangl/josm (JOSM with changes for this plugin).
+* https://github.com/openstreetmap/josm (JOSM with changes for this plugin).
 * https://github.com/michaelzangl/glg2d (Bug fixes for GLG2D)
 
 Then run:
