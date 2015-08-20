@@ -9,6 +9,7 @@ import org.openstreetmap.josm.data.osm.OsmPrimitive;
  * This class merges a list of geometries into a new list.
  *
  * @author Michael Zangl
+ * @see MergeGroup
  */
 public abstract class GeometryMerger {
 

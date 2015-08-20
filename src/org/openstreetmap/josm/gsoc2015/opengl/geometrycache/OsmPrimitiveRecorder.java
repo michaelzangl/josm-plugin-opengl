@@ -25,11 +25,44 @@ public class OsmPrimitiveRecorder implements Recorder, Visitor {
 	private long activeOrderIndex;
 	private ViewPosition viewPosition;
 
+	/**
+	 * Classes implementing this may receive geometries for {@link OsmPrimitive}
+	 * s
+	 * 
+	 * @author Michael Zangl
+	 */
 	public interface RecordedPrimitiveReceiver {
+		/**
+		 * Called whenever a geometry for a node was generated. May be called
+		 * multiple times per node.
+		 * 
+		 * @param geometry
+		 *            The recorded geometry objects. You can assume that
+		 *            {@link RecordedOsmGeometries#getPrimitives()} only returns
+		 *            one single primitive.
+		 */
 		void receiveForNode(RecordedOsmGeometries geometry);
 
+		/**
+		 * Called whenever a geometry for a way was generated. May be called
+		 * multiple times per way.
+		 * 
+		 * @param geometry
+		 *            The recorded geometry objects. You can assume that
+		 *            {@link RecordedOsmGeometries#getPrimitives()} only returns
+		 *            one single primitive.
+		 */
 		void receiveForWay(RecordedOsmGeometries geometry);
 
+		/**
+		 * Called whenever a geometry for a relation was generated. May be called
+		 * multiple times per relation.
+		 * 
+		 * @param geometry
+		 *            The recorded geometry objects. You can assume that
+		 *            {@link RecordedOsmGeometries#getPrimitives()} only returns
+		 *            one single primitive.
+		 */
 		void receiveForRelation(RecordedOsmGeometries geometry);
 	}
 
