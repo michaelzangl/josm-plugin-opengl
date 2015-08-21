@@ -1,12 +1,15 @@
 package org.openstreetmap.josm.gsoc2015.opengl.jogl;
 
 import java.awt.AlphaComposite;
+import java.awt.Graphics;
 import java.awt.Rectangle;
+import java.util.List;
 
 import javax.media.opengl.GL;
 import javax.media.opengl.GL2;
 import javax.media.opengl.GLAutoDrawable;
 import javax.media.opengl.GLEventListener;
+import javax.swing.JComponent;
 
 import org.jogamp.glg2d.GLGraphics2D;
 import org.openstreetmap.josm.data.Bounds;
@@ -26,10 +29,21 @@ final class GLDrawer implements GLEventListener {
 
 	private final LayerDrawManager layerDrawer = new LayerDrawManager();
 	private final LayerDrawManager temporaryLayerDrawer = new LayerDrawManager();
+	private final List<? extends JComponent> navigationComponents;
 
-	public GLDrawer(MapView mapView) {
+	/**
+	 * Creates a new {@link GLDrawer}
+	 * 
+	 * @param mapView
+	 *            The map view to draw for.
+	 * @param navigationComponents
+	 *            Components to draw over the view.
+	 */
+	public GLDrawer(MapView mapView,
+			List<? extends JComponent> navigationComponents) {
 		super();
 		this.mapView = mapView;
+		this.navigationComponents = navigationComponents;
 	}
 
 	@Override
@@ -95,6 +109,7 @@ final class GLDrawer implements GLEventListener {
 				.getSurfaceWidth(), drawable.getSurfaceHeight()));
 		layerDrawer.draw(g2d, mapView, box);
 		temporaryLayerDrawer.draw(g2d, mapView, box);
+		paintComponents(g2d);
 		g2d.postPaint();
 
 		// Set alpha to full. Otherwise, we will get annoying effects the
@@ -105,6 +120,19 @@ final class GLDrawer implements GLEventListener {
 		gl.glClearColor(0, 0, 0, 1.0f);
 		gl.glClear(GL.GL_COLOR_BUFFER_BIT);
 		gl.glColorMask(true, true, true, true);
+	}
+
+	private void paintComponents(GLGraphics2D g) {
+		for (JComponent c : navigationComponents) {
+			Rectangle cr = c.getBounds();
+			System.out.println(cr);
+            Graphics cg = g.create(cr.x, cr.y, cr.width,
+                    cr.height);
+            cg.setColor(c.getForeground());
+            cg.setFont(c.getFont());
+			c.paint(g);
+			cg.dispose();
+		}
 	}
 
 }

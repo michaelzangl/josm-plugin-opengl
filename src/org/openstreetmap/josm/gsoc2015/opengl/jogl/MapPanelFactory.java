@@ -1,6 +1,9 @@
 package org.openstreetmap.josm.gsoc2015.opengl.jogl;
 
 import java.awt.Component;
+import java.util.List;
+
+import javax.swing.JComponent;
 
 import org.openstreetmap.josm.gui.MapView;
 
@@ -13,7 +16,7 @@ import org.openstreetmap.josm.gui.MapView;
  *
  */
 public class MapPanelFactory {
-	public static Component getMapRenderer(MapView mapView) {
-		return new MapPanel(mapView);
+	public static Component getMapRenderer(MapView mapView, List<? extends JComponent> navigationComponents) {
+		return new MapPanel(mapView, navigationComponents);
 	}
 }

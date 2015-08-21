@@ -3,9 +3,11 @@ package org.openstreetmap.josm.gsoc2015.opengl;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
+import java.awt.Graphics;
 import java.awt.Point;
 import java.awt.Rectangle;
 import java.awt.event.KeyEvent;
+import java.util.List;
 
 import javax.swing.JComponent;
 import javax.swing.JPanel;
@@ -71,7 +73,8 @@ public class OpenGLMapView extends JPanel {
 		setLayout(springLayout);
 
 		// This adds some absolutely positioned elements to this view.
-		for (final JComponent c : MapView.getMapNavigationComponents(mapView)) {
+		List<? extends JComponent> navigationComponents = MapView.getMapNavigationComponents(mapView);
+		for (final JComponent c : navigationComponents) {
 			add(c);
 		}
 
@@ -104,9 +107,19 @@ public class OpenGLMapView extends JPanel {
 		setBackground(new Color(0, 0, 0, 0));
 		setToFullSize(springLayout, this, mouseEventIntercept);
 
-		final Component renderer = MapPanelFactory.getMapRenderer(mapView);
+		final Component renderer = MapPanelFactory.getMapRenderer(mapView, navigationComponents);
 		add(renderer);
 		setToFullSize(springLayout, mouseEventIntercept, renderer);
+	}
+	
+	@Override
+	protected void paintChildren(Graphics g) {
+        int i = getComponentCount() - 1;
+        if (i >= 0) {
+        	// only paint a single child.
+        	getComponent(i).paint(g);;
+        }
+		super.paintChildren(g);
 	}
 
 	private void setToFullSize(SpringLayout springLayout, Component parent,

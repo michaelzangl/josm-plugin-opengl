@@ -1,8 +1,11 @@
 package org.openstreetmap.josm.gsoc2015.opengl.jogl;
 
+import java.util.List;
+
 import javax.media.opengl.GLCapabilities;
 import javax.media.opengl.GLProfile;
 import javax.media.opengl.awt.GLJPanel;
+import javax.swing.JComponent;
 
 import org.openstreetmap.josm.gsoc2015.opengl.MapViewPaintModeState;
 import org.openstreetmap.josm.gsoc2015.opengl.MapViewPaintModeState.PaintMode;
@@ -24,7 +27,19 @@ import com.jogamp.opengl.util.Animator;
 public class MapPanel extends GLJPanel implements RepaintListener {
 
 	private final class GLJPanelListener implements PaintModeListener,
-	MapViewportListener {
+			MapViewportListener {
+		private final List<? extends JComponent> navigationComponents;
+
+		/**
+		 * Creates a new paint mode listener
+		 * 
+		 * @param navigationComponents
+		 *            Components to paint over the map.
+		 */
+		public GLJPanelListener(List<? extends JComponent> navigationComponents) {
+			this.navigationComponents = navigationComponents;
+		}
+
 		@Override
 		public void paintModeChanged(PaintMode newMode) {
 			if (activeDrawer != null) {
@@ -32,7 +47,7 @@ public class MapPanel extends GLJPanel implements RepaintListener {
 				activeDrawer = null;
 			}
 			if (newMode == PaintMode.OPENGL) {
-				activeDrawer = new GLDrawer(mapView);
+				activeDrawer = new GLDrawer(mapView, navigationComponents);
 				addGLEventListener(activeDrawer);
 				repaint();
 			}
@@ -70,8 +85,11 @@ public class MapPanel extends GLJPanel implements RepaintListener {
 	 *
 	 * @param mapView
 	 *            The map view.
+	 * @param navigationComponents
+	 *            Components to paint over the map.
 	 */
-	public MapPanel(MapView mapView) {
+	public MapPanel(MapView mapView,
+			List<? extends JComponent> navigationComponents) {
 		super(getDefaultCapabalities());
 		this.mapView = mapView;
 
@@ -80,7 +98,7 @@ public class MapPanel extends GLJPanel implements RepaintListener {
 		// When to repaint...
 		animator = new Animator(this);
 		animator.setRunAsFastAsPossible(false);
-		final GLJPanelListener l = new GLJPanelListener();
+		final GLJPanelListener l = new GLJPanelListener(navigationComponents);
 		new MapViewportObserver(mapView).addMapViewportListener(l);
 
 		MapViewPaintModeState.getInstance().addPaintModeListener(l, true);
