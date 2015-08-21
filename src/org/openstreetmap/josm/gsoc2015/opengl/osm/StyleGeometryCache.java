@@ -161,22 +161,21 @@ public class StyleGeometryCache {
 			if (newSelection == selected) {
 				return;
 			}
-			// Note: This was replaced with the clearStyleCache() function.
-			// We should use this to handle those geometries with higher
-			// priority.
 			for (final OsmPrimitive s : selected) {
 				if (!newSelection.contains(s)) {
-					// Give a priority when invalidating.
-					// invalidateGeometry(s);
-				}
-			}
-			for (final OsmPrimitive s : newSelection) {
-				if (!selected.contains(s)) {
 					// De-selected geometries seem not to get a notification.
 					invalidateGeometry(s);
 				}
 			}
-
+			// Note: Selecting was replaced with the clearStyleCache() function.
+			// We should use this to handle those geometries with higher
+			// priority.
+			for (final OsmPrimitive s : newSelection) {
+				if (!selected.contains(s)) {
+					// Give a priority when invalidating.
+					// invalidateGeometry(s);
+				}
+			}
 			selected = newSelection;
 		}
 	}
