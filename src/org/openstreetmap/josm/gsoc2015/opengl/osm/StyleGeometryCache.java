@@ -98,7 +98,7 @@ public class StyleGeometryCache {
 		public void relationMembersChanged(RelationMembersChangedEvent event) {
 			// the changed members get a clearCachedStyle(), but not the
 			// relation itself.
-			deepInvalidate(event.getRelation(), new HashSet<OsmPrimitive>());
+			deepInvalidate(event.getRelation());
 		}
 
 		@Override
@@ -122,18 +122,7 @@ public class StyleGeometryCache {
 
 		@Override
 		public void nodeMoved(NodeMovedEvent event) {
-			deepInvalidate(event.getNode(), new HashSet<OsmPrimitive>());
-		}
-
-		private void deepInvalidate(OsmPrimitive p,
-				HashSet<OsmPrimitive> invalidated) {
-			if (!invalidated.add(p)) {
-				return;
-			}
-			invalidateGeometry(p);
-			for (final OsmPrimitive ref : p.getReferrers()) {
-				deepInvalidate(ref, invalidated);
-			}
+			deepInvalidate(event.getNode());
 		}
 
 		@Override
@@ -161,10 +150,11 @@ public class StyleGeometryCache {
 			if (newSelection == selected) {
 				return;
 			}
+			HashSet<OsmPrimitive> invalidated = new HashSet<>();
 			for (final OsmPrimitive s : selected) {
 				if (!newSelection.contains(s)) {
-					// De-selected geometries seem not to get a notification.
-					invalidateGeometry(s);
+					// De-selected geometries seem not even to get a notification themselfes.
+					deepInvalidate(s, invalidated);
 				}
 			}
 			// Note: Selecting was replaced with the clearStyleCache() function.
@@ -172,8 +162,8 @@ public class StyleGeometryCache {
 			// priority.
 			for (final OsmPrimitive s : newSelection) {
 				if (!selected.contains(s)) {
-					// Give a priority when invalidating.
-					// invalidateGeometry(s);
+					// TODO: Give a priority when invalidating.
+					deepInvalidate(s, invalidated);
 				}
 			}
 			selected = newSelection;
@@ -275,6 +265,25 @@ public class StyleGeometryCache {
 	 */
 	private void invalidate(MergeGroup mergeGroup) {
 		removeCacheEntries(mergeGroup);
+	}
+
+	/**
+	 * Invalidates the geometry and all relations/ways refering to it.
+	 * @param p The primitive
+	 */
+	protected void deepInvalidate(OsmPrimitive p) {
+		deepInvalidate(p, new HashSet<OsmPrimitive>());
+	}
+
+	private void deepInvalidate(OsmPrimitive p,
+			HashSet<OsmPrimitive> invalidated) {
+		if (!invalidated.add(p)) {
+			return;
+		}
+		invalidateGeometry(p);
+		for (final OsmPrimitive ref : p.getReferrers()) {
+			deepInvalidate(ref, invalidated);
+		}
 	}
 
 	/**
