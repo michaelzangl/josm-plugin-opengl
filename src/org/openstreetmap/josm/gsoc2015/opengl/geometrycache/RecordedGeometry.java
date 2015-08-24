@@ -49,6 +49,8 @@ public class RecordedGeometry {
 
 	private final GLLineStippleDefinition lineStripple;
 
+	private GeometryDisposer vboDisposer;
+
 	/**
 	 * Creates a new recorded geometry.
 	 *
@@ -91,7 +93,9 @@ public class RecordedGeometry {
 	 * @param gl
 	 */
 	public synchronized void dispose() {
-		// TODO: Do this, and add delayed deletion of vbo
+		if (vbo >= 0) {
+			vboDisposer.disposeVBO(vbo);
+		}
 
 		if (coordinates != null) {
 			coordinates.release();
@@ -132,8 +136,8 @@ public class RecordedGeometry {
 				// we don't need this any more
 				coordinates.release();
 				coordinates = null;
+				vboDisposer = state;
 			}
-			// TODO: Add to a dispose pool.
 		}
 
 		state.setColor(color);

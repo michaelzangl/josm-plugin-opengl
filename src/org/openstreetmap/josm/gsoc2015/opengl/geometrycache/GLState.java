@@ -2,6 +2,7 @@ package org.openstreetmap.josm.gsoc2015.opengl.geometrycache;
 
 import java.awt.Color;
 import java.nio.FloatBuffer;
+import java.util.ArrayList;
 
 import javax.media.opengl.GL;
 import javax.media.opengl.GL2;
@@ -20,7 +21,7 @@ import com.jogamp.common.nio.Buffers;
  * @author michael
  *
  */
-public class GLState {
+public class GLState implements GeometryDisposer {
 
 	private final GL2 gl;
 
@@ -34,6 +35,9 @@ public class GLState {
 	private final FloatBuffer oldModelview = Buffers.newDirectFloatBuffer(16);
 	private GLLineStippleDefinition oldLineStripple;
 
+	private final ArrayList<Integer> vboToDelete = new ArrayList<>();
+	private final Object vboToDeleteMutex = new Object();
+
 	/**
 	 * Starts with the default opengl state.
 	 *
@@ -41,6 +45,7 @@ public class GLState {
 	 *            The initial view position.
 	 */
 	public void initialize(ViewPosition viewPosition) {
+		deleteVBOs();
 		ckeckGLError(false);
 		gl.glGetFloatv(GLMatrixFunc.GL_MODELVIEW_MATRIX, oldModelview);
 		ckeckGLError(true);
@@ -64,6 +69,19 @@ public class GLState {
 		gl.glEnable(GL.GL_LINE_SMOOTH);
 		gl.glHint(GL.GL_LINE_SMOOTH_HINT, GL.GL_FASTEST);
 		ckeckGLError(true);
+	}
+
+	private void deleteVBOs() {
+		synchronized (vboToDeleteMutex) {
+			if (!vboToDelete.isEmpty()) {
+				int[] vbos = new int[vboToDelete.size()];
+				for (int i = 0; i < vbos.length; i++) {
+					vbos[i] = vboToDelete.get(i);
+				}
+				gl.glDeleteVertexArrays(vbos.length, vbos, 0);
+				vboToDelete.clear();
+			}
+		}
 	}
 
 	private void ckeckGLError(boolean fromMe) {
@@ -95,6 +113,7 @@ public class GLState {
 	 * Resets the OpenGL state to the state assumed by GLG2D.
 	 */
 	public void done() {
+		deleteVBOs();
 		ckeckGLError(false);
 		gl.glDisableClientState(GLPointerFunc.GL_VERTEX_ARRAY);
 		gl.glLoadMatrixf(oldModelview);
@@ -133,8 +152,8 @@ public class GLState {
 		ckeckGLError(false);
 		if (!viewPosition.equals(currentViewPosition)) {
 			// convert the current matrix to the new view position.
-			final float[] m = new float[] { 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0,
-					0, 1 };
+			final float[] m = new float[] { 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0,
+					0, 0, 0, 1 };
 			final float scale = (float) currentViewPosition
 					.translateScaleTo(viewPosition);
 			m[0] = scale;
@@ -150,7 +169,9 @@ public class GLState {
 
 	/**
 	 * Sets the style for drawing lines.
-	 * @param lineStripple The line style.
+	 * 
+	 * @param lineStripple
+	 *            The line style.
 	 */
 	public void setLineStripple(GLLineStippleDefinition lineStripple) {
 		ckeckGLError(false);
@@ -166,5 +187,12 @@ public class GLState {
 
 		oldLineStripple = lineStripple;
 		ckeckGLError(true);
+	}
+
+	@Override
+	public void disposeVBO(int vboId) {
+		synchronized (vboToDeleteMutex) {
+			vboToDelete.add(vboId);
+		}
 	}
 }
