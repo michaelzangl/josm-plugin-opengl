@@ -64,6 +64,7 @@ public class MergeGroup {
 	// handling.
 	private final HashMap<OsmPrimitive, StyleCache> primitiveStyleUsed = new HashMap<>();
 	private final HashMap<OsmPrimitive, Boolean> primitiveStyleHighlighted = new HashMap<>();
+	private int usedFlag = -1;
 
 	/**
 	 * This method rates how good this primitive with the given geometries could
@@ -192,5 +193,21 @@ public class MergeGroup {
 	 */
 	public boolean getStyleCacheUsedHighlighted(OsmPrimitive primitive) {
 		return primitiveStyleHighlighted.get(primitive);
+	}
+
+	/**
+	 * Sets the used flag for this merge group.
+	 * @param usedFlag the flag to set. Used by the cache.
+	 */
+	public void setUsedFlag(int usedFlag) {
+		this.usedFlag = usedFlag;
+	}
+	
+	/**
+	 * Gets the used flag.
+	 * @return The used flag as set with {@link #getUsedFlag()}
+	 */
+	public int getUsedFlag() {
+		return usedFlag;
 	}
 }

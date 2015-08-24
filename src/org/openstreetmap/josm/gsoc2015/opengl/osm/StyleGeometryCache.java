@@ -153,7 +153,8 @@ public class StyleGeometryCache {
 			HashSet<OsmPrimitive> invalidated = new HashSet<>();
 			for (final OsmPrimitive s : selected) {
 				if (!newSelection.contains(s)) {
-					// De-selected geometries seem not even to get a notification themselfes.
+					// De-selected geometries seem not even to get a
+					// notification themselfes.
 					deepInvalidate(s, invalidated);
 				}
 			}
@@ -236,6 +237,11 @@ public class StyleGeometryCache {
 	 */
 	private final Object scheduledForBackgroundMutex = new Object();
 
+	/**
+	 * A counter to implement LRU for the MergeGroups.
+	 */
+	private int usedFlagCounter;
+
 	public StyleGeometryCache(FullRepaintListener repaintListener) {
 		super();
 		this.repaintListener = repaintListener;
@@ -264,12 +270,15 @@ public class StyleGeometryCache {
 	 *            The merge group to regenerate.
 	 */
 	private void invalidate(MergeGroup mergeGroup) {
+		regenerator.abortSchedule(mergeGroup);
 		removeCacheEntries(mergeGroup);
 	}
 
 	/**
 	 * Invalidates the geometry and all relations/ways refering to it.
-	 * @param p The primitive
+	 * 
+	 * @param p
+	 *            The primitive
 	 */
 	protected void deepInvalidate(OsmPrimitive p) {
 		deepInvalidate(p, new HashSet<OsmPrimitive>());
@@ -346,6 +355,7 @@ public class StyleGeometryCache {
 		final ArrayList<RecordedOsmGeometries> list = new ArrayList<>();
 		for (final MergeGroup g : groupsForThisFrame) {
 			list.addAll(g.getGeometries());
+			flagUsed(g);
 		}
 		final ArrayList<RecordedOsmGeometries> fromMerger = collectedForFrameMerger
 				.getGeometries();
@@ -357,6 +367,7 @@ public class StyleGeometryCache {
 		list.addAll(fromMerger);
 		collectedForFrameMerger = null;
 		reset();
+		clearUnused();
 		return list;
 	}
 
@@ -374,8 +385,8 @@ public class StyleGeometryCache {
 				invalidateGeometry(p);
 				recordedForPrimitive.put(p, mergeGroup);
 			}
+			flagUsed(mergeGroup);
 		}
-
 	}
 
 	/**
@@ -478,6 +489,27 @@ public class StyleGeometryCache {
 	private void scheduleForBackground() {
 		regenerator.schedule(scheduledForBackground);
 		scheduledForBackground = null;
+	}
+
+	private void flagUsed(MergeGroup mergeGroup) {
+		mergeGroup.setUsedFlag(usedFlagCounter);
+	}
+
+	/**
+	 * Clear all not recently used groups.
+	 */
+	private void clearUnused() {
+		if (usedFlagCounter % 5 == 0) {
+			HashSet<MergeGroup> groups = new HashSet<>(
+					recordedForPrimitive.values());
+			for (MergeGroup mergeGroup : groups) {
+				if (usedFlagCounter - mergeGroup.getUsedFlag() > 8) {
+					// invalidates simply removes all references to this group from the cache.
+					invalidate(mergeGroup);
+				}
+			}
+		}
+		usedFlagCounter++;
 	}
 
 	/**
