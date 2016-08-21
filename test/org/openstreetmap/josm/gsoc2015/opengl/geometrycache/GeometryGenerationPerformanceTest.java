@@ -53,8 +53,8 @@ public class GeometryGenerationPerformanceTest {
 	 * If we should also run it using java2d to see the difference.
 	 */
 	private static final boolean RUN_REFERENCE = true;
-	private static final int SIMPLE_NODE_COUNT = 1000000;
-	private static final int COMPLEX_NODE_COUNT = 100000;
+	private static final int SIMPLE_NODE_COUNT = 100000;
+	private static final int COMPLEX_NODE_COUNT = 10000;
 
 	private static class GeometryGenerationRunner implements Runnable {
 

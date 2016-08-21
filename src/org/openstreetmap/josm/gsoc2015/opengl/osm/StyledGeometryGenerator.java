@@ -17,13 +17,13 @@ import org.openstreetmap.josm.gsoc2015.opengl.geometrycache.OsmPrimitiveRecorder
 import org.openstreetmap.josm.gsoc2015.opengl.geometrycache.RecordedOsmGeometries;
 import org.openstreetmap.josm.gsoc2015.opengl.osm.OpenGLStyledMapRenderer.StyleGenerationState;
 import org.openstreetmap.josm.gui.NavigatableComponent;
-import org.openstreetmap.josm.gui.mappaint.AreaElemStyle;
-import org.openstreetmap.josm.gui.mappaint.ElemStyle;
 import org.openstreetmap.josm.gui.mappaint.ElemStyles;
 import org.openstreetmap.josm.gui.mappaint.MapPaintStyles;
-import org.openstreetmap.josm.gui.mappaint.NodeElemStyle;
-import org.openstreetmap.josm.gui.mappaint.StyleCache.StyleList;
+import org.openstreetmap.josm.gui.mappaint.StyleElementList;
 import org.openstreetmap.josm.gui.mappaint.mapcss.MapCSSStyleSource;
+import org.openstreetmap.josm.gui.mappaint.styleelement.AreaElement;
+import org.openstreetmap.josm.gui.mappaint.styleelement.NodeElement;
+import org.openstreetmap.josm.gui.mappaint.styleelement.StyleElement;
 
 /**
  * This class computes the styles for a given array of elements. This class only
@@ -173,19 +173,19 @@ public class StyledGeometryGenerator implements Visitor {
 
 	@Override
 	public void visit(Node n) {
-		final StyleList sl = styles.get(n, sgs.getCircum(), sgs.getCacheKey());
+		final StyleElementList sl = styles.get(n, sgs.getCircum(), sgs.getCacheKey());
 		final long state = getState(n);
-		for (final ElemStyle s : sl) {
+		for (final StyleElement s : sl) {
 			runForStyle(n, s, state);
 		}
 	}
 
 	@Override
 	public void visit(Way w) {
-		final StyleList sl = styles.get(w, sgs.getCircum(), sgs.getCacheKey());
+		final StyleElementList sl = styles.get(w, sgs.getCircum(), sgs.getCacheKey());
 		final long state = getState(w);
-		for (final ElemStyle s : sl) {
-			if (!(drawArea && !w.isDisabled()) && s instanceof AreaElemStyle) {
+		for (final StyleElement s : sl) {
+			if (!(drawArea && !w.isDisabled()) && s instanceof AreaElement) {
 				continue;
 			}
 			runForStyle(w, s, state);
@@ -194,13 +194,13 @@ public class StyledGeometryGenerator implements Visitor {
 
 	@Override
 	public void visit(Relation r) {
-		final StyleList sl = styles.get(r, sgs.getCircum(), sgs.getCacheKey());
+		final StyleElementList sl = styles.get(r, sgs.getCircum(), sgs.getCacheKey());
 		final long state = getState(r);
-		for (final ElemStyle s : sl) {
-			if (drawMultipolygon && drawArea && s instanceof AreaElemStyle
+		for (final StyleElement s : sl) {
+			if (drawMultipolygon && drawArea && s instanceof AreaElement
 					&& !r.isDisabled()) {
 				runForStyle(r, s, state);
-			} else if (drawRestriction && s instanceof NodeElemStyle) {
+			} else if (drawRestriction && s instanceof NodeElement) {
 				runForStyle(r, s, state);
 			}
 		}
@@ -211,7 +211,7 @@ public class StyledGeometryGenerator implements Visitor {
 		throw new UnsupportedOperationException();
 	}
 
-	protected void runForStyle(OsmPrimitive primitive, ElemStyle s, long state) {
+	protected void runForStyle(OsmPrimitive primitive, StyleElement s, long state) {
 		recorder.start(primitive, sgs.getViewPosition(),
 				getOrderIndex(primitive, s, state));
 		s.paintPrimitive(primitive, MapPaintSettings.INSTANCE,
@@ -236,7 +236,7 @@ public class StyledGeometryGenerator implements Visitor {
 	 * @return A long that has the same order as if the style was sorted by the
 	 *         Java2D implementation.
 	 */
-	private static long getOrderIndex(OsmPrimitive primitive, ElemStyle s,
+	private static long getOrderIndex(OsmPrimitive primitive, StyleElement s,
 			long state) {
 		final int MAJOR_SHIFT = 32;
 		final int MINOR_SHIFT = 1;
@@ -248,7 +248,7 @@ public class StyledGeometryGenerator implements Visitor {
 		orderIndex |= floatToFixed(s.majorZIndex, 24, 8) << MAJOR_SHIFT;
 		orderIndex |= state;
 		orderIndex |= floatToFixed(s.zIndex, 24, 8) << MINOR_SHIFT;
-		orderIndex |= s == NodeElemStyle.SIMPLE_NODE_ELEMSTYLE ? 1 : 0;
+		orderIndex |= s == NodeElement.SIMPLE_NODE_ELEMSTYLE ? 1 : 0;
 
 		return orderIndex;
 	}
