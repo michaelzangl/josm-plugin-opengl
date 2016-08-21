@@ -12,15 +12,16 @@
 -->
 <project name="plugin_common" basedir="." xmlns:jacoco="antlib:org.jacoco.ant">
 
-    <property name="josm"                   location="../josm/dist/josm-custom.jar"/>
-    <property name="josm.test.build.dir"    location="../josm/test/build"/>
-    <property name="groovy.jar"             location="../00_core_tools/groovy-all-2.4.3.jar"/>
+    <property name="josm"                   location="../../core/dist/josm-custom.jar"/>
+    <property name="josm.test.build.dir"    location="../../core/test/build"/>
+    <property name="groovy.jar"             location="../00_core_tools/groovy-all-2.4.6.jar"/>
+    <property name="annotations.jar"        location="../00_core_tools/findbugs/annotations.jar"/>
     <property name="plugin.build.dir"       location="build"/>
     <property name="plugin.test.dir"        location="test"/>
     <property name="plugin.src.dir"         location="src"/>
     <property name="plugin.lib.dir"         location="lib"/>
     <!-- this is the directory where the plugin jar is copied to -->
-    <property name="plugin.dist.dir"        location="${user.home}/.josm/plugins"/>
+    <property name="plugin.dist.dir"        location="../../dist"/>
     <property name="ant.build.javac.target" value="1.7"/>
     <property name="ant.build.javac.source" value="1.7"/>
     <property name="plugin.jar"             location="${plugin.dist.dir}/${ant.project.name}.jar"/>
@@ -52,7 +53,7 @@
     ** compile - compiles the source tree
     **********************************************************
     -->
-    <extension-point name="pre-compile" depends="init"/>
+	<extension-point name="pre-compile" depends="init"/>
     <target name="compile" depends="pre-compile">
         <echo message="compiling sources for ${plugin.jar} ..."/>
         <javac srcdir="src" debug="true" destdir="${plugin.build.dir}" includeantruntime="false" encoding="UTF-8">
@@ -148,14 +149,28 @@
             <param name="property.value" value="${plugin.canloadatruntime}"/>
         </antcall>
         <antcall target="additional-manifest" />
-        <jar destfile="${plugin.jar}" basedir="${plugin.build.dir}" manifest="MANIFEST">
-            <zipgroupfileset dir="${plugin.lib.dir}" includes="**/*.jar" excludes="**/*-sources.jar, **/*-javadoc.jar" erroronmissingdir="no"/>
+        <jar destfile="${plugin.jar}" basedir="${plugin.build.dir}" manifest="MANIFEST" manifestencoding="UTF-8">
+            <restrict>
+                <not><or>
+                    <name name="META-INF/maven/*"/>
+                    <name name="META-INF/DEPENDENCIES"/>
+                    <name name="META-INF/LICENSE"/>
+                    <name name="META-INF/NOTICE"/>
+                    <name name="META-INF/*.RSA"/>
+                    <name name="META-INF/*.SF"/>
+                </or></not>
+                <archives>
+                    <zips>
+                        <fileset dir="${plugin.lib.dir}" includes="*.jar" excludes="*-sources.jar, *-javadoc.jar" erroronmissingdir="no"/>
+                    </zips>
+                </archives>
+            </restrict>
         </jar>
         <delete file="MANIFEST" failonerror="no"/>
         <antcall target="post-dist" />
     </target>
     <target name="post-dist">
-    	<!-- to be overidden by plugins that need to perform additional tasks on resulting jar -->
+        <!-- to be overidden by plugins that need to perform additional tasks on resulting jar -->
     </target>
     <target name="add-manifest-attribute" depends="check-manifest-attribute" if="have-${property.name}">
         <manifest file="MANIFEST" mode="update">
@@ -214,7 +229,7 @@
             %ai: author date, ISO 8601 format
             -->
             <arg value="--pretty=format:%B%n%ai"/>
-            <arg value="HEAD"/>
+            <arg value="."/>
         </exec>
         <replaceregexp file="REVISION.XML" flags="s"
                        match=".*git-svn-id: [^@]*@([0-9]+).*(\d{4}-\d{2}-\d{2}.\d{2}\:\d{2}\:\d{2}\s*[+-]\d{2}:?\d{2})\s*$"
@@ -237,7 +252,7 @@
             <arg value="log"/>
             <arg value="-1"/>
             <arg value="--pretty=format:%at%n%ai"/>
-            <arg value="HEAD"/>
+            <arg value="."/>
         </exec>
         <replaceregexp file="REVISION.XML" flags="s"
                        match="\s*(\d*)\s+(\d{4}-\d{2}-\d{2}.\d{2}\:\d{2}\:\d{2}\s*[+-]\d{2}:?\d{2})\s*$"
@@ -296,10 +311,10 @@
         <copy file="${plugin.jar}" todir="${josm.plugins.dir}"/>
     </target>
     <!--
-    ************************** Publishing the plugin *********************************** 
+    ************************** Publishing the plugin ***********************************
     -->
     <!--
-    ** extracts the JOSM release for the JOSM version in ../core and saves it in the 
+    ** extracts the JOSM release for the JOSM version in ../core and saves it in the
     ** property ${coreversion.info.entry.revision}
     **
     -->
@@ -346,7 +361,7 @@
         </exec>
     </target>
     <!--
-    ** commits the plugin.jar 
+    ** commits the plugin.jar
     -->
     <target name="commit-dist">
         <echo>
@@ -391,7 +406,7 @@
 
     <target name="publish" depends="ensure-svn-present,core-info,commit-current,update-current,clean,dist,commit-dist">
     </target>
-	
+
     <path id="test.classpath">
         <fileset dir="../00_core_test_lib">
             <include name="**/*.jar"/>
@@ -406,15 +421,17 @@
             <exclude name="**/*-sources.jar"/>
             <exclude name="**/*-javadoc.jar"/>
         </fileset>
-        <fileset dir="resources/lib" erroronmissingdir="no">
-            <include name="**/*.jar"/>
-            <exclude name="**/*-sources.jar"/>
+    	<fileset dir="resources/lib" erroronmissingdir="no">
+    	    <include name="**/*.jar"/>
+    	    <exclude name="**/*-sources.jar"/>
             <exclude name="**/*-javadoc.jar"/>
         </fileset>
+        <pathelement path="${plugin.test.dir}/data"/>
         <pathelement path="${josm.test.build.dir}/unit"/>
         <pathelement path="${josm}"/>
         <pathelement path="${plugin.jar}"/>
         <pathelement path="${groovy.jar}"/>
+        <pathelement path="${annotations.jar}"/>
     </path>
     <macrodef name="init-test-preferences">
         <sequential>
@@ -451,7 +468,7 @@
             </groovyc>
         </sequential>
     </target>
-    <target name="test" depends="dist, test-clean, test-compile" 
+    <target name="test" depends="dist, test-clean, test-compile"
         description="Run unit tests. OSM API (TEST) account shall be set with -Dosm.username and -Dosm.password">
         <taskdef uri="antlib:org.jacoco.ant" resource="org/jacoco/ant/antlib.xml" classpath="../00_core_tools/jacocoant.jar" />
         <sequential>
@@ -477,7 +494,7 @@
             </jacoco:coverage>
         </sequential>
     </target>
-	
+
     <target name="runjosm" depends="install">
         <java jar="${josm}" fork="true">
         </java>
@@ -491,22 +508,21 @@
         </java>
     </target>
     <!--
-    ** shows a help text 
+    ** shows a help text
     -->
     <target name="help">
         <echo>
     You can use following targets:
     * dist        This default target builds the plugin jar file
     * clean       Cleanup automatical created files
-	* test        Run unit tests (if any)
+    * test        Run unit tests (if any)
     * publish     Checkin source code, build jar and checkin plugin jar
                   (requires proper entry for SVN commit message!)
     * install     Install the plugin in current system
     * runjosm     Install plugin and start josm
     * profilejosm Install plugin and start josm in profiling mode
-    
+
     There are other targets, which usually should not be called manually.
         </echo>
     </target>
 </project>
-
