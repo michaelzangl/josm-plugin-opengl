@@ -9,6 +9,7 @@ import org.openstreetmap.josm.data.osm.visitor.paint.MapRendererFactory;
 import org.openstreetmap.josm.data.osm.visitor.paint.Rendering;
 import org.openstreetmap.josm.data.osm.visitor.paint.StyledMapRenderer;
 import org.openstreetmap.josm.gsoc2015.opengl.osm.OpenGLStyledMapRenderer;
+import org.openstreetmap.josm.gui.MainApplication;
 import org.openstreetmap.josm.gui.MapView;
 import org.openstreetmap.josm.gui.layer.OsmDataLayer;
 
@@ -46,7 +47,7 @@ public class OsmLayerDrawer extends LayerDrawer {
 
 	@Override
 	public void drawLayer(Graphics2D g2d, MapView mv, Bounds box) {
-		final boolean active = mv.getActiveLayer() == osmLayer;
+		final boolean active = MainApplication.getLayerManager().getActiveLayer() == osmLayer;
 		final boolean inactive = !active
 				&& Main.pref.getBoolean("draw.data.inactive_color", true);
 		final boolean virtual = !inactive && mv.isVirtualNodesEnabled();
@@ -69,7 +70,7 @@ public class OsmLayerDrawer extends LayerDrawer {
 
 		// This should be a temporary layer. Or even a full
 		// layer. What about sublayers?
-		Main.map.conflictDialog.paintConflicts(g2d, mv);
+		MainApplication.getMap().conflictDialog.paintConflicts(g2d, mv);
 	}
 
 	private void disposeCachedRenderer() {

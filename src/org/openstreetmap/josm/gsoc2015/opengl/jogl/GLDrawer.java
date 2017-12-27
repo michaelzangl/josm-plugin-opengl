@@ -16,6 +16,7 @@ import org.openstreetmap.josm.Main;
 import org.openstreetmap.josm.data.Bounds;
 import org.openstreetmap.josm.data.osm.visitor.paint.PaintColors;
 import org.openstreetmap.josm.gsoc2015.opengl.layers.LayerDrawManager;
+import org.openstreetmap.josm.gui.MainApplication;
 import org.openstreetmap.josm.gui.MapView;
 
 /**
@@ -103,7 +104,7 @@ final class GLDrawer implements GLEventListener {
 				drawable.getSurfaceHeight());
 
 		// reload the layers (we might make this event based)
-		layerDrawer.setLayersToDraw(Main.getLayerManager().getVisibleLayersInZOrder());
+		layerDrawer.setLayersToDraw(MainApplication.getLayerManager().getVisibleLayersInZOrder());
 		temporaryLayerDrawer.setLayersToDraw(mapView.getTemporaryLayers());
 
 		final Bounds box = mapView.getLatLonBounds(new Rectangle(drawable

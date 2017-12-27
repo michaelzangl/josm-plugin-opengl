@@ -5,9 +5,9 @@ import static org.openstreetmap.josm.tools.I18n.tr;
 import java.awt.event.ActionEvent;
 import java.awt.event.KeyEvent;
 
-import org.openstreetmap.josm.Main;
 import org.openstreetmap.josm.actions.ToggleAction;
 import org.openstreetmap.josm.gsoc2015.opengl.MapViewPaintModeState.PaintMode;
+import org.openstreetmap.josm.gui.MainApplication;
 import org.openstreetmap.josm.tools.Shortcut;
 
 /**
@@ -33,13 +33,13 @@ MapViewPaintModeState.PaintModeListener {
 				"menu:view:opengl", tr("Toggle OpenGL view"), KeyEvent.VK_W,
 				Shortcut.ALT_CTRL_SHIFT), true);
 		putValue("toolbar", "toggle-opengl");
-		Main.toolbar.register(this);
+		MainApplication.getToolbar().register(this);
 		MapViewPaintModeState.getInstance().addPaintModeListener(this, true);
 	}
 
 	@Override
 	protected void updateEnabledState() {
-		setEnabled(Main.main.hasEditLayer());
+		setEnabled(MainApplication.getLayerManager().getEditLayer() != null);
 	}
 
 	@Override

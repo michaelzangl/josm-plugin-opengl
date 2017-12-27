@@ -8,7 +8,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
-import org.openstreetmap.josm.Main;
 import org.openstreetmap.josm.data.osm.BBox;
 import org.openstreetmap.josm.data.osm.DataSet;
 import org.openstreetmap.josm.data.osm.Node;
@@ -22,6 +21,7 @@ import org.openstreetmap.josm.gsoc2015.opengl.osm.search.NodeSearcher;
 import org.openstreetmap.josm.gsoc2015.opengl.osm.search.OsmPrimitiveHandler;
 import org.openstreetmap.josm.gsoc2015.opengl.osm.search.RelationSearcher;
 import org.openstreetmap.josm.gsoc2015.opengl.osm.search.WaySearcher;
+import org.openstreetmap.josm.gui.MainApplication;
 
 /**
  * This class manages a bunch of threads that search primitives, generate styles
@@ -273,7 +273,7 @@ public class StyleGenerationManager {
 			FullRepaintListener repaintListener) {
 		this.data = data;
 		cache = new StyleGeometryCache(repaintListener);
-		cache.addListeners(data, Main.map.mapView);
+		cache.addListeners(data, MainApplication.getMap().mapView);
 		geometryGenerationThreads = new BackgroundThreadPool(
 				cache.getRegenerator());
 	}

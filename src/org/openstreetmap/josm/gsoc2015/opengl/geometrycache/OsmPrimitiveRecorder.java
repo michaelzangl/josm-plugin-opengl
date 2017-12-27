@@ -3,21 +3,20 @@ package org.openstreetmap.josm.gsoc2015.opengl.geometrycache;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.openstreetmap.josm.Main;
-import org.openstreetmap.josm.data.osm.Changeset;
 import org.openstreetmap.josm.data.osm.Node;
 import org.openstreetmap.josm.data.osm.OsmPrimitive;
 import org.openstreetmap.josm.data.osm.Relation;
 import org.openstreetmap.josm.data.osm.Way;
-import org.openstreetmap.josm.data.osm.visitor.Visitor;
+import org.openstreetmap.josm.data.osm.visitor.OsmPrimitiveVisitor;
 import org.openstreetmap.josm.gsoc2015.opengl.osm.ViewPosition;
+import org.openstreetmap.josm.tools.Logging;
 
 /**
  * A recorder that records the geometry for one OSM primitive.
  *
  * @author michael
  */
-public class OsmPrimitiveRecorder implements Recorder, Visitor {
+public class OsmPrimitiveRecorder implements Recorder, OsmPrimitiveVisitor {
 
 	private final List<RecordedGeometry> geometries = new ArrayList<>();
 	private OsmPrimitive activePrimitive;
@@ -75,7 +74,7 @@ public class OsmPrimitiveRecorder implements Recorder, Visitor {
 		if (!cachedGeometry.isNop()) {
 			geometries.add(cachedGeometry);
 		} else {
-			Main.warn("Skipping a nop geometry");
+			Logging.warn("Skipping a nop geometry");
 			cachedGeometry.dispose();
 		}
 	}
@@ -132,10 +131,5 @@ public class OsmPrimitiveRecorder implements Recorder, Visitor {
 	public void visit(Relation r) {
 		receiver.receiveForRelation(new RecordedOsmGeometries(geometries, r,
 				activeOrderIndex, viewPosition));
-	}
-
-	@Override
-	public void visit(Changeset cs) {
-		throw new UnsupportedOperationException();
 	}
 }

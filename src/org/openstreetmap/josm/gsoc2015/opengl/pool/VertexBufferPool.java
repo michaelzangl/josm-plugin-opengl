@@ -4,8 +4,8 @@ import java.nio.FloatBuffer;
 import java.util.ArrayList;
 import java.util.IdentityHashMap;
 
-import org.openstreetmap.josm.Main;
 import org.openstreetmap.josm.gsoc2015.opengl.util.DebugUtils;
+import org.openstreetmap.josm.tools.Logging;
 
 import com.jogamp.common.nio.Buffers;
 
@@ -68,7 +68,7 @@ public class VertexBufferPool extends VertexBufferProvider {
 		@Override
 		protected void finalize() throws Throwable {
 			if (buffer != null) {
-				Main.warn("Leaking float buffer.");
+				Logging.warn("Leaking float buffer.");
 			}
 			super.finalize();
 		}
