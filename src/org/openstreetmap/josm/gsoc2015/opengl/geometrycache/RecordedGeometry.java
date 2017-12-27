@@ -11,11 +11,11 @@ import javax.media.opengl.GL2;
 import javax.media.opengl.GL2GL3;
 
 import org.jogamp.glg2d.VertexBuffer;
-import org.openstreetmap.josm.Main;
 import org.openstreetmap.josm.gsoc2015.opengl.geometrycache.TextureManager.TextureEntry;
 import org.openstreetmap.josm.gsoc2015.opengl.pool.Releasable;
 import org.openstreetmap.josm.gsoc2015.opengl.pool.VertexBufferProvider;
 import org.openstreetmap.josm.gsoc2015.opengl.pool.VertexBufferProvider.ReleasableVertexBuffer;
+import org.openstreetmap.josm.tools.Logging;
 
 import com.jogamp.common.nio.Buffers;
 
@@ -108,7 +108,7 @@ public class RecordedGeometry {
 	@Override
 	protected void finalize() throws Throwable {
 		if (points > 0) {
-			Main.warn("RecordedGeometry was finalized but is missing dispose()");
+			Logging.warn("RecordedGeometry was finalized but is missing dispose()");
 		}
 	};
 
@@ -126,7 +126,7 @@ public class RecordedGeometry {
 			gl.glGenBuffers(1, vboIds, 0);
 			vbo = vboIds[0];
 			if (vbo == 0) {
-				Main.warn("Could not generate VBO object.");
+				Logging.warn("Could not generate VBO object.");
 				vbo = -1;
 			} else {
 				gl.glBindBuffer(GL.GL_ARRAY_BUFFER, vbo);

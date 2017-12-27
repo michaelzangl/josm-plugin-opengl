@@ -4,10 +4,10 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 
-import org.openstreetmap.josm.Main;
 import org.openstreetmap.josm.data.osm.DataSet;
 import org.openstreetmap.josm.data.osm.OsmPrimitive;
 import org.openstreetmap.josm.gui.mappaint.StyleCache;
+import org.openstreetmap.josm.tools.Logging;
 
 /**
  * This is a set of primitives and their merged geometries. Once the geometries
@@ -130,7 +130,7 @@ public class MergeGroup {
 		if (style != null) {
 			primitiveStyleUsed.put(p, style);
 		} else {
-			Main.warn("No style set for " + p);
+			Logging.warn("No style set for " + p);
 		}
 		primitiveStyleHighlighted.put(p, p.isHighlighted());
 		for (final RecordedOsmGeometries m : geometries) {

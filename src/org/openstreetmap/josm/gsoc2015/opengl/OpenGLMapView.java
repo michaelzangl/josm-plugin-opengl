@@ -13,8 +13,6 @@ import javax.swing.JComponent;
 import javax.swing.JPanel;
 import javax.swing.SpringLayout;
 
-import org.openstreetmap.josm.gsoc2015.opengl.install.JOGLInstaller;
-import org.openstreetmap.josm.gsoc2015.opengl.install.JOGLInstaller.JOGLInstallProgress;
 import org.openstreetmap.josm.gsoc2015.opengl.jogl.MapPanelFactory;
 import org.openstreetmap.josm.gui.MapView;
 import org.openstreetmap.josm.plugins.PluginInformation;
@@ -52,18 +50,6 @@ public class OpenGLMapView extends JPanel {
 		}
 
 		final ProgressPanel progressMonitor = new ProgressPanel();
-		JOGLInstaller.requireJOGLInstallation(new JOGLInstallProgress() {
-			@Override
-			public void progressChanged(float progress, String message) {
-				progressMonitor.progressChanged(progress, message);
-			}
-
-			@Override
-			public void joglInstalled() {
-				OpenGLMapView.this.remove(progressMonitor);
-				addOpenglView();
-			}
-		}, pluginInformation);
 		add(progressMonitor);
 	}
 

@@ -19,7 +19,6 @@ import org.jogamp.glg2d.GLGraphics2D;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.openstreetmap.josm.JOSMFixture;
-import org.openstreetmap.josm.Main;
 import org.openstreetmap.josm.PerformanceTestUtils;
 import org.openstreetmap.josm.PerformanceTestUtils.PerformanceTestTimer;
 import org.openstreetmap.josm.data.Bounds;
@@ -32,6 +31,7 @@ import org.openstreetmap.josm.data.osm.OsmDataGenerator.NodeDataGenerator;
 import org.openstreetmap.josm.gsoc2015.opengl.layers.OsmLayerDrawer;
 import org.openstreetmap.josm.gsoc2015.opengl.osm.OpenGLStyledMapRenderer.StyleGenerationState;
 import org.openstreetmap.josm.gsoc2015.opengl.pool.SimpleBufferPool;
+import org.openstreetmap.josm.gui.MainApplication;
 import org.openstreetmap.josm.gui.MapView;
 import org.openstreetmap.josm.gui.layer.OsmDataLayer;
 import org.openstreetmap.josm.gui.mappaint.MapPaintStyles;
@@ -91,8 +91,8 @@ public class GeometryGenerationPerformanceTest {
 			OsmDataLayer osmLayer = dataGenerator.createDataLayer();
 			OsmLayerDrawer drawer = new OsmLayerDrawer(osmLayer);
 
-			MapView mapView = Main.map.mapView;
-			mapView.addLayer(osmLayer);
+			MapView mapView = MainApplication.getMap().mapView;
+			MainApplication.getLayerManager().addLayer(osmLayer);
 			mapView.setBounds(new Rectangle(WIDTH, HEIGHT));
 			mapView.zoomTo(new ProjectionBounds(new EastNorth(0, 0),
 					new EastNorth(1, 1)));

@@ -9,9 +9,9 @@ import javax.swing.JComponent;
 import javax.swing.JMenu;
 import javax.swing.JPanel;
 
-import org.openstreetmap.josm.Main;
 import org.openstreetmap.josm.gsoc2015.opengl.MapViewPaintModeState.PaintMode;
 import org.openstreetmap.josm.gsoc2015.opengl.MapViewPaintModeState.PaintModeListener;
+import org.openstreetmap.josm.gui.MainApplication;
 import org.openstreetmap.josm.gui.MapFrame;
 import org.openstreetmap.josm.gui.MapView;
 import org.openstreetmap.josm.gui.preferences.ToolbarPreferences;
@@ -85,7 +85,7 @@ public class OpenGLViewPlugin extends Plugin {
 	}
 
 	private void addMenuButton() {
-		final JMenu menu = Main.main.menu.viewMenu;
+		final JMenu menu = MainApplication.getMenu().viewMenu;
 		menu.add(new PaintModeMenuButton(), 1);
 	}
 
@@ -96,7 +96,7 @@ public class OpenGLViewPlugin extends Plugin {
 				.saveAction(new ToolbarPreferences.ActionDefinition(
 						ChangePaintModeAction.getInstance()));
 		System.out.println("Action: " + action);
-		Main.toolbar.addCustomButton(action, -1, false);
+		MainApplication.getToolbar().addCustomButton(action, -1, false);
 	}
 
 	private OpenGLSwitchPanel addOpenglView(MapView mapView) {

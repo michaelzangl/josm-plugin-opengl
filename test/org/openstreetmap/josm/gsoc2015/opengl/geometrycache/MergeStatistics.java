@@ -1,6 +1,8 @@
 package org.openstreetmap.josm.gsoc2015.opengl.geometrycache;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.fail;
 
 import java.io.File;
 import java.io.IOException;
@@ -17,17 +19,19 @@ import org.openstreetmap.josm.Main;
 import org.openstreetmap.josm.PerformanceTestUtils;
 import org.openstreetmap.josm.PerformanceTestUtils.PerformanceTestTimer;
 import org.openstreetmap.josm.data.osm.DataSet;
+import org.openstreetmap.josm.data.preferences.sources.SourceEntry;
+import org.openstreetmap.josm.data.preferences.sources.SourceType;
 import org.openstreetmap.josm.gsoc2015.opengl.osm.FullRepaintListener;
 import org.openstreetmap.josm.gsoc2015.opengl.osm.OpenGLStyledMapRenderer.StyleGenerationState;
 import org.openstreetmap.josm.gsoc2015.opengl.osm.StyleGenerationManager;
 import org.openstreetmap.josm.gsoc2015.opengl.osm.ViewPosition;
 import org.openstreetmap.josm.gsoc2015.opengl.util.DebugUtils;
+import org.openstreetmap.josm.gui.MainApplication;
 import org.openstreetmap.josm.gui.MapView;
 import org.openstreetmap.josm.gui.layer.OsmDataLayer;
 import org.openstreetmap.josm.gui.mappaint.ElemStyles;
 import org.openstreetmap.josm.gui.mappaint.MapPaintStyles;
 import org.openstreetmap.josm.gui.mappaint.mapcss.MapCSSStyleSource;
-import org.openstreetmap.josm.gui.preferences.SourceEntry;
 import org.openstreetmap.josm.gui.util.GuiHelper;
 import org.openstreetmap.josm.io.Compression;
 import org.openstreetmap.josm.io.IllegalDataException;
@@ -62,12 +66,12 @@ public class MergeStatistics {
 			IllegalDataException, IOException {
 		loadStyle(STYLE_FILE);
 		final DataSet ds = loadData("../josm-plugin-opengl/data_nodist/city.osm");
-		final MapView mv = Main.map.mapView;
+		final MapView mv = MainApplication.getMap().mapView;
 
 		GuiHelper.runInEDTAndWait(new Runnable() {
 			@Override
 			public void run() {
-				mv.addLayer(new OsmDataLayer(ds, "test", new File(STYLE_FILE)));
+				MainApplication.getLayerManager().addLayer(new OsmDataLayer(ds, "test", new File(STYLE_FILE)));
 
 				mv.zoomTo(ds.getDataSourceBoundingBox());
 			}
@@ -125,7 +129,7 @@ public class MergeStatistics {
 	private void loadStyle(String file) throws NoSuchMethodException,
 			SecurityException, IllegalAccessException,
 			IllegalArgumentException, InvocationTargetException {
-		MapCSSStyleSource source = new MapCSSStyleSource(new SourceEntry(file,
+		MapCSSStyleSource source = new MapCSSStyleSource(new SourceEntry(SourceType.MAP_PAINT_STYLE, file,
 				"test style", "a test style", true // active
 				));
 		source.loadStyleSource();

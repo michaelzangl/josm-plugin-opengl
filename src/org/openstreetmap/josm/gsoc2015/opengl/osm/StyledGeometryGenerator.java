@@ -5,14 +5,14 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.openstreetmap.josm.Main;
-import org.openstreetmap.josm.data.osm.Changeset;
 import org.openstreetmap.josm.data.osm.Node;
 import org.openstreetmap.josm.data.osm.OsmPrimitive;
 import org.openstreetmap.josm.data.osm.Relation;
 import org.openstreetmap.josm.data.osm.Way;
-import org.openstreetmap.josm.data.osm.visitor.Visitor;
+import org.openstreetmap.josm.data.osm.visitor.OsmPrimitiveVisitor;
 import org.openstreetmap.josm.data.osm.visitor.paint.MapPaintSettings;
 import org.openstreetmap.josm.data.osm.visitor.paint.StyledMapRenderer;
+import org.openstreetmap.josm.data.preferences.IntegerProperty;
 import org.openstreetmap.josm.gsoc2015.opengl.geometrycache.OsmPrimitiveRecorder;
 import org.openstreetmap.josm.gsoc2015.opengl.geometrycache.RecordedOsmGeometries;
 import org.openstreetmap.josm.gsoc2015.opengl.osm.OpenGLStyledMapRenderer.StyleGenerationState;
@@ -33,7 +33,7 @@ import org.openstreetmap.josm.gui.mappaint.styleelement.StyleElement;
  *
  * @param <T>
  */
-public class StyledGeometryGenerator implements Visitor {
+public class StyledGeometryGenerator implements OsmPrimitiveVisitor {
 	/**
 	 * A primitive with {@link OsmPrimitive#isDisabled()}
 	 * <p>
@@ -93,8 +93,8 @@ public class StyledGeometryGenerator implements Visitor {
 		this.sgs = sgs;
 		recorder = new OsmPrimitiveRecorder(
 				new SimpleRecodingReceiver(recorded));
-		drawArea = sgs.getCircum() <= Main.pref.getInteger(
-				"mappaint.fillareas", 10000000);
+		drawArea = sgs.getCircum() <= new IntegerProperty(
+				"mappaint.fillareas", 10000000).get();
 		drawMultipolygon = drawArea
 				&& Main.pref.getBoolean("mappaint.multipolygon", true);
 	}
@@ -204,11 +204,6 @@ public class StyledGeometryGenerator implements Visitor {
 				runForStyle(r, s, state);
 			}
 		}
-	}
-
-	@Override
-	public void visit(Changeset cs) {
-		throw new UnsupportedOperationException();
 	}
 
 	protected void runForStyle(OsmPrimitive primitive, StyleElement s, long state) {
